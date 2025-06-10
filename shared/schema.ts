@@ -1,0 +1,112 @@
+import {
+  pgTable,
+  text,
+  varchar,
+  timestamp,
+  jsonb,
+  index,
+  serial,
+  integer,
+  boolean,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (required for Replit Auth)
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  gold: integer("gold").default(500).notNull(),
+  diamonds: integer("diamonds").default(0).notNull(),
+  currentSubject: varchar("current_subject").default("mixed"),
+  questionsAnswered: integer("questions_answered").default(0).notNull(),
+  correctAnswers: integer("correct_answers").default(0).notNull(),
+  currentStreak: integer("current_streak").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Monsters table
+export const monsters = pgTable("monsters", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  type: varchar("type").notNull(), // fire, water, electric, etc.
+  basePower: integer("base_power").notNull(),
+  baseSpeed: integer("base_speed").notNull(),
+  baseDefense: integer("base_defense").notNull(),
+  goldCost: integer("gold_cost").notNull(),
+  diamondCost: integer("diamond_cost").default(0).notNull(),
+  description: text("description"),
+  iconClass: varchar("icon_class").notNull(), // Font Awesome class
+  gradient: varchar("gradient").notNull(), // CSS gradient colors
+});
+
+// User monsters (owned monsters)
+export const userMonsters = pgTable("user_monsters", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  monsterId: integer("monster_id").references(() => monsters.id).notNull(),
+  level: integer("level").default(1).notNull(),
+  power: integer("power").notNull(),
+  speed: integer("speed").notNull(),
+  defense: integer("defense").notNull(),
+  acquiredAt: timestamp("acquired_at").defaultNow(),
+});
+
+// Questions table
+export const questions = pgTable("questions", {
+  id: serial("id").primaryKey(),
+  subject: varchar("subject").notNull(), // math, spelling, mixed
+  difficulty: integer("difficulty").notNull(), // 1-5 scale
+  questionText: text("question_text").notNull(),
+  correctAnswer: varchar("correct_answer").notNull(),
+  options: jsonb("options").notNull(), // Array of answer options
+  hint: text("hint"),
+  goldReward: integer("gold_reward").notNull(),
+});
+
+// Battle history
+export const battles = pgTable("battles", {
+  id: serial("id").primaryKey(),
+  attackerId: varchar("attacker_id").references(() => users.id).notNull(),
+  defenderId: varchar("defender_id").references(() => users.id).notNull(),
+  attackerMonsterId: integer("attacker_monster_id").references(() => userMonsters.id).notNull(),
+  defenderMonsterId: integer("defender_monster_id").references(() => userMonsters.id).notNull(),
+  winnerId: varchar("winner_id").references(() => users.id).notNull(),
+  goldFee: integer("gold_fee").notNull(),
+  diamondsAwarded: integer("diamonds_awarded").notNull(),
+  battleAt: timestamp("battle_at").defaultNow(),
+});
+
+// Schemas for validation
+export const upsertUserSchema = createInsertSchema(users);
+export const insertMonsterSchema = createInsertSchema(monsters).omit({ id: true });
+export const insertUserMonsterSchema = createInsertSchema(userMonsters).omit({ id: true, acquiredAt: true });
+export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
+export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, battleAt: true });
+
+// Types
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
+export type User = typeof users.$inferSelect;
+export type Monster = typeof monsters.$inferSelect;
+export type UserMonster = typeof userMonsters.$inferSelect;
+export type Question = typeof questions.$inferSelect;
+export type Battle = typeof battles.$inferSelect;
+export type InsertMonster = z.infer<typeof insertMonsterSchema>;
+export type InsertUserMonster = z.infer<typeof insertUserMonsterSchema>;
+export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
+export type InsertBattle = z.infer<typeof insertBattleSchema>;
