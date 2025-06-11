@@ -41,7 +41,8 @@ export interface IStorage {
   ): Promise<UserMonster>;
   
   // Question operations
-  getRandomQuestion(subject: string, difficulty: number): Promise<Question | undefined>;
+  getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined>;
+  markQuestionAnswered(userId: string, questionId: number): Promise<void>;
   createQuestion(question: InsertQuestion): Promise<Question>;
   
   // Battle operations
@@ -255,15 +256,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Question operations
-  async getRandomQuestion(subject: string, difficulty: number): Promise<Question | undefined> {
+  async getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined> {
     const subjectFilter = subject === "mixed" ? sql`true` : eq(questions.subject, subject);
+    
+    let excludeFilter = sql`true`;
+    
+    // If userId provided, exclude already answered questions
+    if (userId) {
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      if (user && user.answeredQuestionIds) {
+        const answeredIds = user.answeredQuestionIds as number[];
+        if (answeredIds.length > 0) {
+          excludeFilter = sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`;
+        }
+      }
+    }
+    
     const [question] = await db
       .select()
       .from(questions)
-      .where(and(subjectFilter, eq(questions.difficulty, difficulty)))
+      .where(and(subjectFilter, eq(questions.difficulty, difficulty), excludeFilter))
       .orderBy(sql`random()`)
       .limit(1);
     return question;
+  }
+
+  async markQuestionAnswered(userId: string, questionId: number): Promise<void> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return;
+    
+    const currentAnswered = (user.answeredQuestionIds as number[]) || [];
+    if (!currentAnswered.includes(questionId)) {
+      const updatedAnswered = [...currentAnswered, questionId];
+      await db
+        .update(users)
+        .set({ answeredQuestionIds: updatedAnswered })
+        .where(eq(users.id, userId));
+    }
   }
 
   async createQuestion(questionData: InsertQuestion): Promise<Question> {
