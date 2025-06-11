@@ -23,6 +23,24 @@ const MonsterGraphics: React.FC<MonsterGraphicsProps> = ({
 
 
 
+  // Get monster colors based on type
+  const getMonsterColors = () => {
+    switch (monsterId) {
+      case 1: // Fire Salamander
+        return { primary: "#ff6b6b", secondary: "#d63447", accent: "#ff7979" };
+      case 2: // Thunder Drake  
+        return { primary: "#fdcb6e", secondary: "#e17055", accent: "#f1c40f" };
+      case 3: // Crystal Guardian
+        return { primary: "#a29bfe", secondary: "#6c5ce7", accent: "#fd79a8" };
+      case 4: // Water Sprite
+        return { primary: "#74b9ff", secondary: "#0984e3", accent: "#81ecec" };
+      case 5: // Earth Golem
+        return { primary: "#55a3ff", secondary: "#2d3436", accent: "#6c5ce7" };
+      default:
+        return { primary: "#ff6b6b", secondary: "#d63447", accent: "#ff7979" };
+    }
+  };
+
   // Render the appropriate monster content
   const renderMonsterContent = () => {
     const hasSharpTeeth = upgradeChoices.teeth === 'sharp' || upgradeChoices.teeth === 'icy' || upgradeChoices.teeth === 'electric';
@@ -30,6 +48,7 @@ const MonsterGraphics: React.FC<MonsterGraphicsProps> = ({
     const isMuscular = upgradeChoices.body === 'muscular' || upgradeChoices.body === 'armored' || upgradeChoices.body === 'charged';
     const hasWings = upgradeChoices.wings === 'large';
     const hasSpikes = upgradeChoices.spikes === 'ice' || upgradeChoices.spikes === 'electric';
+    const colors = getMonsterColors();
 
     return (
       <g>
@@ -67,18 +86,18 @@ const MonsterGraphics: React.FC<MonsterGraphicsProps> = ({
         )}
         
         {/* Eyes */}
-        <circle cx="90" cy="65" r="4" fill={monsterId === 1 ? "#ff4444" : monsterId === 2 ? "#00cec9" : "#f39c12"}/>
-        <circle cx="110" cy="65" r="4" fill={monsterId === 1 ? "#ff4444" : monsterId === 2 ? "#00cec9" : "#f39c12"}/>
-        <circle cx="90" cy="65" r="2" fill={monsterId === 1 ? "#ffaa00" : monsterId === 2 ? "#81ecec" : "#f1c40f"}/>
-        <circle cx="110" cy="65" r="2" fill={monsterId === 1 ? "#ffaa00" : monsterId === 2 ? "#81ecec" : "#f1c40f"}/>
+        <circle cx="90" cy="65" r="4" fill={colors.secondary}/>
+        <circle cx="110" cy="65" r="4" fill={colors.secondary}/>
+        <circle cx="90" cy="65" r="2" fill={colors.accent}/>
+        <circle cx="110" cy="65" r="2" fill={colors.accent}/>
         
         {/* Mouth and teeth */}
         <path d="M85 80 Q100 85 115 80" stroke="#000" strokeWidth="2" fill="none"/>
         {hasSharpTeeth && (
           <>
-            <polygon points="90,82 88,88 92,88" fill={monsterId === 1 ? "white" : monsterId === 2 ? "#e3f2fd" : "#f1c40f"}/>
-            <polygon points="100,82 98,88 102,88" fill={monsterId === 1 ? "white" : monsterId === 2 ? "#e3f2fd" : "#f1c40f"}/>
-            <polygon points="110,82 108,88 112,88" fill={monsterId === 1 ? "white" : monsterId === 2 ? "#e3f2fd" : "#f1c40f"}/>
+            <polygon points="90,82 88,88 92,88" fill="white"/>
+            <polygon points="100,82 98,88 102,88" fill="white"/>
+            <polygon points="110,82 108,88 112,88" fill="white"/>
           </>
         )}
         

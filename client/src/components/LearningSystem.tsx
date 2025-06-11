@@ -26,19 +26,15 @@ export default function LearningSystem() {
 
   const answerMutation = useMutation({
     mutationFn: async ({ answer, isCorrect }: { answer: string; isCorrect: boolean }) => {
-      const response = await apiRequest("/api/questions/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          questionId: question?.id,
-          answer,
-          isCorrect,
-          usedHint,
-          subject: selectedSubject,
-          difficulty: 2
-        }),
+      const response = await apiRequest("POST", "/api/questions/answer", {
+        questionId: question?.id,
+        answer,
+        isCorrect,
+        usedHint,
+        subject: selectedSubject,
+        difficulty: 2
       });
-      return response;
+      return await response.json();
     },
     onSuccess: (data) => {
       if (data.isCorrect) {
