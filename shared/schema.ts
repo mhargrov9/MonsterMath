@@ -64,6 +64,9 @@ export const userMonsters = pgTable("user_monsters", {
   power: integer("power").notNull(),
   speed: integer("speed").notNull(),
   defense: integer("defense").notNull(),
+  experience: integer("experience").default(0).notNull(),
+  evolutionStage: integer("evolution_stage").default(1).notNull(),
+  upgradeChoices: jsonb("upgrade_choices").default('{}').notNull(), // Track chosen upgrades
   acquiredAt: timestamp("acquired_at").defaultNow(),
 });
 

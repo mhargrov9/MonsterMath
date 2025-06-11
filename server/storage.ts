@@ -30,6 +30,15 @@ export interface IStorage {
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
   purchaseMonster(userId: string, monsterId: number): Promise<UserMonster>;
   upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
+  applyMonsterUpgrade(
+    userId: string, 
+    userMonsterId: number, 
+    upgradeKey: string, 
+    upgradeValue: string,
+    statBoosts: { power?: number; speed?: number; defense?: number },
+    goldCost: number,
+    diamondCost: number
+  ): Promise<UserMonster>;
   
   // Question operations
   getRandomQuestion(subject: string, difficulty: number): Promise<Question | undefined>;
@@ -173,20 +182,74 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Insufficient gold");
     }
 
+    // Check for evolution stage upgrade
+    let newEvolutionStage = userMonster.evolutionStage;
+    const newLevel = userMonster.level + 1;
+    if (newLevel >= 10 && userMonster.evolutionStage < 4) {
+      newEvolutionStage = Math.min(4, Math.floor(newLevel / 3) + 1);
+    }
+
     // Upgrade monster stats (10% increase)
     const [upgraded] = await db
       .update(userMonsters)
       .set({
-        level: userMonster.level + 1,
+        level: newLevel,
         power: Math.floor(userMonster.power * 1.1),
         speed: Math.floor(userMonster.speed * 1.1),
         defense: Math.floor(userMonster.defense * 1.1),
+        evolutionStage: newEvolutionStage,
+        experience: userMonster.experience + 25,
       })
       .where(eq(userMonsters.id, userMonsterId))
       .returning();
 
     // Deduct gold
     await this.updateUserCurrency(userId, -upgradeCost);
+
+    return upgraded;
+  }
+
+  async applyMonsterUpgrade(
+    userId: string, 
+    userMonsterId: number, 
+    upgradeKey: string, 
+    upgradeValue: string,
+    statBoosts: { power?: number; speed?: number; defense?: number },
+    goldCost: number,
+    diamondCost: number
+  ): Promise<UserMonster> {
+    const [userMonster] = await db
+      .select()
+      .from(userMonsters)
+      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
+
+    if (!userMonster) {
+      throw new Error("Monster not found");
+    }
+
+    // Deduct costs
+    await this.updateUserCurrency(userId, -goldCost, -diamondCost);
+
+    // Update upgrade choices
+    const currentChoices = (userMonster.upgradeChoices as Record<string, any>) || {};
+    const newChoices = { ...currentChoices, [upgradeKey]: upgradeValue };
+
+    // Apply stat boosts
+    const newPower = userMonster.power + (statBoosts.power || 0);
+    const newSpeed = userMonster.speed + (statBoosts.speed || 0);
+    const newDefense = userMonster.defense + (statBoosts.defense || 0);
+
+    const [upgraded] = await db
+      .update(userMonsters)
+      .set({
+        power: newPower,
+        speed: newSpeed,
+        defense: newDefense,
+        upgradeChoices: newChoices,
+        experience: userMonster.experience + 50,
+      })
+      .where(eq(userMonsters.id, userMonsterId))
+      .returning();
 
     return upgraded;
   }

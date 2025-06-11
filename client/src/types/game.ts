@@ -34,6 +34,9 @@ export interface UserMonster {
   power: number;
   speed: number;
   defense: number;
+  experience: number;
+  evolutionStage: number;
+  upgradeChoices: Record<string, any>;
   acquiredAt?: string;
   monster: Monster;
 }
