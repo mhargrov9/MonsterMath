@@ -76,6 +76,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/monsters/apply-upgrade", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { 
+        userMonsterId, 
+        upgradeKey, 
+        upgradeValue, 
+        statBoosts, 
+        goldCost, 
+        diamondCost 
+      } = req.body;
+      
+      if (!userMonsterId || !upgradeKey || !upgradeValue) {
+        return res.status(400).json({ message: "Missing required upgrade parameters" });
+      }
+
+      const upgradedMonster = await storage.applyMonsterUpgrade(
+        userId, 
+        userMonsterId, 
+        upgradeKey, 
+        upgradeValue, 
+        statBoosts, 
+        goldCost, 
+        diamondCost
+      );
+      res.json(upgradedMonster);
+    } catch (error) {
+      console.error("Error applying monster upgrade:", error);
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to apply upgrade" });
+    }
+  });
+
   app.get("/api/questions", isAuthenticated, async (req, res) => {
     try {
       const { subject = "mixed", difficulty = "2" } = req.query;

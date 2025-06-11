@@ -1,39 +1,65 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Coins, Gem, Zap, Shield, Gauge } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Monster, UserMonster } from "@/types/game";
+import { isUnauthorizedError } from "@/lib/authUtils";
+import MonsterGraphics from "./MonsterGraphics";
+import UpgradeChoice from "./UpgradeChoice";
+import { Monster, UserMonster, GameUser } from "@/types/game";
+import { useState } from "react";
 
 export default function MonsterLab() {
   const { toast } = useToast();
+  const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
+  const [showUpgradeChoice, setShowUpgradeChoice] = useState(false);
 
   const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
     queryKey: ["/api/monsters"],
   });
 
   const { data: userMonsters = [], isLoading: userMonstersLoading } = useQuery<UserMonster[]>({
-    queryKey: ["/api/user/monsters"],
+    queryKey: ["/api/monsters/user"],
+  });
+
+  const { data: user } = useQuery<GameUser>({
+    queryKey: ["/api/auth/user"],
   });
 
   const purchaseMutation = useMutation({
     mutationFn: async (monsterId: number) => {
-      const response = await apiRequest("POST", "/api/monsters/purchase", { monsterId });
-      return response.json();
+      return await apiRequest("/api/monsters/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ monsterId }),
+      });
     },
     onSuccess: () => {
-      toast({
-        title: "Monster Purchased! 🐲",
-        description: "Welcome to your team!",
-        className: "bg-lime-green text-white",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Monster Purchased!",
+        description: "Your new monster has been added to your collection.",
+      });
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Purchase Failed",
-        description: error.message,
+        description: error.message || "Failed to purchase monster",
         variant: "destructive",
       });
     },
@@ -41,139 +67,255 @@ export default function MonsterLab() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (userMonsterId: number) => {
-      const response = await apiRequest("POST", "/api/monsters/upgrade", { userMonsterId });
-      return response.json();
+      return await apiRequest("/api/monsters/upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userMonsterId }),
+      });
     },
     onSuccess: () => {
-      toast({
-        title: "Monster Upgraded! ⚡",
-        description: "Your monster is now stronger!",
-        className: "bg-electric-blue text-white",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Monster Upgraded!",
+        description: "Your monster has grown stronger!",
+      });
     },
     onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
       toast({
         title: "Upgrade Failed",
-        description: error.message,
+        description: error.message || "Failed to upgrade monster",
         variant: "destructive",
       });
     },
   });
 
+  const applyUpgradeMutation = useMutation({
+    mutationFn: async (upgradeData: any) => {
+      return await apiRequest("/api/monsters/apply-upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(upgradeData),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setShowUpgradeChoice(false);
+      setSelectedMonster(null);
+      toast({
+        title: "Upgrade Applied!",
+        description: "Your monster has evolved with new abilities!",
+      });
+    },
+    onError: (error: Error) => {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Upgrade Failed",
+        description: error.message || "Failed to apply upgrade",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSpecialUpgrade = (userMonster: UserMonster) => {
+    setSelectedMonster(userMonster);
+    setShowUpgradeChoice(true);
+  };
+
+  const handleUpgradeChoice = (upgradeOption: any) => {
+    if (!selectedMonster) return;
+    
+    applyUpgradeMutation.mutate({
+      userMonsterId: selectedMonster.id,
+      upgradeKey: upgradeOption.upgradeKey,
+      upgradeValue: upgradeOption.upgradeValue,
+      statBoosts: upgradeOption.statBoosts,
+      goldCost: upgradeOption.goldCost,
+      diamondCost: upgradeOption.diamondCost
+    });
+  };
+
   if (monstersLoading || userMonstersLoading) {
+    return <div className="p-6">Loading monster lab...</div>;
+  }
+
+  if (showUpgradeChoice && selectedMonster) {
     return (
-      <div className="space-y-6">
-        <div className="text-center mb-8">
-          <h2 className="font-fredoka text-4xl text-white mb-2">🧪 Monster Laboratory 🧪</h2>
-          <p className="text-white/80 text-lg">Loading monsters...</p>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Upgrade {selectedMonster.monster.name}</h2>
+          <Button variant="outline" onClick={() => setShowUpgradeChoice(false)}>
+            Back to Lab
+          </Button>
+        </div>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Monster</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center space-y-4">
+              <MonsterGraphics 
+                monsterId={selectedMonster.monsterId} 
+                evolutionStage={selectedMonster.evolutionStage}
+                upgradeChoices={selectedMonster.upgradeChoices || {}}
+                size="large"
+              />
+              <div className="text-center">
+                <h3 className="font-semibold">{selectedMonster.monster.name}</h3>
+                <p className="text-sm text-muted-foreground">Level {selectedMonster.level} • Stage {selectedMonster.evolutionStage}</p>
+                <div className="flex gap-4 mt-2">
+                  <Badge variant="destructive"><Zap className="w-3 h-3 mr-1" />{selectedMonster.power}</Badge>
+                  <Badge variant="secondary"><Gauge className="w-3 h-3 mr-1" />{selectedMonster.speed}</Badge>
+                  <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />{selectedMonster.defense}</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <UpgradeChoice 
+            userMonster={selectedMonster}
+            onUpgrade={handleUpgradeChoice}
+            userGold={user?.gold || 0}
+            userDiamonds={user?.diamonds || 0}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-8">
-        <h2 className="font-fredoka text-4xl text-white mb-2">🧪 Monster Laboratory 🧪</h2>
-        <p className="text-white/80 text-lg">Buy, upgrade, and manage your monster collection!</p>
-      </div>
-
-      {/* Lab Equipment Decoration */}
-      <div className="flex justify-center space-x-8 mb-8">
-        <div className="w-16 h-20 bg-gradient-to-t from-lime-green/30 to-lime-green/60 rounded-full relative beaker-bubble animate-float"></div>
-        <div className="w-16 h-20 bg-gradient-to-t from-electric-blue/30 to-electric-blue/60 rounded-full relative beaker-bubble animate-float" style={{animationDelay: "0.5s"}}></div>
-        <div className="w-16 h-20 bg-gradient-to-t from-vibrant-purple/30 to-vibrant-purple/60 rounded-full relative beaker-bubble animate-float" style={{animationDelay: "1s"}}></div>
-      </div>
-
-      {/* My Monsters */}
-      <div className="mb-8">
-        <h3 className="font-fredoka text-2xl text-white mb-4 flex items-center">
-          <i className="fas fa-paw mr-2 text-lime-green"></i>
-          My Monster Squad
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {userMonsters.map((userMonster) => (
-            <Card key={userMonster.id} className="bg-white rounded-2xl shadow-xl border-4 border-electric-blue transform hover:scale-105 transition-transform">
-              <CardContent className="p-6">
-                {/* Monster illustration */}
-                <div className={`w-full h-32 bg-gradient-to-br ${userMonster.monster.gradient} rounded-xl mb-4 flex items-center justify-center`}>
-                  <i className={`${userMonster.monster.iconClass} text-4xl text-white`}></i>
-                </div>
-                <h4 className="font-fredoka text-xl text-gray-800 mb-2">
-                  {userMonster.monster.name} (Lv.{userMonster.level})
-                </h4>
-                <div className="space-y-2 mb-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Power:</span>
-                    <span className="font-bold text-electric-blue">{userMonster.power}</span>
+    <div className="p-6 space-y-6">
+      <h2 className="text-2xl font-bold">Monster Lab 🧪</h2>
+      
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Available Monsters */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Available Monsters</h3>
+          <div className="space-y-4">
+            {monsters.map((monster) => (
+              <Card key={monster.id}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex gap-4 items-center">
+                      <MonsterGraphics 
+                        monsterId={monster.id} 
+                        evolutionStage={1}
+                        upgradeChoices={{}}
+                        size="small"
+                      />
+                      <div>
+                        <h4 className="font-semibold">{monster.name}</h4>
+                        <p className="text-sm text-muted-foreground">{monster.type}</p>
+                        <div className="flex gap-3 mt-2">
+                          <div className="flex items-center gap-1">
+                            <Coins className="w-4 h-4 text-yellow-500" />
+                            <span className="text-sm">{monster.goldCost}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Gem className="w-4 h-4 text-blue-500" />
+                            <span className="text-sm">{monster.diamondCost}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => purchaseMutation.mutate(monster.id)}
+                      disabled={purchaseMutation.isPending}
+                    >
+                      {purchaseMutation.isPending ? "Purchasing..." : "Purchase"}
+                    </Button>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Speed:</span>
-                    <span className="font-bold text-lime-green">{userMonster.speed}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Defense:</span>
-                    <span className="font-bold text-vibrant-purple">{userMonster.defense}</span>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => upgradeMutation.mutate(userMonster.id)}
-                  disabled={upgradeMutation.isPending}
-                  className="w-full bg-bright-orange text-white py-2 rounded-xl font-bold hover:bg-bright-orange/80 transition-colors"
-                >
-                  Upgrade (200 Gold)
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-          
-          {/* Empty slot for new monster */}
-          <Card className="bg-white/20 border-2 border-dashed border-white/50 rounded-2xl flex flex-col items-center justify-center text-white hover:bg-white/30 transition-colors cursor-pointer min-h-[300px]">
-            <CardContent className="p-6 text-center">
-              <i className="fas fa-plus text-4xl mb-4 text-white/60"></i>
-              <p className="font-bold">Add New Monster</p>
-              <p className="text-sm text-white/80">Visit Monster Shop</p>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Monster Shop */}
-      <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-        <h3 className="font-fredoka text-2xl text-white mb-6 flex items-center">
-          <i className="fas fa-store mr-2 text-gold-yellow"></i>
-          Monster Shop
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {monsters.map((monster) => (
-            <Card key={monster.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-              <CardContent className="p-4">
-                {/* Monster illustration */}
-                <div className={`w-full h-24 bg-gradient-to-br ${monster.gradient} rounded-lg mb-3 flex items-center justify-center`}>
-                  <i className={`${monster.iconClass} text-2xl text-white`}></i>
-                </div>
-                <h5 className="font-bold text-gray-800 mb-2">{monster.name}</h5>
-                <p className="text-gray-600 text-sm mb-3">{monster.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="flex flex-col">
-                    <span className="text-gold-yellow font-bold">{monster.goldCost} Gold</span>
-                    {monster.diamondCost > 0 && (
-                      <span className="text-diamond-blue font-bold">{monster.diamondCost} Diamonds</span>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => purchaseMutation.mutate(monster.id)}
-                    disabled={purchaseMutation.isPending}
-                    className="bg-lime-green text-white px-3 py-1 rounded-lg text-sm font-bold hover:bg-lime-green/80 transition-colors"
-                  >
-                    Buy
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* User's Monsters */}
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Your Monsters</h3>
+          <div className="space-y-4">
+            {userMonsters.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground">No monsters yet. Purchase one to get started!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              userMonsters.map((userMonster) => (
+                <Card key={userMonster.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex gap-4 items-center">
+                        <MonsterGraphics 
+                          monsterId={userMonster.monsterId} 
+                          evolutionStage={userMonster.evolutionStage}
+                          upgradeChoices={userMonster.upgradeChoices || {}}
+                          size="small"
+                        />
+                        <div>
+                          <h4 className="font-semibold">{userMonster.monster.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Level {userMonster.level} • Stage {userMonster.evolutionStage}
+                          </p>
+                          <div className="flex gap-3 mt-1">
+                            <Badge variant="destructive" className="text-xs">
+                              <Zap className="w-3 h-3 mr-1" />{userMonster.power}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              <Gauge className="w-3 h-3 mr-1" />{userMonster.speed}
+                            </Badge>
+                            <Badge variant="outline" className="text-xs">
+                              <Shield className="w-3 h-3 mr-1" />{userMonster.defense}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Button 
+                          size="sm"
+                          onClick={() => upgradeMutation.mutate(userMonster.id)}
+                          disabled={upgradeMutation.isPending}
+                        >
+                          {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
+                        </Button>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSpecialUpgrade(userMonster)}
+                        >
+                          Special Upgrades
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>
