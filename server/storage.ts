@@ -200,13 +200,17 @@ export class DatabaseStorage implements IStorage {
 
   async getBattleHistory(userId: string): Promise<(Battle & { attacker: User; defender: User })[]> {
     return await db
-      .select()
+      .select({
+        ...battles,
+        attacker: users,
+        defender: users,
+      })
       .from(battles)
-      .innerJoin(users, eq(battles.attackerId, users.id))
-      .innerJoin(users, eq(battles.defenderId, users.id))
+      .leftJoin(users, eq(battles.attackerId, users.id))
+      .leftJoin(users, eq(battles.defenderId, users.id))
       .where(sql`${battles.attackerId} = ${userId} OR ${battles.defenderId} = ${userId}`)
       .orderBy(desc(battles.battleAt))
-      .limit(10);
+      .limit(10) as any;
   }
 }
 
