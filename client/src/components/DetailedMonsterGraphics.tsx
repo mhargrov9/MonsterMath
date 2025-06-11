@@ -22,7 +22,7 @@ export default function DetailedMonsterGraphics({
   const { width, height, svg } = sizeMap[size];
 
   const getMonsterColors = (id: number) => {
-    const colorSets = {
+    const colorSets: Record<number, { primary: string; secondary: string; accent: string }> = {
       1: { primary: '#ff6b6b', secondary: '#d63447', accent: '#ff9f43' }, // Fire Salamander
       2: { primary: '#fdcb6e', secondary: '#e17055', accent: '#f39c12' }, // Thunder Drake  
       3: { primary: '#a29bfe', secondary: '#6c5ce7', accent: '#fd79a8' }, // Crystal Guardian
