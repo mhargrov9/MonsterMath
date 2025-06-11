@@ -7,7 +7,7 @@ import { Coins, Gem, Zap, Shield, Gauge } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import MonsterGraphics from "./MonsterGraphics";
+import SimpleMonsterGraphics from "./SimpleMonsterGraphics";
 import UpgradeChoice from "./UpgradeChoice";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
@@ -31,11 +31,7 @@ export default function MonsterLab() {
 
   const purchaseMutation = useMutation({
     mutationFn: async (monsterId: number) => {
-      return await apiRequest("/api/monsters/purchase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monsterId }),
-      });
+      return await apiRequest("POST", "/api/monsters/purchase", { monsterId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
@@ -67,11 +63,7 @@ export default function MonsterLab() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (userMonsterId: number) => {
-      return await apiRequest("/api/monsters/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userMonsterId }),
-      });
+      return await apiRequest("POST", "/api/monsters/upgrade", { userMonsterId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
@@ -103,11 +95,7 @@ export default function MonsterLab() {
 
   const applyUpgradeMutation = useMutation({
     mutationFn: async (upgradeData: any) => {
-      return await apiRequest("/api/monsters/apply-upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(upgradeData),
-      });
+      return await apiRequest("POST", "/api/monsters/apply-upgrade", upgradeData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
@@ -177,7 +165,7 @@ export default function MonsterLab() {
               <CardTitle>Current Monster</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
-              <MonsterGraphics 
+              <SimpleMonsterGraphics 
                 monsterId={selectedMonster.monsterId} 
                 evolutionStage={selectedMonster.evolutionStage}
                 upgradeChoices={selectedMonster.upgradeChoices || {}}
@@ -220,7 +208,7 @@ export default function MonsterLab() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="flex gap-4 items-center">
-                      <MonsterGraphics 
+                      <SimpleMonsterGraphics 
                         monsterId={monster.id} 
                         evolutionStage={1}
                         upgradeChoices={{}}
@@ -270,7 +258,7 @@ export default function MonsterLab() {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <div className="flex gap-4 items-center">
-                        <MonsterGraphics 
+                        <SimpleMonsterGraphics 
                           monsterId={userMonster.monsterId} 
                           evolutionStage={userMonster.evolutionStage}
                           upgradeChoices={userMonster.upgradeChoices || {}}
