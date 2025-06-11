@@ -80,6 +80,20 @@ export class DatabaseStorage implements IStorage {
       .set({
         gold: sql`${users.gold} + ${goldDelta}`,
         diamonds: sql`${users.diamonds} + ${diamondDelta}`,
+        correctAnswers: sql`${users.correctAnswers} + 1`,
+        questionsAnswered: sql`${users.questionsAnswered} + 1`,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async updateUserBattleTokens(userId: string, tokenDelta: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        battleTokens: sql`${users.battleTokens} + ${tokenDelta}`,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))
