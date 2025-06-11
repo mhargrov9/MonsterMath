@@ -37,7 +37,7 @@ export interface UserMonster {
   experience: number;
   evolutionStage: number;
   upgradeChoices: Record<string, any>;
-  acquiredAt?: string;
+  acquiredAt?: string | Date | null;
   monster: Monster;
 }
 
