@@ -87,12 +87,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]> {
-    return await db
-      .select()
+    const results = await db
+      .select({
+        id: userMonsters.id,
+        userId: userMonsters.userId,
+        monsterId: userMonsters.monsterId,
+        level: userMonsters.level,
+        power: userMonsters.power,
+        speed: userMonsters.speed,
+        defense: userMonsters.defense,
+        acquiredAt: userMonsters.acquiredAt,
+        monster: {
+          id: monsters.id,
+          name: monsters.name,
+          type: monsters.type,
+          basePower: monsters.basePower,
+          baseSpeed: monsters.baseSpeed,
+          baseDefense: monsters.baseDefense,
+          goldCost: monsters.goldCost,
+          diamondCost: monsters.diamondCost,
+          description: monsters.description,
+          iconClass: monsters.iconClass,
+          gradient: monsters.gradient,
+        }
+      })
       .from(userMonsters)
       .innerJoin(monsters, eq(userMonsters.monsterId, monsters.id))
       .where(eq(userMonsters.userId, userId))
       .orderBy(desc(userMonsters.acquiredAt));
+    
+    return results as (UserMonster & { monster: Monster })[];
   }
 
   async purchaseMonster(userId: string, monsterId: number): Promise<UserMonster> {
@@ -199,18 +223,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBattleHistory(userId: string): Promise<(Battle & { attacker: User; defender: User })[]> {
-    return await db
+    const results = await db
       .select({
-        ...battles,
-        attacker: users,
-        defender: users,
+        id: battles.id,
+        attackerId: battles.attackerId,
+        defenderId: battles.defenderId,
+        attackerMonsterId: battles.attackerMonsterId,
+        defenderMonsterId: battles.defenderMonsterId,
+        winnerId: battles.winnerId,
+        goldFee: battles.goldFee,
+        diamondsAwarded: battles.diamondsAwarded,
+        battleAt: battles.battleAt,
       })
       .from(battles)
-      .leftJoin(users, eq(battles.attackerId, users.id))
-      .leftJoin(users, eq(battles.defenderId, users.id))
       .where(sql`${battles.attackerId} = ${userId} OR ${battles.defenderId} = ${userId}`)
       .orderBy(desc(battles.battleAt))
-      .limit(10) as any;
+      .limit(10);
+    
+    return results as any;
   }
 }
 

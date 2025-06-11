@@ -14,7 +14,7 @@ export default function LearningSystem() {
   const { toast } = useToast();
 
   const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ["/api/questions", { subject: selectedSubject, difficulty: 2 }],
+    queryKey: ["/api/questions", selectedSubject, 2],
     queryFn: async () => {
       const response = await fetch(`/api/questions?subject=${selectedSubject}&difficulty=2`, {
         credentials: "include",
@@ -93,7 +93,12 @@ export default function LearningSystem() {
         <h3 className="font-fredoka text-2xl text-white mb-4">Choose Your Challenge</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Button
-            onClick={() => setSelectedSubject("math")}
+            onClick={() => {
+              setSelectedSubject("math");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-4 rounded-xl font-bold hover:scale-105 transition-transform ${
               selectedSubject === "math"
                 ? "bg-gradient-to-r from-bright-orange to-gold-yellow text-white"
@@ -104,7 +109,12 @@ export default function LearningSystem() {
             Math Magic
           </Button>
           <Button
-            onClick={() => setSelectedSubject("spelling")}
+            onClick={() => {
+              setSelectedSubject("spelling");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-4 rounded-xl font-bold hover:scale-105 transition-transform ${
               selectedSubject === "spelling"
                 ? "bg-gradient-to-r from-vibrant-purple to-electric-blue text-white"
@@ -115,7 +125,12 @@ export default function LearningSystem() {
             Spelling Spells
           </Button>
           <Button
-            onClick={() => setSelectedSubject("mixed")}
+            onClick={() => {
+              setSelectedSubject("mixed");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-4 rounded-xl font-bold hover:scale-105 transition-transform ${
               selectedSubject === "mixed"
                 ? "bg-gradient-to-r from-lime-green to-diamond-blue text-white"
