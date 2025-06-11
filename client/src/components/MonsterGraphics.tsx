@@ -208,28 +208,28 @@ const MonsterGraphics: React.FC<MonsterGraphicsProps> = ({
     <div className="monster-graphics flex items-center justify-center">
       <svg width={dimensions.width} height={dimensions.height} viewBox="0 0 200 200">
         <defs>
-          {/* Common gradients */}
+          {/* Dynamic gradients based on monster type */}
           <linearGradient id={`dragonBody-${monsterId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={monsterId === 1 ? "#ff6b6b" : monsterId === 2 ? "#74b9ff" : "#fdcb6e"}/>
-            <stop offset="100%" stopColor={monsterId === 1 ? "#d63447" : monsterId === 2 ? "#0984e3" : "#e17055"}/>
+            <stop offset="0%" stopColor={getMonsterColors().primary}/>
+            <stop offset="100%" stopColor={getMonsterColors().secondary}/>
           </linearGradient>
           <linearGradient id={`dragonHead-${monsterId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor={monsterId === 1 ? "#ff7979" : monsterId === 2 ? "#81ecec" : "#f1c40f"}/>
-            <stop offset="100%" stopColor={monsterId === 1 ? "#e17055" : monsterId === 2 ? "#00cec9" : "#f39c12"}/>
+            <stop offset="0%" stopColor={getMonsterColors().accent}/>
+            <stop offset="100%" stopColor={getMonsterColors().primary}/>
           </linearGradient>
           <linearGradient id={`wingGradient-${monsterId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fd79a8"/>
-            <stop offset="100%" stopColor="#e84393"/>
+            <stop offset="0%" stopColor={getMonsterColors().accent}/>
+            <stop offset="100%" stopColor={getMonsterColors().secondary}/>
           </linearGradient>
           <radialGradient id={`aura-${monsterId}`}>
-            <stop offset="0%" stopColor={monsterId === 1 ? "#ffaa00" : monsterId === 2 ? "#81ecec" : "#f1c40f"} stopOpacity="0"/>
-            <stop offset="70%" stopColor={monsterId === 1 ? "#ff6b6b" : monsterId === 2 ? "#74b9ff" : "#fdcb6e"} stopOpacity="0.2"/>
-            <stop offset="100%" stopColor={monsterId === 1 ? "#d63447" : monsterId === 2 ? "#0984e3" : "#e17055"} stopOpacity="0.4"/>
+            <stop offset="0%" stopColor={getMonsterColors().accent} stopOpacity="0"/>
+            <stop offset="70%" stopColor={getMonsterColors().primary} stopOpacity="0.2"/>
+            <stop offset="100%" stopColor={getMonsterColors().secondary} stopOpacity="0.4"/>
           </radialGradient>
           <linearGradient id={`specialEffect-${monsterId}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={monsterId === 1 ? "#ffaa00" : monsterId === 2 ? "#e3f2fd" : "#f1c40f"}/>
-            <stop offset="50%" stopColor={monsterId === 1 ? "#ff6b6b" : monsterId === 2 ? "#81ecec" : "#fdcb6e"}/>
-            <stop offset="100%" stopColor={monsterId === 1 ? "#d63447" : monsterId === 2 ? "#b2dfdb" : "#e17055"}/>
+            <stop offset="0%" stopColor={getMonsterColors().accent}/>
+            <stop offset="50%" stopColor={getMonsterColors().primary}/>
+            <stop offset="100%" stopColor={getMonsterColors().secondary}/>
           </linearGradient>
         </defs>
         
