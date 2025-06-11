@@ -264,8 +264,8 @@ export class DatabaseStorage implements IStorage {
     // If userId provided, exclude already answered questions
     if (userId) {
       const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (user && user.answeredQuestionIds) {
-        const answeredIds = user.answeredQuestionIds as number[];
+      if (user && (user as any).answeredQuestionIds) {
+        const answeredIds = (user as any).answeredQuestionIds as number[];
         if (answeredIds.length > 0) {
           excludeFilter = sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`;
         }
@@ -285,12 +285,12 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) return;
     
-    const currentAnswered = (user.answeredQuestionIds as number[]) || [];
+    const currentAnswered = ((user as any).answeredQuestionIds as number[]) || [];
     if (!currentAnswered.includes(questionId)) {
       const updatedAnswered = [...currentAnswered, questionId];
       await db
         .update(users)
-        .set({ answeredQuestionIds: updatedAnswered })
+        .set({ answeredQuestionIds: updatedAnswered } as any)
         .where(eq(users.id, userId));
     }
   }

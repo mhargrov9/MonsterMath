@@ -26,13 +26,19 @@ export default function LearningSystem() {
 
   const answerMutation = useMutation({
     mutationFn: async ({ answer, isCorrect }: { answer: string; isCorrect: boolean }) => {
-      const response = await apiRequest("POST", "/api/questions/answer", {
-        questionId: question?.id,
-        answer,
-        isCorrect,
-        usedHint,
+      const response = await apiRequest("/api/questions/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          questionId: question?.id,
+          answer,
+          isCorrect,
+          usedHint,
+          subject: selectedSubject,
+          difficulty: 2
+        }),
       });
-      return response.json();
+      return response;
     },
     onSuccess: (data) => {
       if (data.isCorrect) {
@@ -41,6 +47,14 @@ export default function LearningSystem() {
           description: `You earned ${data.goldEarned} Gold!`,
           className: "bg-lime-green text-white",
         });
+        
+        // If there's a next question, update the cache with it
+        if (data.nextQuestion) {
+          queryClient.setQueryData(["/api/questions", selectedSubject, 2], data.nextQuestion);
+        } else {
+          // No more questions available, refetch to potentially reset
+          refetch();
+        }
       } else {
         toast({
           title: "Incorrect ❌",

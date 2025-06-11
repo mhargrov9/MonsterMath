@@ -108,12 +108,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/questions", isAuthenticated, async (req, res) => {
+  app.get("/api/questions", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const { subject = "mixed", difficulty = "2" } = req.query;
       const question = await storage.getRandomQuestion(
         subject as string,
-        parseInt(difficulty as string)
+        parseInt(difficulty as string),
+        userId
       );
       
       if (!question) {
@@ -130,15 +132,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/questions/answer", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { questionId, answer, isCorrect, usedHint } = req.body;
+      const { questionId, answer, isCorrect, usedHint, subject = "mixed", difficulty = 2 } = req.body;
       
       let goldEarned = 0;
+      let nextQuestion = null;
+      
       if (isCorrect) {
         goldEarned = usedHint ? 25 : 50; // 50% penalty for using hint
         await storage.updateUserCurrency(userId, goldEarned);
+        
+        // Mark question as answered correctly
+        await storage.markQuestionAnswered(userId, questionId);
+        
+        // Automatically get next question
+        nextQuestion = await storage.getRandomQuestion(subject, difficulty, userId);
       }
 
-      res.json({ goldEarned, isCorrect });
+      res.json({ 
+        goldEarned, 
+        isCorrect,
+        nextQuestion
+      });
     } catch (error) {
       console.error("Error processing answer:", error);
       res.status(500).json({ message: "Failed to process answer" });
