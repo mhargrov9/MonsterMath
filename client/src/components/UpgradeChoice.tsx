@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Coins, Gem } from 'lucide-react';
-import DetailedMonsterGraphics from './DetailedMonsterGraphics';
+import UltraDetailedMonsterGraphics from './UltraDetailedMonsterGraphics';
 import type { UserMonster } from '@shared/schema';
 
 interface UpgradeOption {

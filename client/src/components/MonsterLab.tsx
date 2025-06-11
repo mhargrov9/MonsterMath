@@ -165,7 +165,7 @@ export default function MonsterLab() {
               <CardTitle>Current Monster</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
-              <DetailedMonsterGraphics 
+              <UltraDetailedMonsterGraphics 
                 monsterId={selectedMonster.monsterId} 
                 evolutionStage={selectedMonster.evolutionStage}
                 upgradeChoices={selectedMonster.upgradeChoices || {}}
@@ -208,11 +208,11 @@ export default function MonsterLab() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="flex gap-4 items-center">
-                      <DetailedMonsterGraphics 
+                      <UltraDetailedMonsterGraphics 
                         monsterId={monster.id} 
                         evolutionStage={1}
                         upgradeChoices={{}}
-                        size="small"
+                        size="medium"
                       />
                       <div>
                         <h4 className="font-semibold">{monster.name}</h4>
@@ -272,11 +272,11 @@ export default function MonsterLab() {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <div className="flex gap-4 items-center">
-                        <DetailedMonsterGraphics 
+                        <UltraDetailedMonsterGraphics 
                           monsterId={userMonster.monsterId} 
                           evolutionStage={userMonster.evolutionStage}
                           upgradeChoices={userMonster.upgradeChoices || {}}
-                          size="small"
+                          size="medium"
                         />
                         <div>
                           <h4 className="font-semibold">{userMonster.monster.name}</h4>
