@@ -23,6 +23,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUserCurrency(userId: string, goldDelta: number, diamondDelta?: number): Promise<User>;
+  updateUserBattleTokens(userId: string, tokenDelta: number): Promise<User>;
   
   // Monster operations
   getAllMonsters(): Promise<Monster[]>;

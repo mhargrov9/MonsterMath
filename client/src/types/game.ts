@@ -10,6 +10,7 @@ export interface GameUser {
   questionsAnswered: number;
   correctAnswers: number;
   currentStreak: number;
+  battleTokens: number;
 }
 
 export interface Monster {

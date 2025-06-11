@@ -37,6 +37,7 @@ export const users = pgTable("users", {
   correctAnswers: integer("correct_answers").default(0).notNull(),
   currentStreak: integer("current_streak").default(0).notNull(),
   answeredQuestionIds: jsonb("answered_question_ids").default('[]').notNull(),
+  battleTokens: integer("battle_tokens").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

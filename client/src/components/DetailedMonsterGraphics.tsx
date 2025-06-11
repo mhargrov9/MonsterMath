@@ -14,9 +14,9 @@ export default function DetailedMonsterGraphics({
   size = 'medium' 
 }: DetailedMonsterGraphicsProps) {
   const sizeMap = {
-    small: { width: 80, height: 80, svg: 60 },
-    medium: { width: 100, height: 100, svg: 80 },
-    large: { width: 140, height: 140, svg: 120 }
+    small: { width: 160, height: 160, svg: 120 },
+    medium: { width: 200, height: 200, svg: 160 },
+    large: { width: 280, height: 280, svg: 240 }
   };
   
   const { width, height, svg } = sizeMap[size];
@@ -46,6 +46,9 @@ export default function DetailedMonsterGraphics({
           <stop offset="0%" stopColor={colors.accent} stopOpacity="0.8" />
           <stop offset="100%" stopColor={colors.primary} stopOpacity="0.3" />
         </radialGradient>
+        <filter id={`fire-shadow-${monsterId}-${size}`}>
+          <feDropShadow dx="2" dy="2" stdDeviation="2" floodOpacity="0.3"/>
+        </filter>
       </defs>
       
       {/* Flame aura for evolved stages */}
@@ -53,69 +56,127 @@ export default function DetailedMonsterGraphics({
         <circle cx="100" cy="100" r="90" fill={`url(#fire-glow-${monsterId}-${size})`} opacity="0.6" />
       )}
       
-      {/* Body - salamander shape */}
+      {/* Detailed salamander body with scales */}
       <ellipse cx="100" cy="130" 
         rx={upgradeChoices?.body ? "45" : "35"} 
         ry={upgradeChoices?.body ? "35" : "25"} 
         fill={`url(#fire-body-${monsterId}-${size})`} 
+        filter={`url(#fire-shadow-${monsterId}-${size})`}
       />
       
-      {/* Head - elongated reptilian */}
-      <ellipse cx="100" cy="80" rx="30" ry="25" fill={colors.primary} />
+      {/* Scale texture on body */}
+      <g opacity="0.4">
+        <ellipse cx="85" cy="120" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="100" cy="115" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="115" cy="120" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="90" cy="135" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="110" cy="135" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="95" cy="150" rx="3" ry="2" fill={colors.secondary} />
+        <ellipse cx="105" cy="150" rx="3" ry="2" fill={colors.secondary} />
+      </g>
+      
+      {/* Detailed reptilian head with realistic proportions */}
+      <ellipse cx="100" cy="80" rx="30" ry="25" fill={colors.primary} filter={`url(#fire-shadow-${monsterId}-${size})`} />
       <ellipse cx="100" cy="75" rx="25" ry="20" fill={colors.accent} />
       
-      {/* Snout */}
-      <ellipse cx="100" cy="65" rx="15" ry="8" fill={colors.secondary} />
+      {/* Realistic snout with nostrils */}
+      <path d="M85 65 Q100 55 115 65 Q100 70 85 65" fill={colors.secondary} />
+      <ellipse cx="95" cy="62" rx="2" ry="1" fill="#000" />
+      <ellipse cx="105" cy="62" rx="2" ry="1" fill="#000" />
       
-      {/* Eyes - reptilian slits */}
-      <ellipse cx="90" cy="75" rx="6" ry="3" fill="#000" />
-      <ellipse cx="110" cy="75" rx="6" ry="3" fill="#000" />
-      <ellipse cx="90" cy="75" rx="2" ry="1" fill={colors.accent} />
-      <ellipse cx="110" cy="75" rx="2" ry="1" fill={colors.accent} />
+      {/* Detailed reptilian eyes */}
+      <ellipse cx="90" cy="75" rx="8" ry="6" fill="#FFD700" />
+      <ellipse cx="110" cy="75" rx="8" ry="6" fill="#FFD700" />
+      <ellipse cx="90" cy="75" rx="3" ry="5" fill="#000" />
+      <ellipse cx="110" cy="75" rx="3" ry="5" fill="#000" />
+      <ellipse cx="88" cy="73" rx="1" ry="1" fill="#FFD700" />
+      <ellipse cx="108" cy="73" rx="1" ry="1" fill="#FFD700" />
       
-      {/* Nostrils */}
-      <circle cx="95" cy="65" r="1.5" fill="#000" />
-      <circle cx="105" cy="65" r="1.5" fill="#000" />
+      {/* Eyebrow ridges */}
+      <path d="M82 70 Q90 68 98 70" stroke={colors.secondary} strokeWidth="2" fill="none" />
+      <path d="M102 70 Q110 68 118 70" stroke={colors.secondary} strokeWidth="2" fill="none" />
       
-      {/* Fire breath effect for evolved monsters */}
+      {/* Fire breath with realistic flame shapes */}
       {evolutionStage >= 2 && (
         <>
-          <path d="M115 65 Q125 60 130 55 Q135 50 140 55" stroke={colors.accent} strokeWidth="3" fill="none" opacity="0.8" />
-          <path d="M115 67 Q125 62 130 57 Q135 52 140 57" stroke={colors.primary} strokeWidth="2" fill="none" opacity="0.6" />
+          <path d="M115 65 Q125 55 135 60 Q140 50 145 65 Q140 70 135 65 Q130 75 125 70 Q120 75 115 70" 
+            fill={colors.accent} opacity="0.8" />
+          <path d="M115 67 Q120 62 125 67 Q130 62 135 67" fill={colors.primary} opacity="0.9" />
         </>
       )}
       
-      {/* Tail - long and flexible */}
+      {/* Detailed legs with realistic anatomy */}
+      <g filter={`url(#fire-shadow-${monsterId}-${size})`}>
+        {/* Front legs */}
+        <ellipse cx="80" cy="115" rx="8" ry="18" fill={colors.secondary} />
+        <ellipse cx="120" cy="115" rx="8" ry="18" fill={colors.secondary} />
+        {/* Back legs */}
+        <ellipse cx="75" cy="145" rx="10" ry="20" fill={colors.secondary} />
+        <ellipse cx="125" cy="145" rx="10" ry="20" fill={colors.secondary} />
+      </g>
+      
+      {/* Realistic claws with individual digits */}
+      <g fill="#2C2C2C">
+        {/* Front left claws */}
+        <path d="M75 130 Q73 135 75 138 Q77 135 75 130" />
+        <path d="M78 131 Q76 136 78 139 Q80 136 78 131" />
+        <path d="M81 132 Q79 137 81 140 Q83 137 81 132" />
+        
+        {/* Front right claws */}
+        <path d="M117 130 Q115 135 117 138 Q119 135 117 130" />
+        <path d="M120 131 Q118 136 120 139 Q122 136 120 131" />
+        <path d="M123 132 Q121 137 123 140 Q125 137 123 132" />
+        
+        {/* Back left claws */}
+        <path d="M70 162 Q68 167 70 170 Q72 167 70 162" />
+        <path d="M73 163 Q71 168 73 171 Q75 168 73 163" />
+        <path d="M76 164 Q74 169 76 172 Q78 169 76 164" />
+        
+        {/* Back right claws */}
+        <path d="M122 162 Q120 167 122 170 Q124 167 122 162" />
+        <path d="M125 163 Q123 168 125 171 Q127 168 125 163" />
+        <path d="M128 164 Q126 169 128 172 Q130 169 128 164" />
+      </g>
+      
+      {/* Enhanced tail with segmentation */}
       {upgradeChoices?.tail ? (
-        <path d="M135 130 Q160 140 180 120 Q200 100 185 85" stroke={colors.primary} strokeWidth="8" fill="none" />
+        <g>
+          <path d="M135 130 Q160 140 180 120 Q200 100 185 85" stroke={colors.primary} strokeWidth="10" fill="none" />
+          <circle cx="145" cy="135" r="3" fill={colors.secondary} />
+          <circle cx="160" cy="130" r="3" fill={colors.secondary} />
+          <circle cx="175" cy="115" r="3" fill={colors.secondary} />
+        </g>
       ) : (
-        <path d="M135 130 Q155 135 170 125" stroke={colors.primary} strokeWidth="6" fill="none" />
+        <g>
+          <path d="M135 130 Q155 135 170 125" stroke={colors.primary} strokeWidth="8" fill="none" />
+          <circle cx="145" cy="132" r="2" fill={colors.secondary} />
+          <circle cx="160" cy="130" r="2" fill={colors.secondary} />
+        </g>
       )}
       
-      {/* Legs */}
-      <ellipse cx="80" cy="145" rx="8" ry="15" fill={colors.secondary} />
-      <ellipse cx="120" cy="145" rx="8" ry="15" fill={colors.secondary} />
-      <ellipse cx="85" cy="115" rx="6" ry="12" fill={colors.secondary} />
-      <ellipse cx="115" cy="115" rx="6" ry="12" fill={colors.secondary} />
-      
-      {/* Claws */}
-      <polygon points="75,155 73,160 77,160" fill="#000" />
-      <polygon points="85,155 83,160 87,160" fill="#000" />
-      <polygon points="115,155 113,160 117,160" fill="#000" />
-      <polygon points="125,155 123,160 127,160" fill="#000" />
-      
-      {/* Spikes upgrade */}
+      {/* Detailed spikes with organic curves */}
       {upgradeChoices?.spikes && (
         <>
-          <polygon points="85,95 80,85 90,85" fill={colors.accent} />
-          <polygon points="100,90 95,80 105,80" fill={colors.accent} />
-          <polygon points="115,95 110,85 120,85" fill={colors.accent} />
+          <path d="M85 95 Q80 80 85 78 Q90 80 90 85 Q87 90 85 95" fill={colors.accent} />
+          <path d="M100 90 Q95 75 100 73 Q105 75 105 80 Q102 85 100 90" fill={colors.accent} />
+          <path d="M115 95 Q110 80 115 78 Q120 80 120 85 Q117 90 115 95" fill={colors.accent} />
         </>
       )}
       
-      {/* Fire patterns on body */}
-      <path d="M75 120 Q85 115 95 120 Q105 125 115 120" stroke={colors.accent} strokeWidth="2" fill="none" opacity="0.7" />
-      <path d="M80 135 Q90 130 100 135 Q110 140 120 135" stroke={colors.accent} strokeWidth="2" fill="none" opacity="0.7" />
+      {/* Intricate fire patterns with realistic flame shapes */}
+      <g opacity="0.7">
+        <path d="M75 120 Q80 115 85 118 Q90 113 95 118 Q100 115 105 118 Q110 113 115 118 Q120 115 125 120" 
+          stroke={colors.accent} strokeWidth="2" fill="none" />
+        <path d="M80 135 Q85 130 90 133 Q95 128 100 133 Q105 130 110 133 Q115 128 120 133" 
+          stroke={colors.accent} strokeWidth="2" fill="none" />
+      </g>
+      
+      {/* Belly scales */}
+      <g opacity="0.3">
+        <rect x="90" y="140" width="20" height="3" rx="1" fill={colors.accent} />
+        <rect x="92" y="145" width="16" height="3" rx="1" fill={colors.accent} />
+        <rect x="94" y="150" width="12" height="3" rx="1" fill={colors.accent} />
+      </g>
     </svg>
   );
 
