@@ -22,11 +22,11 @@ export default function UltraDetailedMonsterGraphics({
   const { width, height } = dimensions[size];
 
   const renderFlamePhoenix = () => {
-    const hasSharpTeeth = upgradeChoices.teeth === 'razor';
-    const hasSpikes = upgradeChoices.spikes === 'metallic';
-    const hasMuscles = upgradeChoices.muscles === 'enhanced';
-    const hasWings = upgradeChoices.wings === 'flame';
-    const tailType = upgradeChoices.tail || 'normal';
+    const hasSharpTeeth = upgradeChoices?.teeth === 'razor';
+    const hasSpikes = upgradeChoices?.spikes === 'metallic';
+    const hasMuscles = upgradeChoices?.muscles === 'enhanced';
+    const hasWings = upgradeChoices?.wings === 'flame';
+    const tailType = upgradeChoices?.tail || 'normal';
 
     return (
       <svg width={width} height={height} viewBox="0 0 400 400" className="drop-shadow-lg">
@@ -178,11 +178,11 @@ export default function UltraDetailedMonsterGraphics({
   };
 
   const renderAquaLeviathan = () => {
-    const hasSharpTeeth = upgradeChoices.teeth === 'razor';
-    const hasSpikes = upgradeChoices.spikes === 'metallic';
-    const hasMuscles = upgradeChoices.muscles === 'enhanced';
-    const hasWings = upgradeChoices.wings === 'water';
-    const tailType = upgradeChoices.tail || 'normal';
+    const hasSharpTeeth = upgradeChoices?.teeth === 'razor';
+    const hasSpikes = upgradeChoices?.spikes === 'metallic';
+    const hasMuscles = upgradeChoices?.muscles === 'enhanced';
+    const hasWings = upgradeChoices?.wings === 'water';
+    const tailType = upgradeChoices?.tail || 'normal';
 
     return (
       <svg width={width} height={height} viewBox="0 0 400 400" className="drop-shadow-lg">
@@ -308,11 +308,11 @@ export default function UltraDetailedMonsterGraphics({
   };
 
   const renderStormDragon = () => {
-    const hasSharpTeeth = upgradeChoices.teeth === 'razor';
-    const hasSpikes = upgradeChoices.spikes === 'metallic';
-    const hasMuscles = upgradeChoices.muscles === 'enhanced';
-    const hasWings = upgradeChoices.wings === 'storm';
-    const tailType = upgradeChoices.tail || 'normal';
+    const hasSharpTeeth = upgradeChoices?.teeth === 'razor';
+    const hasSpikes = upgradeChoices?.spikes === 'metallic';
+    const hasMuscles = upgradeChoices?.muscles === 'enhanced';
+    const hasWings = upgradeChoices?.wings === 'storm';
+    const tailType = upgradeChoices?.tail || 'normal';
 
     return (
       <svg width={width} height={height} viewBox="0 0 400 400" className="drop-shadow-lg">
@@ -475,11 +475,11 @@ export default function UltraDetailedMonsterGraphics({
   };
 
   const renderCrystalTitan = () => {
-    const hasSharpTeeth = upgradeChoices.teeth === 'razor';
-    const hasSpikes = upgradeChoices.spikes === 'metallic';
-    const hasMuscles = upgradeChoices.muscles === 'enhanced';
-    const hasWings = upgradeChoices.wings === 'crystal';
-    const tailType = upgradeChoices.tail || 'normal';
+    const hasSharpTeeth = upgradeChoices?.teeth === 'razor';
+    const hasSpikes = upgradeChoices?.spikes === 'metallic';
+    const hasMuscles = upgradeChoices?.muscles === 'enhanced';
+    const hasWings = upgradeChoices?.wings === 'crystal';
+    const tailType = upgradeChoices?.tail || 'normal';
 
     return (
       <svg width={width} height={height} viewBox="0 0 400 400" className="drop-shadow-lg">
