@@ -176,6 +176,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Battle endpoint
+  app.post("/api/battles/challenge-ai", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { opponentId, monsterId, goldFee = 10 } = req.body;
+      
+      // Check if user has battle tokens
+      const user = await storage.getUser(userId);
+      if (!user || user.battleTokens < 1) {
+        return res.status(400).json({ message: "Insufficient battle tokens" });
+      }
+
+      // Get user's monster
+      const userMonsters = await storage.getUserMonsters(userId);
+      const userMonster = userMonsters.find(m => m.id === monsterId);
+      
+      if (!userMonster) {
+        return res.status(400).json({ message: "Invalid monster selection" });
+      }
+
+      // AI opponents data (matching frontend)
+      const aiOpponents = {
+        'ai-1': { name: 'Professor Quibble', difficulty: 'Easy', winChance: 0.75 },
+        'ai-2': { name: 'Scholar Maya', difficulty: 'Easy', winChance: 0.70 },
+        'ai-3': { name: 'Wizard Finn', difficulty: 'Medium', winChance: 0.60 },
+        'ai-4': { name: 'Knight Vera', difficulty: 'Medium', winChance: 0.55 },
+        'ai-5': { name: 'Sage Kael', difficulty: 'Medium', winChance: 0.50 },
+        'ai-6': { name: 'Champion Zara', difficulty: 'Hard', winChance: 0.40 },
+        'ai-7': { name: 'Lord Draven', difficulty: 'Hard', winChance: 0.35 },
+        'ai-8': { name: 'Empress Luna', difficulty: 'Hard', winChance: 0.30 },
+        'ai-9': { name: 'Titan Rex', difficulty: 'Expert', winChance: 0.25 },
+        'ai-10': { name: 'Supreme Aether', difficulty: 'Expert', winChance: 0.20 },
+      };
+
+      const opponent = aiOpponents[opponentId as keyof typeof aiOpponents];
+      if (!opponent) {
+        return res.status(400).json({ message: "Invalid opponent" });
+      }
+
+      // Determine battle outcome
+      const playerWins = Math.random() < opponent.winChance;
+      const diamondsAwarded = playerWins ? 15 : 5;
+      
+      // Update user: consume battle token, award diamonds
+      await storage.updateUserBattleTokens(userId, -1);
+      await storage.updateUserCurrency(userId, 0, diamondsAwarded);
+
+      // Create battle record
+      const battle = await storage.createBattle({
+        attackerId: userId,
+        defenderId: opponentId,
+        attackerMonsterId: monsterId,
+        defenderMonsterId: 0, // AI monster
+        winnerId: playerWins ? userId : opponentId,
+        goldFee: goldFee,
+        diamondsAwarded: diamondsAwarded
+      });
+
+      res.json({
+        result: playerWins ? "victory" : "defeat",
+        diamondsAwarded,
+        opponentName: opponent.name,
+        battleId: battle.id
+      });
+    } catch (error) {
+      console.error("Error in AI battle:", error);
+      res.status(500).json({ message: "Failed to process AI battle" });
+    }
+  });
+
   app.post("/api/battle/challenge", isAuthenticated, async (req: any, res) => {
     try {
       const attackerId = req.user.claims.sub;
