@@ -257,20 +257,12 @@ export default function UltraDetailedMonsterGraphics({
         {/* Elongated jaw with fangs */}
         <ellipse cx="200" cy="95" rx="35" ry="15" fill="url(#leviathanBody)"/>
         
-        {hasSharpTeeth ? (
-          <g>
-            <polygon points="180,100 185,115 190,100" fill="#FFFFFF"/>
-            <polygon points="190,100 195,118 200,100" fill="#FFFFFF"/>
-            <polygon points="200,100 205,118 210,100" fill="#FFFFFF"/>
-            <polygon points="210,100 215,115 220,100" fill="#FFFFFF"/>
-          </g>
-        ) : (
-          <g>
-            <polygon points="185,100 190,110 195,100" fill="#FFFFFF"/>
-            <polygon points="200,100 205,112 210,100" fill="#FFFFFF"/>
-            <polygon points="215,100 220,110 225,100" fill="#FFFFFF"/>
-          </g>
-        )}
+        <g>
+          <polygon points="180,100 185,115 190,100" fill="#FFFFFF"/>
+          <polygon points="190,100 195,118 200,100" fill="#FFFFFF"/>
+          <polygon points="200,100 205,118 210,100" fill="#FFFFFF"/>
+          <polygon points="210,100 215,115 220,100" fill="#FFFFFF"/>
+        </g>
 
         {/* Dorsal fins */}
         <g>
@@ -284,27 +276,16 @@ export default function UltraDetailedMonsterGraphics({
         </g>
 
         {/* Side fins */}
-        {hasWings && (
-          <g>
-            <path d="M120 180 Q70 160 60 200 Q70 240 110 220 Q115 200 120 180" 
-                  fill="url(#finGradient)" stroke="#2F4F4F" strokeWidth="2"/>
-            <path d="M280 180 Q330 160 340 200 Q330 240 290 220 Q285 200 280 180" 
-                  fill="url(#finGradient)" stroke="#2F4F4F" strokeWidth="2"/>
-          </g>
-        )}
+        <g>
+          <path d="M120 180 Q70 160 60 200 Q70 240 110 220 Q115 200 120 180" 
+                fill="url(#finGradient)" stroke="#2F4F4F" strokeWidth="2"/>
+          <path d="M280 180 Q330 160 340 200 Q330 240 290 220 Q285 200 280 180" 
+                fill="url(#finGradient)" stroke="#2F4F4F" strokeWidth="2"/>
+        </g>
 
         {/* Powerful tail */}
-        {tailType === 'spiked' ? (
-          <g>
-            <path d="M200 350 Q180 380 170 410 Q200 415 220 410 Q220 380 200 350" 
-                  fill="url(#leviathanBody)"/>
-            <polygon points="190,375 195,365 200,375" fill="#2F4F4F"/>
-            <polygon points="200,380 205,370 210,380" fill="#2F4F4F"/>
-          </g>
-        ) : (
-          <path d="M200 350 Q170 380 150 400 Q200 410 250 400 Q230 380 200 350" 
-                fill="url(#finGradient)"/>
-        )}
+        <path d="M200 350 Q170 380 150 400 Q200 410 250 400 Q230 380 200 350" 
+              fill="url(#finGradient)"/>
 
         {/* Water bubbles */}
         <g opacity="0.6">
