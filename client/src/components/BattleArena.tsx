@@ -176,22 +176,22 @@ export default function BattleArena() {
     }
 
     // Upgrade attacks
-    if (upgradeChoices.tail === 'flame' && monsterId === 1) {
+    if (upgradeChoices?.tail === 'flame' && monsterId === 1) {
       attacks.push({ id: 'flame-tail', name: 'Flame Tail Whip', description: 'Fiery tail attack', damage: 45, animation: 'tail-whip', isUpgrade: true });
     }
-    if (upgradeChoices.tail === 'spiked' && monsterId === 2) {
+    if (upgradeChoices?.tail === 'spiked' && monsterId === 2) {
       attacks.push({ id: 'spike-tail', name: 'Spiked Tail Slam', description: 'Devastating tail attack', damage: 50, animation: 'tail-slam', isUpgrade: true });
     }
-    if (upgradeChoices.wings === 'storm' && monsterId === 3) {
+    if (upgradeChoices?.wings === 'storm' && monsterId === 3) {
       attacks.push({ id: 'lightning-breath', name: 'Lightning Breath', description: 'Electric breath attack', damage: 55, animation: 'breath', isUpgrade: true });
     }
-    if (upgradeChoices.spikes === 'metallic' && monsterId === 4) {
+    if (upgradeChoices?.spikes === 'metallic' && monsterId === 4) {
       attacks.push({ id: 'spike-barrage', name: 'Spike Barrage', description: 'Shooting metallic spikes', damage: 40, animation: 'spike-shot', isUpgrade: true });
     }
-    if (upgradeChoices.wings === 'flame' && monsterId === 1) {
+    if (upgradeChoices?.wings === 'flame' && monsterId === 1) {
       attacks.push({ id: 'fire-burst', name: 'Fire Wing Burst', description: 'Explosive wing attack', damage: 38, animation: 'wing-burst', isUpgrade: true });
     }
-    if (upgradeChoices.teeth === 'razor' && [1,2,3].includes(monsterId)) {
+    if (upgradeChoices?.teeth === 'razor' && [1,2,3].includes(monsterId)) {
       attacks.push({ id: 'razor-bite', name: 'Razor Fang Strike', description: 'Enhanced bite attack', damage: 42, animation: 'enhanced-bite', isUpgrade: true });
     }
 
