@@ -144,9 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Mark question as answered correctly
         await storage.markQuestionAnswered(userId, questionId);
         
-        // Award battle token every 50 correct answers
+        // Award battle token every 1 correct answer
         const user = await storage.getUser(userId);
-        if (user && (user.correctAnswers + 1) % 50 === 0) {
+        if (user && (user.correctAnswers + 1) % 1 === 0) {
           await storage.updateUserBattleTokens(userId, 1);
         }
         
