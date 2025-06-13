@@ -32,8 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Clear cache on startup to force regeneration with new image system
+    // Clear cache to use enhanced graphics system
     this.imageCache.clear();
+    console.log('Enhanced monster graphics system initialized');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -404,17 +405,221 @@ export class VeoApiClient {
   }
 
   private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
-    // Generate proper SVG-based images that render as actual graphics
+    // Generate enhanced SVG monsters with detailed graphics
     const monsterSVGs = {
-      1: this.generateFireDragonSVG(upgradeChoices),
-      2: this.generateIceDragonSVG(upgradeChoices), 
-      3: this.generateThunderDragonSVG(upgradeChoices),
-      4: this.generateWaterDragonSVG(upgradeChoices),
-      5: this.generateEarthDragonSVG(upgradeChoices)
+      1: this.generateEnhancedFireDragon(upgradeChoices),     
+      2: this.generateEnhancedIceDragon(upgradeChoices),      
+      3: this.generateEnhancedThunderDragon(upgradeChoices),  
+      4: this.generateEnhancedWaterDragon(upgradeChoices),    
+      5: this.generateEnhancedEarthDragon(upgradeChoices)     
     };
 
     const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || monsterSVGs[1];
     return Buffer.from(svgContent).toString('base64');
+  }
+
+  private generateEnhancedFireDragon(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="fireBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#FF6B00"/>
+          <stop offset="40%" stop-color="#FF4444"/>
+          <stop offset="100%" stop-color="#8B0000"/>
+        </radialGradient>
+        <radialGradient id="fireHead" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#FF8C00"/>
+          <stop offset="100%" stop-color="#B22222"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#fireBody)" stroke="#4A0000" stroke-width="4"/>
+      <!-- Dragon Head -->
+      <ellipse cx="256" cy="180" rx="100" ry="80" fill="url(#fireHead)" stroke="#4A0000" stroke-width="4"/>
+      <!-- Eyes with glow -->
+      <circle cx="230" cy="165" r="12" fill="#FF4500" filter="url(#glow)"/>
+      <circle cx="282" cy="165" r="12" fill="#FF4500" filter="url(#glow)"/>
+      <circle cx="230" cy="165" r="6" fill="#FFD700"/>
+      <circle cx="282" cy="165" r="6" fill="#FFD700"/>
+      <!-- Fire Breath -->
+      <path d="M 150 180 Q 100 170 50 160 Q 70 185 110 190 Q 90 200 60 210" fill="#FF6B00" opacity="0.8" filter="url(#glow)"/>
+      <!-- Wings -->
+      <path d="M 120 260 Q 60 200 90 160 Q 140 180 120 260" fill="#8B0000" stroke="#4A0000" stroke-width="3"/>
+      <path d="M 392 260 Q 452 200 422 160 Q 372 180 392 260" fill="#8B0000" stroke="#4A0000" stroke-width="3"/>
+      <!-- Wing Details -->
+      <path d="M 130 220 Q 100 200 120 180" stroke="#FF4444" stroke-width="2" fill="none"/>
+      <path d="M 382 220 Q 412 200 392 180" stroke="#FF4444" stroke-width="2" fill="none"/>
+      <!-- Tail -->
+      <path d="M 416 350 Q 480 380 512 420" stroke="#8B0000" stroke-width="20" fill="none"/>
+      <!-- Spikes if upgraded -->
+      ${upgrades.spikes === 'metallic' ? '<polygon points="256,120 266,80 246,80" fill="#C0C0C0"/><polygon points="236,140 246,100 226,100" fill="#C0C0C0"/><polygon points="276,140 286,100 266,100" fill="#C0C0C0"/>' : ''}
+      <!-- Enhanced teeth if upgraded -->
+      ${upgrades.teeth === 'razor' ? '<polygon points="246,210 256,230 266,210" fill="#E0E0E0"/><polygon points="236,215 246,235 256,215" fill="#E0E0E0"/><polygon points="256,215 266,235 276,215" fill="#E0E0E0"/>' : ''}
+    </svg>`;
+  }
+
+  private generateEnhancedIceDragon(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="iceBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#87CEEB"/>
+          <stop offset="40%" stop-color="#4169E1"/>
+          <stop offset="100%" stop-color="#191970"/>
+        </radialGradient>
+        <radialGradient id="iceHead" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#B0E0E6"/>
+          <stop offset="100%" stop-color="#4169E1"/>
+        </radialGradient>
+        <filter id="iceGlow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#iceBody)" stroke="#1E3A8A" stroke-width="4"/>
+      <!-- Dragon Head -->
+      <ellipse cx="256" cy="180" rx="100" ry="80" fill="url(#iceHead)" stroke="#1E3A8A" stroke-width="4"/>
+      <!-- Eyes with glow -->
+      <circle cx="230" cy="165" r="12" fill="#00BFFF" filter="url(#iceGlow)"/>
+      <circle cx="282" cy="165" r="12" fill="#00BFFF" filter="url(#iceGlow)"/>
+      <circle cx="230" cy="165" r="6" fill="#E0FFFF"/>
+      <circle cx="282" cy="165" r="6" fill="#E0FFFF"/>
+      <!-- Ice Breath -->
+      <path d="M 150 180 Q 100 170 50 160 Q 70 185 110 190 Q 90 200 60 210" fill="#B0E0E6" opacity="0.8" filter="url(#iceGlow)"/>
+      <!-- Ice Crystals -->
+      <polygon points="120,170 130,150 140,170 130,190" fill="#E0FFFF" opacity="0.8"/>
+      <polygon points="100,185 110,165 120,185 110,205" fill="#E0FFFF" opacity="0.8"/>
+      <!-- Wings -->
+      <path d="M 120 260 Q 60 200 90 160 Q 140 180 120 260" fill="#4169E1" stroke="#1E3A8A" stroke-width="3"/>
+      <path d="M 392 260 Q 452 200 422 160 Q 372 180 392 260" fill="#4169E1" stroke="#1E3A8A" stroke-width="3"/>
+      <!-- Wing Details -->
+      <path d="M 130 220 Q 100 200 120 180" stroke="#87CEEB" stroke-width="2" fill="none"/>
+      <path d="M 382 220 Q 412 200 392 180" stroke="#87CEEB" stroke-width="2" fill="none"/>
+      <!-- Tail -->
+      <path d="M 416 350 Q 480 380 512 420" stroke="#4169E1" stroke-width="20" fill="none"/>
+      <!-- Ice spikes if upgraded -->
+      ${upgrades.spikes === 'ice' ? '<polygon points="256,120 266,80 246,80" fill="#E0FFFF"/><polygon points="236,140 246,100 226,100" fill="#E0FFFF"/><polygon points="276,140 286,100 266,100" fill="#E0FFFF"/>' : ''}
+    </svg>`;
+  }
+
+  private generateEnhancedThunderDragon(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="thunderBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#9932CC"/>
+          <stop offset="40%" stop-color="#8A2BE2"/>
+          <stop offset="100%" stop-color="#4B0082"/>
+        </radialGradient>
+        <filter id="lightning">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#thunderBody)" stroke="#2E0054" stroke-width="4"/>
+      <!-- Dragon Head -->
+      <ellipse cx="256" cy="180" rx="100" ry="80" fill="url(#thunderBody)" stroke="#2E0054" stroke-width="4"/>
+      <!-- Eyes -->
+      <circle cx="230" cy="165" r="12" fill="#FFD700" filter="url(#lightning)"/>
+      <circle cx="282" cy="165" r="12" fill="#FFD700" filter="url(#lightning)"/>
+      <circle cx="230" cy="165" r="6" fill="#FFFF00"/>
+      <circle cx="282" cy="165" r="6" fill="#FFFF00"/>
+      <!-- Lightning Bolts -->
+      <path d="M 150 180 L 130 160 L 140 170 L 120 150 L 130 160 L 110 140" stroke="#FFD700" stroke-width="4" fill="none" filter="url(#lightning)"/>
+      <path d="M 170 200 L 150 180 L 160 190 L 140 170 L 150 180 L 130 160" stroke="#FFFF00" stroke-width="3" fill="none" filter="url(#lightning)"/>
+      <!-- Wings -->
+      <path d="M 120 260 Q 60 200 90 160 Q 140 180 120 260" fill="#4B0082" stroke="#2E0054" stroke-width="3"/>
+      <path d="M 392 260 Q 452 200 422 160 Q 372 180 392 260" fill="#4B0082" stroke="#2E0054" stroke-width="3"/>
+      <!-- Electrical energy on wings -->
+      <path d="M 130 220 L 120 200 L 125 210 L 115 190" stroke="#FFD700" stroke-width="2" fill="none"/>
+      <path d="M 382 220 L 392 200 L 387 210 L 397 190" stroke="#FFD700" stroke-width="2" fill="none"/>
+      <!-- Tail -->
+      <path d="M 416 350 Q 480 380 512 420" stroke="#4B0082" stroke-width="20" fill="none"/>
+    </svg>`;
+  }
+
+  private generateEnhancedWaterDragon(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="waterBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#20B2AA"/>
+          <stop offset="40%" stop-color="#4682B4"/>
+          <stop offset="100%" stop-color="#008B8B"/>
+        </radialGradient>
+        <filter id="waterGlow">
+          <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#waterBody)" stroke="#005F5F" stroke-width="4"/>
+      <!-- Dragon Head -->
+      <ellipse cx="256" cy="180" rx="100" ry="80" fill="url(#waterBody)" stroke="#005F5F" stroke-width="4"/>
+      <!-- Eyes -->
+      <circle cx="230" cy="165" r="12" fill="#00CED1" filter="url(#waterGlow)"/>
+      <circle cx="282" cy="165" r="12" fill="#00CED1" filter="url(#waterGlow)"/>
+      <circle cx="230" cy="165" r="6" fill="#E0FFFF"/>
+      <circle cx="282" cy="165" r="6" fill="#E0FFFF"/>
+      <!-- Water drops and bubbles -->
+      <circle cx="140" cy="140" r="6" fill="#87CEEB" opacity="0.8"/>
+      <circle cx="130" cy="160" r="4" fill="#87CEEB" opacity="0.8"/>
+      <circle cx="120" cy="170" r="5" fill="#B0E0E6" opacity="0.7"/>
+      <circle cx="110" cy="185" r="3" fill="#87CEEB" opacity="0.8"/>
+      <!-- Wings -->
+      <path d="M 120 260 Q 60 200 90 160 Q 140 180 120 260" fill="#008B8B" stroke="#005F5F" stroke-width="3"/>
+      <path d="M 392 260 Q 452 200 422 160 Q 372 180 392 260" fill="#008B8B" stroke="#005F5F" stroke-width="3"/>
+      <!-- Water flow on wings -->
+      <path d="M 130 220 Q 100 200 120 180" stroke="#20B2AA" stroke-width="3" fill="none"/>
+      <path d="M 382 220 Q 412 200 392 180" stroke="#20B2AA" stroke-width="3" fill="none"/>
+      <!-- Tail -->
+      <path d="M 416 350 Q 480 380 512 420" stroke="#008B8B" stroke-width="20" fill="none"/>
+    </svg>`;
+  }
+
+  private generateEnhancedEarthDragon(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="earthBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#8B4513"/>
+          <stop offset="40%" stop-color="#A0522D"/>
+          <stop offset="100%" stop-color="#654321"/>
+        </radialGradient>
+        <pattern id="rockTexture" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+          <circle cx="10" cy="10" r="2" fill="#696969"/>
+          <circle cx="5" cy="15" r="1" fill="#778899"/>
+        </pattern>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#earthBody)" stroke="#3E2723" stroke-width="4"/>
+      <!-- Rock texture overlay -->
+      <ellipse cx="256" cy="320" rx="160" ry="120" fill="url(#rockTexture)" opacity="0.3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="256" cy="180" rx="100" ry="80" fill="url(#earthBody)" stroke="#3E2723" stroke-width="4"/>
+      <!-- Eyes -->
+      <circle cx="230" cy="165" r="12" fill="#DAA520"/>
+      <circle cx="282" cy="165" r="12" fill="#DAA520"/>
+      <circle cx="230" cy="165" r="6" fill="#FFD700"/>
+      <circle cx="282" cy="165" r="6" fill="#FFD700"/>
+      <!-- Rock formations -->
+      <polygon points="180,200 190,180 200,200" fill="#696969"/>
+      <polygon points="312,200 322,180 332,200" fill="#696969"/>
+      <polygon points="200,220 210,200 220,220" fill="#778899"/>
+      <polygon points="292,220 302,200 312,220" fill="#778899"/>
+      <!-- Wings -->
+      <path d="M 120 260 Q 60 200 90 160 Q 140 180 120 260" fill="#654321" stroke="#3E2723" stroke-width="3"/>
+      <path d="M 392 260 Q 452 200 422 160 Q 372 180 392 260" fill="#654321" stroke="#3E2723" stroke-width="3"/>
+      <!-- Rock details on wings -->
+      <circle cx="125" cy="210" r="4" fill="#696969"/>
+      <circle cx="387" cy="210" r="4" fill="#696969"/>
+      <!-- Tail -->
+      <path d="M 416 350 Q 480 380 512 420" stroke="#654321" stroke-width="20" fill="none"/>
+      <!-- Moss details -->
+      <circle cx="220" cy="300" r="3" fill="#228B22" opacity="0.7"/>
+      <circle cx="290" cy="310" r="2" fill="#228B22" opacity="0.7"/>
+    </svg>`;
   }
 
   private generateFireDragonSVG(upgrades: Record<string, any>): string {
