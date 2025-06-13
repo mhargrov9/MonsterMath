@@ -8,7 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { GameUser, UserMonster, Battle } from "@/types/game";
-import UltraDetailedMonsterGraphics from "./UltraDetailedMonsterGraphics";
+import Realistic3DMonster from "./Realistic3DMonster";
 
 interface AttackOption {
   id: string;
@@ -462,11 +462,19 @@ export default function BattleArena() {
                     return 'scale-100';
                   })()
                 }`} key={`player-${animationKey}`}>
-                  <UltraDetailedMonsterGraphics
+                  <Realistic3DMonster
                     monsterId={battleState.playerMonster.monsterId}
                     evolutionStage={battleState.playerMonster.evolutionStage}
                     upgradeChoices={battleState.playerMonster.upgradeChoices}
                     size="medium"
+                    animationState={
+                      battleState.currentAnimation?.includes('player_windup') ? 'windup' :
+                      battleState.currentAnimation?.includes('player_attack') ? 'attack' :
+                      battleState.currentAnimation?.includes('player_hit') ? 'hit' :
+                      battleState.winner === 'player' ? 'victory' :
+                      battleState.winner === 'ai' ? 'defeat' : 'idle'
+                    }
+                    facingDirection="right"
                   />
                 </div>
                 <div className="mt-2">
@@ -526,11 +534,19 @@ export default function BattleArena() {
                     return 'scale-100';
                   })()
                 }`} key={`ai-${animationKey}`}>
-                  <UltraDetailedMonsterGraphics
+                  <Realistic3DMonster
                     monsterId={battleState.aiMonster.id}
                     evolutionStage={2}
                     upgradeChoices={battleState.aiMonster.upgradeChoices}
                     size="medium"
+                    animationState={
+                      battleState.currentAnimation?.includes('ai_windup') ? 'windup' :
+                      battleState.currentAnimation?.includes('ai_attack') ? 'attack' :
+                      battleState.currentAnimation?.includes('ai_hit') ? 'hit' :
+                      battleState.winner === 'ai' ? 'victory' :
+                      battleState.winner === 'player' ? 'defeat' : 'idle'
+                    }
+                    facingDirection="left"
                   />
                 </div>
                 <div className="mt-2">
