@@ -136,7 +136,7 @@ export default function VeoMonster({
         
         {/* Photorealistic Monster Image */}
         <img
-          src={`data:image/svg+xml;base64,${imageData}`}
+          src={`data:image/png;base64,${imageData}`}
           alt="Photorealistic Monster"
           className="w-full h-full object-cover rounded-lg"
           style={{
