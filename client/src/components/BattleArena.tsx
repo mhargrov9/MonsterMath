@@ -490,6 +490,12 @@ export default function BattleArena() {
                      battleState.currentAnimation.includes('bite') ? 'CHOMP!' :
                      battleState.currentAnimation.includes('peck') ? 'STRIKE!' : 'HIT!'}
                   </div>
+                  {/* Floating Damage Number */}
+                  {battleState.lastDamage && (
+                    <div className="absolute text-4xl font-bold text-yellow-400 animate-bounce transform -translate-y-8">
+                      -{battleState.lastDamage}
+                    </div>
+                  )}
                 </div>
               )}
 
