@@ -101,8 +101,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
 
 ## Changelog
 
-Changelog:
-- June 13, 2025. Initial setup
+- June 13, 2025: Initial setup with photorealistic AI-generated monsters
+- June 13, 2025: Migrated to custom monster design system with user-provided images
+  - Removed all AI-generated monsters (Fire Dragon, Ice Dragon, Thunder Dragon, Water Dragon, Earth Dragon)
+  - Implemented two new monsters from Monster Design Document:
+    * Gigalith: Tank/Physical Brawler (HP: 950, MP: 200, Earth-type)
+    * Aetherion: Glass Cannon/Psychic Mage (HP: 400, MP: 800, Psychic-type)
+  - Enhanced database schema with detailed battle stats (HP, MP, abilities, resistances, weaknesses, level upgrades)
+  - Created placeholder graphics system for custom monster images
+  - Updated visual generation to support upgrade-specific appearance changes
 
 ## User Preferences
 

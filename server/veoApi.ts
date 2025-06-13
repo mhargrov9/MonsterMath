@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Clear cache to use enhanced graphics system
+    // Clear cache for new custom monsters from design document
     this.imageCache.clear();
-    console.log('Enhanced monster graphics system initialized');
+    console.log('Custom monster system initialized for Gigalith and Aetherion');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -405,17 +405,117 @@ export class VeoApiClient {
   }
 
   private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
-    // Generate enhanced SVG monsters with detailed graphics
+    // Generate custom graphics for design document monsters
     const monsterSVGs = {
-      1: this.generateEnhancedFireDragon(upgradeChoices),     
-      2: this.generateEnhancedIceDragon(upgradeChoices),      
-      3: this.generateEnhancedThunderDragon(upgradeChoices),  
-      4: this.generateEnhancedWaterDragon(upgradeChoices),    
-      5: this.generateEnhancedEarthDragon(upgradeChoices)     
+      1: this.generateGigalithGraphic(upgradeChoices),     // Gigalith - Obsidian/Magma
+      2: this.generateAetherionGraphic(upgradeChoices)     // Aetherion - Psychic Crystal
     };
 
-    const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || monsterSVGs[1];
+    const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || this.generatePlaceholderMonster(monsterId);
     return Buffer.from(svgContent).toString('base64');
+  }
+
+  private generateGigalithGraphic(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="obsidianBody" cx="50%" cy="40%">
+          <stop offset="0%" stop-color="#2F2F2F"/>
+          <stop offset="40%" stop-color="#1A1A1A"/>
+          <stop offset="100%" stop-color="#0A0A0A"/>
+        </radialGradient>
+        <radialGradient id="magmaCore" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#FF4500"/>
+          <stop offset="50%" stop-color="#FF6347"/>
+          <stop offset="100%" stop-color="#8B0000"/>
+        </radialGradient>
+        <filter id="magmaGlow">
+          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Massive obsidian body -->
+      <rect x="156" y="200" width="200" height="280" rx="20" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="6"/>
+      <!-- Obsidian head -->
+      <rect x="176" y="120" width="160" height="120" rx="15" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="6"/>
+      <!-- Magma cracks in body -->
+      <path d="M 180 220 Q 200 240 220 260 Q 240 280 260 300" stroke="url(#magmaCore)" stroke-width="8" fill="none" filter="url(#magmaGlow)"/>
+      <path d="M 300 240 Q 320 260 340 280 Q 320 300 300 320" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
+      <!-- Magma cracks in head -->
+      <path d="M 200 140 Q 220 150 240 160 Q 260 170 280 160" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
+      <!-- Glowing magma eyes -->
+      <circle cx="210" cy="160" r="15" fill="#FF4500" filter="url(#magmaGlow)"/>
+      <circle cx="302" cy="160" r="15" fill="#FF4500" filter="url(#magmaGlow)"/>
+      <circle cx="210" cy="160" r="8" fill="#FFD700"/>
+      <circle cx="302" cy="160" r="8" fill="#FFD700"/>
+      <!-- Massive fists -->
+      <circle cx="120" cy="300" r="40" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
+      <circle cx="392" cy="300" r="40" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
+      <!-- Magma in fists -->
+      <circle cx="120" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
+      <circle cx="392" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
+      <!-- Volcanic ground effects -->
+      <ellipse cx="256" cy="480" rx="150" ry="20" fill="#8B4513" opacity="0.6"/>
+      <circle cx="200" cy="470" r="8" fill="#FF4500" opacity="0.7"/>
+      <circle cx="320" cy="475" r="6" fill="#FF6347" opacity="0.7"/>
+      <!-- Level upgrades -->
+      ${upgrades.level >= 5 ? '<path d="M 356 350 Q 400 370 440 400 Q 460 420 480 450" stroke="url(#magmaCore)" stroke-width="25" fill="none"/>' : ''}
+      ${upgrades.level >= 7 ? '<circle cx="256" cy="260" r="25" fill="#FFD700" filter="url(#magmaGlow)"/>' : ''}
+      ${upgrades.level >= 10 ? '<polygon points="256,100 270,70 242,70" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>' : ''}
+    </svg>`;
+  }
+
+  private generateAetherionGraphic(upgrades: Record<string, any>): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="crystalLattice" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#E6E6FA"/>
+          <stop offset="40%" stop-color="#9932CC"/>
+          <stop offset="100%" stop-color="#4B0082"/>
+        </radialGradient>
+        <radialGradient id="psychicCore" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#FF69B4"/>
+          <stop offset="50%" stop-color="#DA70D6"/>
+          <stop offset="100%" stop-color="#9932CC"/>
+        </radialGradient>
+        <filter id="psychicGlow">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+          <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <!-- Central crystal lattice body -->
+      <polygon points="256,150 320,200 256,300 192,200" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="3" opacity="0.8"/>
+      <!-- Psychic energy core -->
+      <ellipse cx="256" cy="225" rx="40" ry="60" fill="url(#psychicCore)" filter="url(#psychicGlow)" opacity="0.9"/>
+      <!-- Floating crystal fragments -->
+      <polygon points="200,180 220,160 240,180 220,200" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.7"/>
+      <polygon points="272,160 292,140 312,160 292,180" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.7"/>
+      <polygon points="180,220 200,200 220,220 200,240" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.7"/>
+      <polygon points="292,220 312,200 332,220 312,240" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.7"/>
+      <!-- Psychic energy emanation -->
+      <circle cx="256" cy="225" r="80" fill="none" stroke="url(#psychicCore)" stroke-width="2" opacity="0.3"/>
+      <circle cx="256" cy="225" r="100" fill="none" stroke="url(#psychicCore)" stroke-width="1" opacity="0.2"/>
+      <!-- Hovering effect -->
+      <ellipse cx="256" cy="400" rx="60" ry="15" fill="#4B0082" opacity="0.3"/>
+      <!-- Wing-like crystal structures (level 4+) -->
+      ${upgrades.level >= 4 ? '<polygon points="150,200 180,180 180,240 150,220" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.6"/>' : ''}
+      ${upgrades.level >= 4 ? '<polygon points="362,200 332,180 332,240 362,220" fill="url(#crystalLattice)" stroke="#9932CC" stroke-width="2" opacity="0.6"/>' : ''}
+      <!-- Orbiting shards (level 5+) -->
+      ${upgrades.level >= 5 ? '<polygon points="320,150 330,140 340,150 330,160" fill="#00BFFF" filter="url(#psychicGlow)"/>' : ''}
+      ${upgrades.level >= 5 ? '<polygon points="172,250 182,240 192,250 182,260" fill="#00BFFF" filter="url(#psychicGlow)"/>' : ''}
+      ${upgrades.level >= 5 ? '<polygon points="320,300 330,290 340,300 330,310" fill="#00BFFF" filter="url(#psychicGlow)"/>' : ''}
+      <!-- Psychic aura (level 8+) -->
+      ${upgrades.level >= 8 ? '<circle cx="256" cy="225" r="120" fill="none" stroke="url(#psychicCore)" stroke-width="3" opacity="0.5" filter="url(#psychicGlow)"/>' : ''}
+      <!-- Crystalline core (level 10) -->
+      ${upgrades.level >= 10 ? '<polygon points="256,200 276,220 256,250 236,220" fill="#FFD700" filter="url(#psychicGlow)"/>' : ''}
+    </svg>`;
+  }
+
+  private generatePlaceholderMonster(monsterId: number): string {
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <rect x="0" y="0" width="512" height="512" fill="#1a1a1a"/>
+      <text x="256" y="256" text-anchor="middle" fill="#888" font-size="24">Monster ${monsterId}</text>
+      <text x="256" y="290" text-anchor="middle" fill="#666" font-size="16">Image will be uploaded</text>
+    </svg>`;
   }
 
   private generateEnhancedFireDragon(upgrades: Record<string, any>): string {
