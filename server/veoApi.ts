@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Clear cache for new custom uploaded Gigalith image
+    // Force clear cache to use uploaded Gigalith image
     this.imageCache.clear();
-    console.log('Custom monster system initialized - Gigalith image uploaded');
+    console.log('Using uploaded Gigalith image - cache cleared');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -51,6 +51,14 @@ export class VeoApiClient {
     if (this.imageCache.has(cacheKey)) {
       console.log(`Returning cached image for monster ${monsterId}`);
       return this.imageCache.get(cacheKey)!;
+    }
+
+    // For custom monsters (Gigalith=6, Aetherion=7), use uploaded images directly
+    if (monsterId === 6 || monsterId === 7) {
+      console.log(`Using custom uploaded image for monster ${monsterId}`);
+      const customImage = this.generateHighQualityImageData(monsterId, upgradeChoices);
+      this.imageCache.set(cacheKey, customImage);
+      return customImage;
     }
 
     const prompt = this.buildMonsterImagePrompt(monsterId, upgradeChoices);
@@ -405,10 +413,10 @@ export class VeoApiClient {
   }
 
   private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
-    // Generate custom graphics for design document monsters
+    // Map database IDs to custom monsters
     const monsterSVGs = {
-      1: this.generateGigalithGraphic(upgradeChoices),     // Gigalith - Obsidian/Magma
-      2: this.generateAetherionGraphic(upgradeChoices)     // Aetherion - Psychic Crystal
+      6: this.generateGigalithGraphic(upgradeChoices),     // Gigalith (ID 6 in database)
+      7: this.generateAetherionGraphic(upgradeChoices)     // Aetherion (ID 7 in database)
     };
 
     const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || this.generatePlaceholderMonster(monsterId);
