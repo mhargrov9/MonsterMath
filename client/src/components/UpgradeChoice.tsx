@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Coins, Gem } from 'lucide-react';
-import Realistic3DMonster from './Realistic3DMonster';
+import PhotorealisticMonster from './PhotorealisticMonster';
 import type { UserMonster } from '@shared/schema';
 
 interface UpgradeOption {
@@ -232,7 +232,7 @@ const UpgradeChoice: React.FC<UpgradeChoiceProps> = ({
                     <CardDescription>{option.description}</CardDescription>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Realistic3DMonster 
+                    <PhotorealisticMonster 
                       monsterId={userMonster.monsterId} 
                       evolutionStage={userMonster.evolutionStage}
                       upgradeChoices={Object.assign(
