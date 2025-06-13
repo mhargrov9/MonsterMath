@@ -7,7 +7,7 @@ import { Coins, Gem, Zap, Shield, Gauge } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import PhotorealisticMonster from "./PhotorealisticMonster";
+import VeoMonster from "./VeoMonster";
 import UpgradeChoice from "./UpgradeChoice";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
@@ -165,7 +165,7 @@ export default function MonsterLab() {
               <CardTitle>Current Monster</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
-              <PhotorealisticMonster 
+              <VeoMonster 
                 monsterId={selectedMonster.monsterId} 
                 evolutionStage={selectedMonster.evolutionStage}
                 upgradeChoices={selectedMonster.upgradeChoices || {}}
@@ -208,7 +208,7 @@ export default function MonsterLab() {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-center">
                     <div className="flex gap-4 items-center">
-                      <PhotorealisticMonster 
+                      <VeoMonster 
                         monsterId={monster.id} 
                         evolutionStage={1}
                         upgradeChoices={{}}
@@ -272,7 +272,7 @@ export default function MonsterLab() {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-center">
                       <div className="flex gap-4 items-center">
-                        <PhotorealisticMonster 
+                        <VeoMonster 
                           monsterId={userMonster.monsterId} 
                           evolutionStage={userMonster.evolutionStage}
                           upgradeChoices={userMonster.upgradeChoices || {}}

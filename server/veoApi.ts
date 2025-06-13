@@ -58,7 +58,7 @@ export class VeoApiClient {
         body: JSON.stringify({
           inputs: prompt,
           parameters: {
-            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark",
+            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals",
             num_inference_steps: 20, // Reduced for faster generation
             guidance_scale: 7.5,
             width: 512,
@@ -95,7 +95,7 @@ export class VeoApiClient {
           version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
           input: {
             prompt: prompt,
-            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark",
+            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals",
             width: 512,
             height: 512,
             num_inference_steps: 20, // Reduced for speed
@@ -948,11 +948,11 @@ export class VeoApiClient {
     };
 
     const basePrompts = {
-      1: "Photorealistic Fire Dragon, massive red and black scaled beast with glowing orange eyes, molten lava dripping from mouth, dark volcanic scales with red highlights, powerful muscular build, sharp claws and fangs, fire breathing from nostrils",
-      2: "Photorealistic Ice Dragon, enormous blue and white scaled creature with piercing ice-blue eyes, frost covering dark blue scales, crystalline ice formations on body, powerful build with sharp icy claws, cold mist emanating from mouth and nostrils",
-      3: "Photorealistic Thunder Dragon, gigantic purple and black scaled monster with bright yellow lightning eyes, electric energy crackling across dark purple scales, storm clouds around it, metallic silver accents, powerful frame with lightning-charged claws",
-      4: "Photorealistic Water Dragon, large teal and blue scaled beast with glowing cyan eyes, wet glistening scales in shades of dark teal and blue, water droplets covering body, sleek powerful build with webbed claws, aquatic predator appearance",
-      5: "Photorealistic Earth Dragon, massive brown and green scaled creature with amber golden eyes, rocky stone-like scales with moss and earth tones, dirt and small rocks embedded in hide, incredibly muscular build with stone-crushing claws"
+      1: "Single photorealistic Fire Dragon creature, one massive red and black scaled beast with glowing orange eyes, molten lava dripping from mouth, dark volcanic scales with red highlights, powerful muscular build, sharp claws and fangs, fire breathing from nostrils, solo creature only",
+      2: "Single photorealistic Ice Dragon creature, one enormous blue and white scaled beast with piercing ice-blue eyes, frost covering dark blue scales, crystalline ice formations on body, powerful build with sharp icy claws, cold mist emanating from mouth and nostrils, solo creature only",
+      3: "Single photorealistic Thunder Dragon creature, one gigantic purple and black scaled monster with bright yellow lightning eyes, electric energy crackling across dark purple scales, storm clouds around it, metallic silver accents, powerful frame with lightning-charged claws, solo creature only",
+      4: "Single photorealistic Water Dragon creature, one large teal and blue scaled beast with glowing cyan eyes, wet glistening scales in shades of dark teal and blue, water droplets covering body, sleek powerful build with webbed claws, aquatic predator appearance, solo creature only",
+      5: "Single photorealistic Earth Dragon creature, one massive brown and green scaled beast with amber golden eyes, rocky stone-like scales with moss and earth tones, dirt and small rocks embedded in hide, incredibly muscular build with stone-crushing claws, solo creature only"
     };
 
     const monsterName = monsterNames[monsterId as keyof typeof monsterNames] || "Fire Dragon";
