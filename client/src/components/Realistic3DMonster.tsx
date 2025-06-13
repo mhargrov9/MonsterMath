@@ -25,7 +25,7 @@ export default function Realistic3DMonster({
 
   const { width, height } = dimensions[size];
 
-  // Get monster-specific realistic rendering
+  // Get monster-specific realistic rendering with enhanced 3D creature features
   const renderRealisticFlamePhoenix = () => {
     const hasSharpTeeth = upgradeChoices?.teeth === 'razor';
     const hasSpikes = upgradeChoices?.spikes === 'metallic';
