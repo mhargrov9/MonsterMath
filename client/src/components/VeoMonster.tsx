@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+import Gigalith_1 from "@assets/Gigalith 1.png";
+
 interface VeoMonsterProps {
   monsterId: number;
   evolutionStage: number;
@@ -136,7 +138,7 @@ export default function VeoMonster({
         
         {/* Monster Image */}
         <img
-          src={`data:image/svg+xml;base64,${imageData}`}
+          src={Gigalith_1}
           alt="Monster"
           className="w-full h-full object-contain rounded-lg"
           style={{
