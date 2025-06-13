@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use uploaded Gigalith image
+    // Force clear cache to use new Gigalith image
     this.imageCache.clear();
-    console.log('Using uploaded Gigalith image - cache cleared');
+    console.log('Cache cleared for new Gigalith image (1749855537325)');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -427,9 +427,9 @@ export class VeoApiClient {
     const level = upgrades.level || 1;
     
     if (level === 1) {
-      // Return an SVG that embeds your uploaded Gigalith image
+      // Return an SVG that embeds your new uploaded Gigalith image
       return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <image href="/assets/Gigalith%201_1749853816574.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/assets/Gigalith%201_1749855537325.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     } else {
       // Placeholder for upgraded versions until you upload them

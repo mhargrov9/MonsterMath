@@ -135,16 +135,21 @@ export default function VeoMonster({
           className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-black/20 rounded-full blur-sm"
           style={{ width: width * 0.8, height: height * 0.1, top: '90%' }}
         />
-        
         {/* Monster Image */}
-        <img
-          src={Gigalith_1}
-          alt="Monster"
-          className="w-full h-full object-contain rounded-lg"
-          style={{
-            filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)'
-          }}
-        />
+        {imageData ? (
+          <img
+            src={`data:image/svg+xml;base64,${imageData}`}
+            alt={`Monster ${monsterId}`}
+            className="w-full h-full object-contain rounded-lg"
+            style={{
+              filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)'
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
+            <span className="text-gray-400">Loading...</span>
+          </div>
+        )}
         
         {/* Battle Effects Overlay */}
         {animationState === 'attack' && (
