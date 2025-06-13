@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -314,6 +315,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching battle history:", error);
       res.status(500).json({ message: "Failed to fetch battle history" });
+    }
+  });
+
+  // Veo API routes for photorealistic monsters
+  app.post('/api/generate/monster-image', isAuthenticated, async (req, res) => {
+    try {
+      const { monsterId, upgradeChoices } = req.body;
+      
+      if (!monsterId) {
+        return res.status(400).json({ message: "monsterId is required" });
+      }
+
+      const imageData = await veoClient.generateMonsterImage(monsterId, upgradeChoices || {});
+      
+      res.json({ 
+        success: true, 
+        imageData: imageData,
+        mimeType: 'image/png'
+      });
+    } catch (error) {
+      console.error("Error generating monster image:", error);
+      res.status(500).json({ 
+        message: "Failed to generate monster image",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post('/api/generate/battle-video', isAuthenticated, async (req, res) => {
+    try {
+      const { playerMonsterId, aiMonsterId, playerUpgrades, aiUpgrades } = req.body;
+      
+      if (!playerMonsterId || !aiMonsterId) {
+        return res.status(400).json({ message: "playerMonsterId and aiMonsterId are required" });
+      }
+
+      const videoData = await veoClient.generateBattleVideo(
+        playerMonsterId, 
+        aiMonsterId, 
+        playerUpgrades || {}, 
+        aiUpgrades || {}
+      );
+      
+      res.json({ 
+        success: true, 
+        videoData: videoData,
+        mimeType: 'video/mp4'
+      });
+    } catch (error) {
+      console.error("Error generating battle video:", error);
+      res.status(500).json({ 
+        message: "Failed to generate battle video",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
