@@ -25,6 +25,7 @@ export class VeoApiClient {
   private apiKey: string;
   private baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
   private vertexUrl = 'https://us-central1-aiplatform.googleapis.com/v1';
+  private imageCache = new Map<string, string>();
 
   constructor() {
     this.apiKey = process.env.GOOGLE_API_KEY!;
@@ -34,10 +35,56 @@ export class VeoApiClient {
   }
 
   async generateMonsterImage(monsterId: number, upgradeChoices: Record<string, any>): Promise<string> {
+    // Create cache key based on monster type and upgrades
+    const cacheKey = `monster_${monsterId}_${JSON.stringify(upgradeChoices)}`;
+    
+    // Return cached image if available
+    if (this.imageCache.has(cacheKey)) {
+      console.log(`Returning cached image for monster ${monsterId}`);
+      return this.imageCache.get(cacheKey)!;
+    }
+
     const prompt = this.buildMonsterImagePrompt(monsterId, upgradeChoices);
+    console.log(`Generating new image for monster ${monsterId}: ${prompt}`);
     
     try {
-      // Use Replicate API for Stable Diffusion XL - this creates actual photorealistic images
+      // Use Hugging Face first (faster than Replicate)
+      const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: prompt,
+          parameters: {
+            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark",
+            num_inference_steps: 20, // Reduced for faster generation
+            guidance_scale: 7.5,
+            width: 512,
+            height: 512
+          }
+        })
+      });
+
+      if (response.ok) {
+        const imageBuffer = await response.arrayBuffer();
+        const base64Image = Buffer.from(imageBuffer).toString('base64');
+        
+        // Cache the generated image
+        this.imageCache.set(cacheKey, base64Image);
+        console.log(`Cached new image for monster ${monsterId}`);
+        
+        return base64Image;
+      } else {
+        console.log('Hugging Face failed, trying Replicate');
+      }
+    } catch (error) {
+      console.log('Hugging Face API failed, trying Replicate');
+    }
+
+    try {
+      // Fallback to Replicate with faster settings
       const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
@@ -51,9 +98,9 @@ export class VeoApiClient {
             negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark",
             width: 512,
             height: 512,
-            num_inference_steps: 50,
+            num_inference_steps: 20, // Reduced for speed
             guidance_scale: 7.5,
-            scheduler: "K_EULER_ANCESTRAL"
+            scheduler: "DPMSolverMultistep" // Faster scheduler
           }
         })
       });
@@ -61,10 +108,12 @@ export class VeoApiClient {
       if (response.ok) {
         const prediction = await response.json() as any;
         
-        // Poll for completion
+        // Poll for completion with shorter intervals
         let result = prediction;
-        while (result.status === 'starting' || result.status === 'processing') {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+        let attempts = 0;
+        while ((result.status === 'starting' || result.status === 'processing') && attempts < 30) {
+          await new Promise(resolve => setTimeout(resolve, 500)); // Shorter interval
+          attempts++;
           
           const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
             headers: {
@@ -80,48 +129,27 @@ export class VeoApiClient {
         }
         
         if (result.status === 'succeeded' && result.output && result.output[0]) {
-          // Convert image URL to base64
           const imageResponse = await fetch(result.output[0]);
           if (imageResponse.ok) {
             const imageBuffer = await imageResponse.arrayBuffer();
-            return Buffer.from(imageBuffer).toString('base64');
+            const base64Image = Buffer.from(imageBuffer).toString('base64');
+            
+            // Cache the generated image
+            this.imageCache.set(cacheKey, base64Image);
+            console.log(`Cached new Replicate image for monster ${monsterId}`);
+            
+            return base64Image;
           }
         }
       }
     } catch (error) {
-      console.log('Replicate API failed, trying Hugging Face');
+      console.log('Replicate API failed, using enhanced fallback');
     }
 
-    try {
-      // Fallback to Hugging Face Stable Diffusion
-      const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly",
-            num_inference_steps: 50,
-            guidance_scale: 7.5,
-            width: 512,
-            height: 512
-          }
-        })
-      });
-
-      if (response.ok) {
-        const imageBuffer = await response.arrayBuffer();
-        return Buffer.from(imageBuffer).toString('base64');
-      }
-    } catch (error) {
-      console.log('Hugging Face API failed, using fallback');
-    }
-
-    // Final fallback to enhanced SVG
-    return this.generateCinemaQualitySVG(monsterId, upgradeChoices, prompt);
+    // Enhanced fallback with specific monster characteristics
+    const fallbackImage = this.generateCinemaQualitySVG(monsterId, upgradeChoices, prompt);
+    this.imageCache.set(cacheKey, fallbackImage);
+    return fallbackImage;
   }
 
   private async generateImageWithGeminiVision(prompt: string): Promise<string> {
@@ -910,38 +938,51 @@ export class VeoApiClient {
   }
 
   private buildMonsterImagePrompt(monsterId: number, upgradeChoices: Record<string, any>): string {
-    const basePrompts = {
-      1: "Hyper-realistic, terrifying fire dragon creature with coal-black muscular body, glowing red eyes filled with malice, massive powerful claws, razor-sharp teeth dripping with saliva, thick armored scales with molten lava veins pulsing beneath, smoke and embers rising from nostrils and mouth",
-      2: "Hyper-realistic, menacing ice dragon beast with frost-covered dark blue scales, piercing electric blue eyes, massive ice-encrusted claws, crystalline spikes jutting from spine, frozen breath visible in the air, icicles hanging from jaw and limbs, muscular predatory build",
-      3: "Hyper-realistic, fearsome thunder dragon with deep purple-black scales crackling with electrical energy, bright yellow lightning eyes, metallic silver claws, electrical discharge arcing between horns and spikes, muscular frame built for destruction, storm clouds gathering around it",
-      4: "Hyper-realistic, aquatic dragon monster with sleek dark teal scales that glisten with water, predatory cyan eyes, webbed claws designed for tearing, water constantly dripping from its muscular frame, gill slits along powerful neck, built like an apex aquatic predator",
-      5: "Hyper-realistic, earth dragon behemoth with boulder-like rocky scales, moss and small vegetation growing on massive shoulders, amber predatory eyes, stone-crushing claws, incredibly muscular build, dirt and debris falling from its armored hide"
+    // Monster type names for consistency
+    const monsterNames = {
+      1: "Fire Dragon",
+      2: "Ice Dragon", 
+      3: "Thunder Dragon",
+      4: "Water Dragon",
+      5: "Earth Dragon"
     };
 
+    const basePrompts = {
+      1: "Photorealistic Fire Dragon, massive red and black scaled beast with glowing orange eyes, molten lava dripping from mouth, dark volcanic scales with red highlights, powerful muscular build, sharp claws and fangs, fire breathing from nostrils",
+      2: "Photorealistic Ice Dragon, enormous blue and white scaled creature with piercing ice-blue eyes, frost covering dark blue scales, crystalline ice formations on body, powerful build with sharp icy claws, cold mist emanating from mouth and nostrils",
+      3: "Photorealistic Thunder Dragon, gigantic purple and black scaled monster with bright yellow lightning eyes, electric energy crackling across dark purple scales, storm clouds around it, metallic silver accents, powerful frame with lightning-charged claws",
+      4: "Photorealistic Water Dragon, large teal and blue scaled beast with glowing cyan eyes, wet glistening scales in shades of dark teal and blue, water droplets covering body, sleek powerful build with webbed claws, aquatic predator appearance",
+      5: "Photorealistic Earth Dragon, massive brown and green scaled creature with amber golden eyes, rocky stone-like scales with moss and earth tones, dirt and small rocks embedded in hide, incredibly muscular build with stone-crushing claws"
+    };
+
+    const monsterName = monsterNames[monsterId as keyof typeof monsterNames] || "Fire Dragon";
     let prompt = basePrompts[monsterId as keyof typeof basePrompts] || basePrompts[1];
     
-    // Add upgrade details with more dramatic descriptions
+    // Add seed for consistency
+    prompt = `${monsterName}: ${prompt}`;
+    
+    // Add upgrade details with specific descriptions
     if (upgradeChoices.teeth === 'razor') {
-      prompt += ", massive razor-sharp fangs gleaming like polished steel, designed to tear through armor and bone";
+      prompt += ", enhanced with massive razor-sharp fangs and enlarged teeth";
     }
     
     if (upgradeChoices.spikes === 'metallic' || upgradeChoices.spikes === 'ice') {
-      prompt += ", deadly metallic spikes jutting aggressively from shoulders, back, and tail, each one sharp enough to impale enemies";
+      prompt += ", featuring deadly metallic spikes protruding from back and shoulders";
     }
     
     if (upgradeChoices.muscles === 'enhanced') {
-      prompt += ", extraordinarily enhanced musculature with visible definition, powerful limbs capable of crushing buildings, intimidating physical presence";
+      prompt += ", with extraordinarily enhanced musculature and powerful defined muscles";
     }
     
     if (upgradeChoices.wings === 'flame' || upgradeChoices.wings === 'ice') {
-      prompt += ", massive battle-scarred wings spread in threatening display, each wing membrane showing detailed texture and battle damage";
+      prompt += ", displaying massive spread wings with detailed membrane texture";
     }
     
     if (upgradeChoices.tail === 'spiked') {
-      prompt += ", weaponized spiked tail with bone-crushing spikes, positioned to strike with devastating force";
+      prompt += ", equipped with a weaponized spiked tail ready to strike";
     }
 
-    prompt += ". Shot with professional cinema camera, dramatic chiaroscuro lighting, film grain texture, 8K resolution, hyperrealistic creature design like a practical movie monster, every scale and detail visible, menacing and predatory expression, designed to inspire fear and awe, masterpiece quality creature photography.";
+    prompt += ". Professional creature photography, cinematic lighting, 8K hyperrealistic detail, practical movie monster quality, menacing predatory pose, dark atmospheric background, masterpiece creature design.";
     
     return prompt;
   }
