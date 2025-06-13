@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -8,6 +9,13 @@ import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+
+  // Serve uploaded monster assets
+  app.use('/assets', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+  });
+  app.use('/assets', express.static('attached_assets'));
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

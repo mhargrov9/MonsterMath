@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Clear cache for new custom monsters from design document
+    // Clear cache for new custom uploaded Gigalith image
     this.imageCache.clear();
-    console.log('Custom monster system initialized for Gigalith and Aetherion');
+    console.log('Custom monster system initialized - Gigalith image uploaded');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -416,6 +416,30 @@ export class VeoApiClient {
   }
 
   private generateGigalithGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    if (level === 1) {
+      // Return an SVG that embeds your uploaded Gigalith image
+      return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <image href="/assets/Gigalith%201_1749853816574.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    } else {
+      // Placeholder for upgraded versions until you upload them
+      return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <rect x="0" y="0" width="512" height="512" fill="#1a1a1a"/>
+        <text x="256" y="220" text-anchor="middle" fill="#FF4500" font-size="24">Gigalith Level ${level}</text>
+        <text x="256" y="250" text-anchor="middle" fill="#8B4513" font-size="16">Upgrade image</text>
+        <text x="256" y="280" text-anchor="middle" fill="#666" font-size="16">will be uploaded</text>
+      </svg>`;
+    }
+  }
+
+  private getCustomGigalithImage(): string {
+    // Return a reference to your uploaded Gigalith image
+    return '/assets/Gigalith 1_1749853816574.png';
+  }
+
+  private generateDetailedGigalithSVG(): string {
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="obsidianBody" cx="50%" cy="40%">
@@ -433,34 +457,36 @@ export class VeoApiClient {
           <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
       </defs>
-      <!-- Massive obsidian body -->
+      <!-- Massive obsidian body with spikes -->
       <rect x="156" y="200" width="200" height="280" rx="20" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="6"/>
-      <!-- Obsidian head -->
+      <!-- Obsidian spikes on shoulders -->
+      <polygon points="140,210 160,180 180,210" fill="url(#obsidianBody)"/>
+      <polygon points="332,210 352,180 372,210" fill="url(#obsidianBody)"/>
+      <polygon points="220,190 240,160 260,190" fill="url(#obsidianBody)"/>
+      <polygon points="252,190 272,160 292,190" fill="url(#obsidianBody)"/>
+      <!-- Obsidian head with angular features -->
       <rect x="176" y="120" width="160" height="120" rx="15" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="6"/>
-      <!-- Magma cracks in body -->
-      <path d="M 180 220 Q 200 240 220 260 Q 240 280 260 300" stroke="url(#magmaCore)" stroke-width="8" fill="none" filter="url(#magmaGlow)"/>
-      <path d="M 300 240 Q 320 260 340 280 Q 320 300 300 320" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
-      <!-- Magma cracks in head -->
-      <path d="M 200 140 Q 220 150 240 160 Q 260 170 280 160" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
+      <!-- Central magma core in chest -->
+      <path d="M 256 220 L 280 240 L 256 320 L 232 240 Z" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
+      <!-- Magma cracks spreading from core -->
+      <path d="M 256 240 Q 200 250 180 280 Q 200 300 240 290" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
+      <path d="M 256 240 Q 312 250 332 280 Q 312 300 272 290" stroke="url(#magmaCore)" stroke-width="6" fill="none" filter="url(#magmaGlow)"/>
+      <path d="M 256 280 Q 260 340 240 380 Q 272 380 256 320" stroke="url(#magmaCore)" stroke-width="5" fill="none" filter="url(#magmaGlow)"/>
       <!-- Glowing magma eyes -->
       <circle cx="210" cy="160" r="15" fill="#FF4500" filter="url(#magmaGlow)"/>
       <circle cx="302" cy="160" r="15" fill="#FF4500" filter="url(#magmaGlow)"/>
       <circle cx="210" cy="160" r="8" fill="#FFD700"/>
       <circle cx="302" cy="160" r="8" fill="#FFD700"/>
-      <!-- Massive fists -->
-      <circle cx="120" cy="300" r="40" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
-      <circle cx="392" cy="300" r="40" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
+      <!-- Massive angular fists -->
+      <polygon points="80,280 120,260 140,300 120,340 80,320" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
+      <polygon points="372,280 412,260 432,300 412,340 372,320" fill="url(#obsidianBody)" stroke="#8B4513" stroke-width="4"/>
       <!-- Magma in fists -->
-      <circle cx="120" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
-      <circle cx="392" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
+      <circle cx="110" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
+      <circle cx="402" cy="300" r="20" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>
       <!-- Volcanic ground effects -->
       <ellipse cx="256" cy="480" rx="150" ry="20" fill="#8B4513" opacity="0.6"/>
       <circle cx="200" cy="470" r="8" fill="#FF4500" opacity="0.7"/>
       <circle cx="320" cy="475" r="6" fill="#FF6347" opacity="0.7"/>
-      <!-- Level upgrades -->
-      ${upgrades.level >= 5 ? '<path d="M 356 350 Q 400 370 440 400 Q 460 420 480 450" stroke="url(#magmaCore)" stroke-width="25" fill="none"/>' : ''}
-      ${upgrades.level >= 7 ? '<circle cx="256" cy="260" r="25" fill="#FFD700" filter="url(#magmaGlow)"/>' : ''}
-      ${upgrades.level >= 10 ? '<polygon points="256,100 270,70 242,70" fill="url(#magmaCore)" filter="url(#magmaGlow)"/>' : ''}
     </svg>`;
   }
 
