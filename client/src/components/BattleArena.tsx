@@ -39,6 +39,8 @@ interface BattleState {
   battleLog: string[];
   winner: 'player' | 'ai' | null;
   currentAnimation: string | null;
+  lastDamage: number | null;
+  screenShake: boolean;
 }
 
 export default function BattleArena() {
@@ -157,6 +159,45 @@ export default function BattleArena() {
   const canBattle = user && user.battleTokens > 0;
   const nextTokenProgress = user ? (user.correctAnswers % 1) : 0;
 
+  // Animation helper functions
+  const getPlayerAnimationClass = () => {
+    if (!battleState?.currentAnimation) return 'scale-100';
+    
+    const anim = battleState.currentAnimation;
+    const isPlayerTurn = battleState.turn === 'player';
+    
+    if (isPlayerTurn) {
+      if (anim.includes('windup')) return 'scale-110 -rotate-12';
+      if (anim.includes('strike')) return 'scale-125 translate-x-12 rotate-6';
+      if (anim.includes('impact')) return 'scale-115 translate-x-8';
+      if (anim.includes('return')) return 'scale-105 translate-x-2';
+    } else {
+      // Player is being attacked - recoil animation
+      if (anim.includes('impact')) return 'scale-95 -translate-x-6 rotate-3';
+    }
+    
+    return 'scale-100';
+  };
+
+  const getAIAnimationClass = () => {
+    if (!battleState?.currentAnimation) return 'scale-100';
+    
+    const anim = battleState.currentAnimation;
+    const isAITurn = battleState.turn === 'ai';
+    
+    if (isAITurn) {
+      if (anim.includes('windup')) return 'scale-110 rotate-12';
+      if (anim.includes('strike')) return 'scale-125 -translate-x-12 -rotate-6';
+      if (anim.includes('impact')) return 'scale-115 -translate-x-8';
+      if (anim.includes('return')) return 'scale-105 -translate-x-2';
+    } else {
+      // AI is being attacked - recoil animation
+      if (anim.includes('impact')) return 'scale-95 translate-x-6 -rotate-3';
+    }
+    
+    return 'scale-100';
+  };
+
   // Get attack options for a monster
   const getAttackOptions = (monster: UserMonster | AIMonster, upgradeChoices: Record<string, any>): AttackOption[] => {
     const attacks: AttackOption[] = [];
@@ -230,7 +271,9 @@ export default function BattleArena() {
       phase: 'select',
       battleLog: [`Battle begins! ${monster.monster.name} vs ${aiMonster.name}!`],
       winner: null,
-      currentAnimation: null
+      currentAnimation: null,
+      lastDamage: null,
+      screenShake: false
     });
   };
 
@@ -246,17 +289,40 @@ export default function BattleArena() {
 
     setAnimationKey(prev => prev + 1);
 
-    // Animate attack
-    setTimeout(() => {
-      if (!battleState) return;
+    // Multi-stage animation sequence
+    const attackSequence = async () => {
+      // Stage 1: Attacker wind-up (500ms)
+      setBattleState(prev => ({ ...prev!, currentAnimation: `${attack.animation}-windup` }));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Stage 2: Attack motion (300ms)
+      setBattleState(prev => ({ ...prev!, currentAnimation: `${attack.animation}-strike` }));
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Stage 3: Impact and defender recoil (400ms)
       const isPlayerAttacking = attacker === 'player';
       const attackerMonster = isPlayerAttacking ? battleState.playerMonster : battleState.aiMonster;
       const defenderMonster = isPlayerAttacking ? battleState.aiMonster : battleState.playerMonster;
-      
       const damage = calculateDamage(attackerMonster, defenderMonster, attack.damage);
-      const newDefenderHp = Math.max(0, defenderMonster.hp - damage);
+      
+      setBattleState(prev => ({ 
+        ...prev!, 
+        currentAnimation: `${attack.animation}-impact`,
+        lastDamage: damage,
+        screenShake: true
+      }));
+      await new Promise(resolve => setTimeout(resolve, 400));
 
+      // Stage 4: Return to position (300ms)
+      setBattleState(prev => ({ 
+        ...prev!, 
+        currentAnimation: `${attack.animation}-return`,
+        screenShake: false
+      }));
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Update battle state with damage
+      const newDefenderHp = Math.max(0, defenderMonster.hp - damage);
       const attackerName = isPlayerAttacking ? battleState.playerMonster.monster.name : battleState.aiMonster.name;
       const defenderName = isPlayerAttacking ? battleState.aiMonster.name : battleState.playerMonster.monster.name;
 
@@ -281,9 +347,12 @@ export default function BattleArena() {
         }
         
         newState.currentAnimation = null;
+        newState.lastDamage = null;
         return newState;
       });
-    }, 2000);
+    };
+
+    attackSequence();
   };
 
   // AI turn
@@ -368,13 +437,30 @@ export default function BattleArena() {
           </CardHeader>
           <CardContent>
             {/* Battle Field */}
-            <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6 rounded-lg">
+            <div className={`flex items-center justify-between mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
+              battleState.screenShake ? 'animate-pulse transform translate-x-1' : ''
+            }`}>
               {/* Player Monster */}
               <div className="text-center">
-                <div className={`transform transition-all duration-500 ${
-                  battleState.currentAnimation && battleState.turn === 'player' 
-                    ? 'scale-110 translate-x-4' 
-                    : 'scale-100'
+                <div className={`transform transition-all duration-300 ease-out ${
+                  (() => {
+                    if (!battleState?.currentAnimation) return 'scale-100';
+                    
+                    const anim = battleState.currentAnimation;
+                    const isPlayerTurn = battleState.turn === 'player';
+                    
+                    if (isPlayerTurn) {
+                      if (anim.includes('windup')) return 'scale-110 -rotate-12';
+                      if (anim.includes('strike')) return 'scale-125 translate-x-12 rotate-6';
+                      if (anim.includes('impact')) return 'scale-115 translate-x-8';
+                      if (anim.includes('return')) return 'scale-105 translate-x-2';
+                    } else {
+                      // Player is being attacked - recoil animation
+                      if (anim.includes('impact')) return 'scale-95 -translate-x-6 rotate-3';
+                    }
+                    
+                    return 'scale-100';
+                  })()
                 }`} key={`player-${animationKey}`}>
                   <UltraDetailedMonsterGraphics
                     monsterId={battleState.playerMonster.monsterId}
@@ -394,15 +480,45 @@ export default function BattleArena() {
                 </div>
               </div>
 
+              {/* Battle Effects */}
+              {battleState.currentAnimation?.includes('impact') && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="text-6xl animate-ping">💥</div>
+                  <div className="absolute text-2xl font-bold text-red-500 animate-bounce">
+                    {battleState.currentAnimation.includes('punch') ? 'SMASH!' :
+                     battleState.currentAnimation.includes('claw') ? 'SLASH!' :
+                     battleState.currentAnimation.includes('bite') ? 'CHOMP!' :
+                     battleState.currentAnimation.includes('peck') ? 'STRIKE!' : 'HIT!'}
+                  </div>
+                </div>
+              )}
+
               {/* VS */}
-              <div className="text-4xl font-bold text-purple-600 dark:text-purple-400">VS</div>
+              <div className={`text-4xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
+                battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
+              }`}>VS</div>
 
               {/* AI Monster */}
               <div className="text-center">
-                <div className={`transform transition-all duration-500 ${
-                  battleState.currentAnimation && battleState.turn === 'ai' 
-                    ? 'scale-110 -translate-x-4' 
-                    : 'scale-100'
+                <div className={`transform transition-all duration-300 ease-out ${
+                  (() => {
+                    if (!battleState?.currentAnimation) return 'scale-100';
+                    
+                    const anim = battleState.currentAnimation;
+                    const isAITurn = battleState.turn === 'ai';
+                    
+                    if (isAITurn) {
+                      if (anim.includes('windup')) return 'scale-110 rotate-12';
+                      if (anim.includes('strike')) return 'scale-125 -translate-x-12 -rotate-6';
+                      if (anim.includes('impact')) return 'scale-115 -translate-x-8';
+                      if (anim.includes('return')) return 'scale-105 -translate-x-2';
+                    } else {
+                      // AI is being attacked - recoil animation
+                      if (anim.includes('impact')) return 'scale-95 translate-x-6 -rotate-3';
+                    }
+                    
+                    return 'scale-100';
+                  })()
                 }`} key={`ai-${animationKey}`}>
                   <UltraDetailedMonsterGraphics
                     monsterId={battleState.aiMonster.id}
