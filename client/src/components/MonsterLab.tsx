@@ -7,7 +7,7 @@ import { Coins, Gem, Zap, Shield, Gauge } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import Realistic3DMonster from "./Realistic3DMonster";
+import PhotorealisticMonster from "./PhotorealisticMonster";
 import UpgradeChoice from "./UpgradeChoice";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";

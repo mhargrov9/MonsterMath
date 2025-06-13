@@ -8,7 +8,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { GameUser, UserMonster, Battle } from "@/types/game";
-import Realistic3DMonster from "./Realistic3DMonster";
+import PhotorealisticMonster from "./PhotorealisticMonster";
 
 interface AttackOption {
   id: string;
@@ -462,7 +462,7 @@ export default function BattleArena() {
                     return 'scale-100';
                   })()
                 }`} key={`player-${animationKey}`}>
-                  <Realistic3DMonster
+                  <PhotorealisticMonster
                     monsterId={battleState.playerMonster.monsterId}
                     evolutionStage={battleState.playerMonster.evolutionStage}
                     upgradeChoices={battleState.playerMonster.upgradeChoices}
@@ -534,7 +534,7 @@ export default function BattleArena() {
                     return 'scale-100';
                   })()
                 }`} key={`ai-${animationKey}`}>
-                  <Realistic3DMonster
+                  <PhotorealisticMonster
                     monsterId={battleState.aiMonster.id}
                     evolutionStage={2}
                     upgradeChoices={battleState.aiMonster.upgradeChoices}
@@ -639,7 +639,7 @@ export default function BattleArena() {
                   <Card key={monster.id} className="cursor-pointer hover:bg-accent" onClick={() => setSelectedMonster(monster)}>
                     <CardContent className="p-4">
                       <div className="text-center">
-                        <Realistic3DMonster
+                        <PhotorealisticMonster
                           monsterId={monster.monsterId}
                           evolutionStage={monster.evolutionStage}
                           upgradeChoices={monster.upgradeChoices}
@@ -676,7 +676,7 @@ export default function BattleArena() {
                   <Card key={opponent.id} className="cursor-pointer hover:bg-accent" onClick={() => setSelectedOpponent(opponent)}>
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
-                        <Realistic3DMonster
+                        <PhotorealisticMonster
                           monsterId={opponent.monster.id}
                           evolutionStage={2}
                           upgradeChoices={opponent.monster.upgradeChoices}
@@ -716,7 +716,7 @@ export default function BattleArena() {
                 <h3 className="text-lg font-semibold mb-4">Battle Ready!</h3>
                 <div className="flex items-center justify-center gap-8 mb-6">
                   <div className="text-center">
-                    <Realistic3DMonster
+                    <PhotorealisticMonster
                       monsterId={selectedMonster.monsterId}
                       evolutionStage={selectedMonster.evolutionStage}
                       upgradeChoices={selectedMonster.upgradeChoices}
@@ -726,7 +726,7 @@ export default function BattleArena() {
                   </div>
                   <div className="text-4xl font-bold text-purple-600">VS</div>
                   <div className="text-center">
-                    <Realistic3DMonster
+                    <PhotorealisticMonster
                       monsterId={selectedOpponent.monster.id}
                       evolutionStage={2}
                       upgradeChoices={selectedOpponent.monster.upgradeChoices}
