@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use latest Gigalith image
+    // Force clear cache to use all 10 Gigalith level images
     this.imageCache.clear();
-    console.log('Cache cleared for latest Gigalith image (1749855823011)');
+    console.log('Cache cleared for all 10 Gigalith level images');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -426,18 +426,31 @@ export class VeoApiClient {
   private generateGigalithGraphic(upgrades: Record<string, any>): string {
     const level = upgrades.level || 1;
     
-    if (level === 1) {
-      // Return an SVG that embeds your latest uploaded Gigalith image
+    // Map each level to its corresponding uploaded image
+    const levelImages = {
+      1: "Gigalith_Level_1_1749856385841.png",
+      2: "Gigalith_Level_2_1749856393905.png", 
+      3: "Gigalith_Level_3_1749856409063.png",
+      4: "Gigalith_Level_4_1749856409062.png",
+      5: "Gigalith_Level_5_1749856409060.png",
+      6: "Gigalith_Level_6_1749856409059.png",
+      7: "Gigalith_Level_7_1749856409059.png",
+      8: "Gigalith_Level_8_1749856409058.png",
+      9: "Gigalith_Level_9_1749856409058.png",
+      10: "Gigalith_Level_10_1749856409057.png"
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
       return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <image href="/assets/Gigalith%201_1749855823011.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     } else {
-      // Placeholder for upgraded versions until you upload them
+      // Fallback for invalid levels
       return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
         <rect x="0" y="0" width="512" height="512" fill="#1a1a1a"/>
-        <text x="256" y="220" text-anchor="middle" fill="#FF4500" font-size="24">Gigalith Level ${level}</text>
-        <text x="256" y="250" text-anchor="middle" fill="#8B4513" font-size="16">Upgrade image</text>
-        <text x="256" y="280" text-anchor="middle" fill="#666" font-size="16">will be uploaded</text>
+        <text x="256" y="256" text-anchor="middle" fill="#FF4500" font-size="24">Gigalith Level ${level}</text>
       </svg>`;
     }
   }
