@@ -32,6 +32,8 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
+    // Clear cache on startup to force regeneration with new image system
+    this.imageCache.clear();
   }
 
   // Clear cache to regenerate images with new prompts
@@ -402,83 +404,154 @@ export class VeoApiClient {
   }
 
   private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
-    // Generate actual PNG base64 data with realistic monster appearance
-    const width = 512;
-    const height = 512;
-    
-    // Create a simple but recognizable PNG image for each monster type
-    const monsterTypes = {
-      1: { primary: [255, 68, 68], secondary: [139, 0, 0], name: 'Fire Dragon' },
-      2: { primary: [65, 105, 225], secondary: [135, 206, 235], name: 'Ice Dragon' },
-      3: { primary: [138, 43, 226], secondary: [255, 215, 0], name: 'Thunder Dragon' },
-      4: { primary: [32, 178, 170], secondary: [70, 130, 180], name: 'Water Dragon' },
-      5: { primary: [139, 69, 19], secondary: [34, 139, 34], name: 'Earth Dragon' }
+    // Generate proper SVG-based images that render as actual graphics
+    const monsterSVGs = {
+      1: this.generateFireDragonSVG(upgradeChoices),
+      2: this.generateIceDragonSVG(upgradeChoices), 
+      3: this.generateThunderDragonSVG(upgradeChoices),
+      4: this.generateWaterDragonSVG(upgradeChoices),
+      5: this.generateEarthDragonSVG(upgradeChoices)
     };
 
-    const monster = monsterTypes[monsterId as keyof typeof monsterTypes] || monsterTypes[1];
-    
-    // Generate PNG data
-    return this.createMinimalPNG(width, height, monster.primary, monster.secondary);
+    const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || monsterSVGs[1];
+    return Buffer.from(svgContent).toString('base64');
   }
 
-  private createMinimalPNG(width: number, height: number, primary: number[], secondary: number[]): string {
-    // Create a minimal PNG with gradient effect
-    const canvas = Buffer.alloc(width * height * 4); // RGBA
-    
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const index = (y * width + x) * 4;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
-        const ratio = Math.min(distance / maxDistance, 1);
-        
-        // Gradient from primary to secondary color
-        canvas[index] = Math.floor(primary[0] * (1 - ratio) + secondary[0] * ratio);     // R
-        canvas[index + 1] = Math.floor(primary[1] * (1 - ratio) + secondary[1] * ratio); // G
-        canvas[index + 2] = Math.floor(primary[2] * (1 - ratio) + secondary[2] * ratio); // B
-        canvas[index + 3] = 255; // A
-      }
-    }
-    
-    // Convert to base64 (simplified PNG format)
-    return this.encodeSimplePNG(canvas, width, height);
+  private generateFireDragonSVG(upgrades: Record<string, any>): string {
+    return `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="fireGrad" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#FF6B00"/>
+          <stop offset="100%" stop-color="#8B0000"/>
+        </radialGradient>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="200" cy="250" rx="120" ry="80" fill="url(#fireGrad)" stroke="#4A0000" stroke-width="3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="200" cy="150" rx="80" ry="60" fill="url(#fireGrad)" stroke="#4A0000" stroke-width="3"/>
+      <!-- Eyes -->
+      <circle cx="180" cy="140" r="8" fill="#FF4500"/>
+      <circle cx="220" cy="140" r="8" fill="#FF4500"/>
+      <!-- Fire Breath -->
+      <path d="M 120 150 Q 80 140 40 130 Q 60 155 90 160" fill="#FF6B00" opacity="0.8"/>
+      <!-- Wings -->
+      <path d="M 100 200 Q 50 150 80 120 Q 120 140 100 200" fill="#8B0000" stroke="#4A0000" stroke-width="2"/>
+      <path d="M 300 200 Q 350 150 320 120 Q 280 140 300 200" fill="#8B0000" stroke="#4A0000" stroke-width="2"/>
+      <!-- Tail -->
+      <path d="M 320 280 Q 380 300 400 350" stroke="#8B0000" stroke-width="15" fill="none"/>
+      <text x="200" y="380" text-anchor="middle" fill="#4A0000" font-size="16" font-weight="bold">Fire Dragon</text>
+    </svg>`;
   }
 
-  private encodeSimplePNG(imageData: Buffer, width: number, height: number): string {
-    // Create a minimal PNG structure
-    const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-    
-    // IHDR chunk
-    const ihdr = Buffer.alloc(25);
-    ihdr.writeUInt32BE(13, 0); // length
-    ihdr.write('IHDR', 4);
-    ihdr.writeUInt32BE(width, 8);
-    ihdr.writeUInt32BE(height, 12);
-    ihdr[16] = 8; // bit depth
-    ihdr[17] = 2; // color type (RGB)
-    ihdr[18] = 0; // compression
-    ihdr[19] = 0; // filter
-    ihdr[20] = 0; // interlace
-    
-    // Simple CRC (not accurate but functional for display)
-    ihdr.writeUInt32BE(0x12345678, 21);
-    
-    // IDAT chunk (simplified)
-    const idat = Buffer.alloc(12 + imageData.length);
-    idat.writeUInt32BE(imageData.length + 4, 0);
-    idat.write('IDAT', 4);
-    idat.writeUInt32BE(0x78DA, 8); // zlib header
-    imageData.copy(idat, 12);
-    idat.writeUInt32BE(0x87654321, idat.length - 4); // CRC
-    
-    // IEND chunk
-    const iend = Buffer.from([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]);
-    
-    const png = Buffer.concat([signature, ihdr, idat, iend]);
-    return png.toString('base64');
+  private generateIceDragonSVG(upgrades: Record<string, any>): string {
+    return `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="iceGrad" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#87CEEB"/>
+          <stop offset="100%" stop-color="#4169E1"/>
+        </radialGradient>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="200" cy="250" rx="120" ry="80" fill="url(#iceGrad)" stroke="#1E3A8A" stroke-width="3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="200" cy="150" rx="80" ry="60" fill="url(#iceGrad)" stroke="#1E3A8A" stroke-width="3"/>
+      <!-- Eyes -->
+      <circle cx="180" cy="140" r="8" fill="#00BFFF"/>
+      <circle cx="220" cy="140" r="8" fill="#00BFFF"/>
+      <!-- Ice Breath -->
+      <path d="M 120 150 Q 80 140 40 130 Q 60 155 90 160" fill="#B0E0E6" opacity="0.8"/>
+      <!-- Wings -->
+      <path d="M 100 200 Q 50 150 80 120 Q 120 140 100 200" fill="#4169E1" stroke="#1E3A8A" stroke-width="2"/>
+      <path d="M 300 200 Q 350 150 320 120 Q 280 140 300 200" fill="#4169E1" stroke="#1E3A8A" stroke-width="2"/>
+      <!-- Tail -->
+      <path d="M 320 280 Q 380 300 400 350" stroke="#4169E1" stroke-width="15" fill="none"/>
+      <text x="200" y="380" text-anchor="middle" fill="#1E3A8A" font-size="16" font-weight="bold">Ice Dragon</text>
+    </svg>`;
   }
+
+  private generateThunderDragonSVG(upgrades: Record<string, any>): string {
+    return `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="thunderGrad" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#9932CC"/>
+          <stop offset="100%" stop-color="#4B0082"/>
+        </radialGradient>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="200" cy="250" rx="120" ry="80" fill="url(#thunderGrad)" stroke="#2E0054" stroke-width="3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="200" cy="150" rx="80" ry="60" fill="url(#thunderGrad)" stroke="#2E0054" stroke-width="3"/>
+      <!-- Eyes -->
+      <circle cx="180" cy="140" r="8" fill="#FFD700"/>
+      <circle cx="220" cy="140" r="8" fill="#FFD700"/>
+      <!-- Lightning -->
+      <path d="M 120 150 L 100 130 L 110 140 L 90 120 L 100 130" stroke="#FFD700" stroke-width="3" fill="none"/>
+      <!-- Wings -->
+      <path d="M 100 200 Q 50 150 80 120 Q 120 140 100 200" fill="#4B0082" stroke="#2E0054" stroke-width="2"/>
+      <path d="M 300 200 Q 350 150 320 120 Q 280 140 300 200" fill="#4B0082" stroke="#2E0054" stroke-width="2"/>
+      <!-- Tail -->
+      <path d="M 320 280 Q 380 300 400 350" stroke="#4B0082" stroke-width="15" fill="none"/>
+      <text x="200" y="380" text-anchor="middle" fill="#2E0054" font-size="16" font-weight="bold">Thunder Dragon</text>
+    </svg>`;
+  }
+
+  private generateWaterDragonSVG(upgrades: Record<string, any>): string {
+    return `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="waterGrad" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#20B2AA"/>
+          <stop offset="100%" stop-color="#008B8B"/>
+        </radialGradient>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="200" cy="250" rx="120" ry="80" fill="url(#waterGrad)" stroke="#005F5F" stroke-width="3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="200" cy="150" rx="80" ry="60" fill="url(#waterGrad)" stroke="#005F5F" stroke-width="3"/>
+      <!-- Eyes -->
+      <circle cx="180" cy="140" r="8" fill="#00CED1"/>
+      <circle cx="220" cy="140" r="8" fill="#00CED1"/>
+      <!-- Water Drops -->
+      <circle cx="140" cy="140" r="4" fill="#87CEEB" opacity="0.8"/>
+      <circle cx="130" cy="160" r="3" fill="#87CEEB" opacity="0.8"/>
+      <!-- Wings -->
+      <path d="M 100 200 Q 50 150 80 120 Q 120 140 100 200" fill="#008B8B" stroke="#005F5F" stroke-width="2"/>
+      <path d="M 300 200 Q 350 150 320 120 Q 280 140 300 200" fill="#008B8B" stroke="#005F5F" stroke-width="2"/>
+      <!-- Tail -->
+      <path d="M 320 280 Q 380 300 400 350" stroke="#008B8B" stroke-width="15" fill="none"/>
+      <text x="200" y="380" text-anchor="middle" fill="#005F5F" font-size="16" font-weight="bold">Water Dragon</text>
+    </svg>`;
+  }
+
+  private generateEarthDragonSVG(upgrades: Record<string, any>): string {
+    return `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="earthGrad" cx="50%" cy="30%">
+          <stop offset="0%" stop-color="#8B4513"/>
+          <stop offset="100%" stop-color="#654321"/>
+        </radialGradient>
+      </defs>
+      <!-- Dragon Body -->
+      <ellipse cx="200" cy="250" rx="120" ry="80" fill="url(#earthGrad)" stroke="#3E2723" stroke-width="3"/>
+      <!-- Dragon Head -->
+      <ellipse cx="200" cy="150" rx="80" ry="60" fill="url(#earthGrad)" stroke="#3E2723" stroke-width="3"/>
+      <!-- Eyes -->
+      <circle cx="180" cy="140" r="8" fill="#DAA520"/>
+      <circle cx="220" cy="140" r="8" fill="#DAA520"/>
+      <!-- Rock formations -->
+      <polygon points="160,180 170,160 180,180" fill="#696969"/>
+      <polygon points="220,180 230,160 240,180" fill="#696969"/>
+      <!-- Wings -->
+      <path d="M 100 200 Q 50 150 80 120 Q 120 140 100 200" fill="#654321" stroke="#3E2723" stroke-width="2"/>
+      <path d="M 300 200 Q 350 150 320 120 Q 280 140 300 200" fill="#654321" stroke="#3E2723" stroke-width="2"/>
+      <!-- Tail -->
+      <path d="M 320 280 Q 380 300 400 350" stroke="#654321" stroke-width="15" fill="none"/>
+      <text x="200" y="380" text-anchor="middle" fill="#3E2723" font-size="16" font-weight="bold">Earth Dragon</text>
+    </svg>`;
+  }
+
+
+
+
 
   private encodeImageDataToPNG(imageData: number[], width: number, height: number): string {
     // Simplified PNG encoding - in production would use proper image library

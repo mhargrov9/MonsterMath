@@ -134,11 +134,11 @@ export default function VeoMonster({
           style={{ width: width * 0.8, height: height * 0.1, top: '90%' }}
         />
         
-        {/* Photorealistic Monster Image */}
+        {/* Monster Image */}
         <img
-          src={`data:image/png;base64,${imageData}`}
-          alt="Photorealistic Monster"
-          className="w-full h-full object-cover rounded-lg"
+          src={`data:image/svg+xml;base64,${imageData}`}
+          alt="Monster"
+          className="w-full h-full object-contain rounded-lg"
           style={{
             filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)'
           }}
