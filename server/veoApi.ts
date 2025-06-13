@@ -34,6 +34,12 @@ export class VeoApiClient {
     }
   }
 
+  // Clear cache to regenerate images with new prompts
+  clearCache() {
+    this.imageCache.clear();
+    console.log('Image cache cleared - new images will be generated');
+  }
+
   async generateMonsterImage(monsterId: number, upgradeChoices: Record<string, any>): Promise<string> {
     // Create cache key based on monster type and upgrades
     const cacheKey = `monster_${monsterId}_${JSON.stringify(upgradeChoices)}`;

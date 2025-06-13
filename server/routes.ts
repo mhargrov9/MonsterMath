@@ -372,6 +372,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear image cache for regeneration with improved prompts
+  app.post('/api/generate/clear-cache', isAuthenticated, async (req, res) => {
+    try {
+      veoClient.clearCache();
+      res.json({ success: true, message: 'Image cache cleared - fresh monsters will be generated' });
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      res.status(500).json({ success: false, error: 'Failed to clear cache' });
+    }
+  });
+
   // Initialize sample data
   app.post("/api/admin/init-data", async (req, res) => {
     try {
