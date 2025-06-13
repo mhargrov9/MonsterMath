@@ -726,7 +726,7 @@ export default function BattleArena() {
                   </div>
                   <div className="text-4xl font-bold text-purple-600">VS</div>
                   <div className="text-center">
-                    <PhotorealisticMonster
+                    <VeoMonster
                       monsterId={selectedOpponent.monster.id}
                       evolutionStage={2}
                       upgradeChoices={selectedOpponent.monster.upgradeChoices}
