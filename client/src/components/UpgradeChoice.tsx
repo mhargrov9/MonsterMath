@@ -232,7 +232,7 @@ const UpgradeChoice: React.FC<UpgradeChoiceProps> = ({
                     <CardDescription>{option.description}</CardDescription>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <DetailedMonsterGraphics 
+                    <UltraDetailedMonsterGraphics 
                       monsterId={userMonster.monsterId} 
                       evolutionStage={userMonster.evolutionStage}
                       upgradeChoices={Object.assign(
