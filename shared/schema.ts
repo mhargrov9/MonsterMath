@@ -46,15 +46,21 @@ export const users = pgTable("users", {
 export const monsters = pgTable("monsters", {
   id: serial("id").primaryKey(),
   name: varchar("name").notNull(),
-  type: varchar("type").notNull(), // fire, water, electric, etc.
+  type: varchar("type").notNull(), // earth, psychic, fire, water, electric, etc.
   basePower: integer("base_power").notNull(),
   baseSpeed: integer("base_speed").notNull(),
   baseDefense: integer("base_defense").notNull(),
+  baseHp: integer("base_hp").notNull(), // Hit Points
+  baseMp: integer("base_mp").notNull(), // Mana Points
   goldCost: integer("gold_cost").notNull(),
   diamondCost: integer("diamond_cost").default(0).notNull(),
   description: text("description"),
   iconClass: varchar("icon_class").notNull(), // Font Awesome class
   gradient: varchar("gradient").notNull(), // CSS gradient colors
+  abilities: jsonb("abilities").notNull(), // Passive and active abilities
+  resistances: jsonb("resistances").default('[]').notNull(), // Damage resistances
+  weaknesses: jsonb("weaknesses").default('[]').notNull(), // Damage weaknesses
+  levelUpgrades: jsonb("level_upgrades").default('{}').notNull(), // Upgrades per level
 });
 
 // User monsters (owned monsters)
