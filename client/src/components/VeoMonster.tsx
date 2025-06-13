@@ -137,13 +137,12 @@ export default function VeoMonster({
         />
         {/* Monster Image */}
         {imageData ? (
-          <img
-            src={`data:image/svg+xml;base64,${imageData}`}
-            alt={`Monster ${monsterId}`}
-            className="w-full h-full object-contain rounded-lg"
+          <div 
+            className="w-full h-full rounded-lg"
             style={{
               filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)'
             }}
+            dangerouslySetInnerHTML={{ __html: atob(imageData) }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
