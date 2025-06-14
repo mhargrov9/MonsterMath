@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 import Gigalith_1 from "@assets/Gigalith 1.png";
 
+// Client-side image cache to prevent repeated API calls
+const imageCache = new Map<string, string>();
+
 interface VeoMonsterProps {
   monsterId: number;
   evolutionStage: number;
@@ -33,9 +36,48 @@ export default function VeoMonster({
 
   useEffect(() => {
     generateMonsterImage();
+    // Preload common variations to prevent future delays
+    preloadCommonVariations();
   }, [monsterId, upgradeChoices]);
 
+  const preloadCommonVariations = async () => {
+    // Preload base level and max level variations silently
+    const variations = [
+      { monsterId, upgradeChoices: {} }, // Base level
+      { monsterId, upgradeChoices: { level: 10 } } // Max level
+    ];
+
+    for (const variation of variations) {
+      const cacheKey = `${variation.monsterId}-${JSON.stringify(variation.upgradeChoices)}`;
+      if (!imageCache.has(cacheKey)) {
+        try {
+          const response = await fetch('/api/generate/monster-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(variation)
+          });
+          const data = await response.json();
+          if (data.success && data.imageData) {
+            imageCache.set(cacheKey, data.imageData);
+          }
+        } catch (err) {
+          // Silent preload - don't show errors
+        }
+      }
+    }
+  };
+
   const generateMonsterImage = async () => {
+    // Create cache key based on monster ID and upgrades
+    const cacheKey = `${monsterId}-${JSON.stringify(upgradeChoices)}`;
+    
+    // Check if image is already cached
+    if (imageCache.has(cacheKey)) {
+      setImageData(imageCache.get(cacheKey)!);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
@@ -54,6 +96,8 @@ export default function VeoMonster({
       const data = await response.json();
 
       if (data.success && data.imageData) {
+        // Cache the image data
+        imageCache.set(cacheKey, data.imageData);
         setImageData(data.imageData);
       } else {
         throw new Error(data.error || 'Failed to generate monster image');
