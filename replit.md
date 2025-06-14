@@ -139,6 +139,9 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Implemented "Click to attack!" prompts and hover effects for interactive abilities
   - Maintained all existing damage calculations and mana cost validation
   - Abilities on opponent cards remain non-interactive for visual reference only
+  - Added Basic Attack button below Mana stat with blue design (0 MP cost)
+  - Basic Attack damage calculated as 0.6 × monster's Power stat
+  - Always available as clickable option during player's turn
 
 ## User Preferences
 
