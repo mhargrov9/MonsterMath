@@ -142,6 +142,9 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added Basic Attack button below Mana stat with blue design (0 MP cost)
   - Basic Attack damage calculated as 0.6 × monster's Power stat
   - Always available as clickable option during player's turn
+  - Fixed AI attack system to use monster's actual database abilities instead of generic attacks
+  - AI Gigalith now uses Basic Attack, Magma Punch, and Tremor Stomp (removed non-existent Heavy Strike)
+  - Standardized damage calculations between player and AI for consistent battle mechanics
 
 ## User Preferences
 

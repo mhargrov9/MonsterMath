@@ -379,14 +379,42 @@ export default function BattleArena() {
     attackSequence();
   };
 
-  // AI turn - use basic attacks for AI monsters
+  // AI turn - use monster's actual abilities from database
   useEffect(() => {
     if (battleState && battleState.turn === 'ai' && battleState.phase === 'select' && !battleState.winner) {
-      // Simple AI attacks based on monster type
-      const aiAttacks: AttackOption[] = [
-        { id: 'basic-attack', name: 'Basic Attack', description: 'Standard attack', damage: 35, animation: 'attack', manaCost: 0 },
-        { id: 'heavy-strike', name: 'Heavy Strike', description: 'Powerful strike', damage: 50, animation: 'heavy', manaCost: 20 }
-      ];
+      // Create AI attacks based on the opponent monster's abilities
+      const aiAttacks: AttackOption[] = [];
+      
+      // Add Basic Attack (uses same base damage calculation as player)
+      aiAttacks.push({
+        id: 'basic-attack',
+        name: 'Basic Attack', 
+        description: 'Standard physical attack',
+        damage: Math.floor(battleState.aiMonster.power * 0.6), // Base damage only, full calculation happens in calculateDamage
+        animation: 'attack',
+        manaCost: 0
+      });
+      
+      // Add monster's special abilities (if Level 10 Gigalith)
+      if (battleState.aiMonster.id === 6) { // Gigalith
+        aiAttacks.push({
+          id: 'magma-punch',
+          name: 'Magma Punch',
+          description: 'Physical attack that inflicts Burn status',
+          damage: 45,
+          animation: 'physical',
+          manaCost: 30
+        });
+        aiAttacks.push({
+          id: 'tremor-stomp',
+          name: 'Tremor Stomp', 
+          description: 'AoE damage with speed reduction chance',
+          damage: 35,
+          animation: 'aoe',
+          manaCost: 70
+        });
+      }
+      
       const randomAttack = aiAttacks[Math.floor(Math.random() * aiAttacks.length)];
       
       setTimeout(() => {
