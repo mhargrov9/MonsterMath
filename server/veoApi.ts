@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use all 10 Gigalith level images
+    // Force clear cache to use all Gigalith and Aetherion images
     this.imageCache.clear();
-    console.log('Cache cleared for all 10 Gigalith level images');
+    console.log('Cache cleared for all monster images including Aetherion update');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -512,6 +512,16 @@ export class VeoApiClient {
   }
 
   private generateAetherionGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    // Use your uploaded Aetherion image for Level 1
+    if (level === 1) {
+      return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+        <image href="/assets/Aetherion%201.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    // Placeholder for higher levels until you upload Aetherion level images
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="crystalLattice" cx="50%" cy="50%">

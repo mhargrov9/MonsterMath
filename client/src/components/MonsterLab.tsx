@@ -66,7 +66,7 @@ export default function MonsterLab() {
       return await apiRequest("POST", "/api/monsters/upgrade", { userMonsterId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/monsters/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Monster Upgraded!",
