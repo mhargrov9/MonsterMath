@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use responsive SVG for full images
+    // Force clear cache to load all Aetherion level images
     this.imageCache.clear();
-    console.log('Cache cleared - loading responsive SVG for complete monster display');
+    console.log('Cache cleared - loading all 10 Aetherion level images with full display');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -524,10 +524,25 @@ export class VeoApiClient {
   private generateAetherionGraphic(upgrades: Record<string, any>): string {
     const level = upgrades.level || 1;
     
-    // Use your uploaded Aetherion image for Level 1
-    if (level === 1) {
+    // Map all 10 Aetherion level images
+    const levelImages = {
+      1: 'Aetherion_Level_1_1749866902477.png',
+      2: 'Aetherion_Level_2_1749866902476.png',
+      3: 'Aetherion_Level_3_1749866902476.png',
+      4: 'Aetherion_Level_4_1749866902475.png',
+      5: 'Aetherion_Level_5_1749866902475.png',
+      6: 'Aetherion_Level_6_1749866902475.png',
+      7: 'Aetherion_Level_7_1749866902474.png',
+      8: 'Aetherion_Level_8_1749866902474.png',
+      9: 'Aetherion_Level_9_1749866902473.png',
+      10: 'Aetherion_Level_10_1749866902471.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="/assets/Aetherion%201.png" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
