@@ -148,9 +148,9 @@ export default function MonsterCard({
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
-    small: { width: 280, height: 520 },
-    medium: { width: 350, height: 620 },
-    large: { width: 420, height: 720 }
+    small: { width: 280, height: 560 },
+    medium: { width: 350, height: 680 },
+    large: { width: 420, height: 800 }
   };
 
   const cardSize = cardSizes[size];
@@ -273,7 +273,7 @@ export default function MonsterCard({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-2 flex gap-2">
+        <div className="flex-1 p-2 flex gap-2" style={{ minHeight: '180px' }}>
           {/* Stats Block */}
           <div className="w-1/3 space-y-1">
             <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
@@ -311,7 +311,7 @@ export default function MonsterCard({
 
           {/* Abilities Box */}
           <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded h-full">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded h-full" style={{ minHeight: '170px' }}>
               <div className="text-xs font-bold mb-1 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-1 text-xs">
                 {monsterData.abilities.map((ability, index) => (
@@ -356,18 +356,18 @@ export default function MonsterCard({
 
         {/* Flip Button - Only show if monster is owned and has flip functionality */}
         {userMonster && onFlip && (
-          <div className="absolute top-2 right-2 z-20">
+          <div className="absolute top-3 right-3 z-20">
             <Button
               size="sm"
-              variant="secondary"
-              className="w-8 h-8 p-0 rounded-full bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300 shadow-lg"
+              variant="default"
+              className="w-10 h-10 p-0 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-2 border-white shadow-xl animate-pulse"
               onClick={(e) => {
                 e.stopPropagation();
                 onFlip();
               }}
               title="View Battle Record"
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-5 h-5" />
             </Button>
           </div>
         )}
