@@ -128,6 +128,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added strategic decision-making with complete stat visibility during battles
   - Level 10 Gigalith set as default opponent for consistent testing
   - Battle interface transformed from passive viewing to interactive strategic gameplay
+  - Fixed ability parsing to correctly read database format (active1/active2 structure)
+  - Corrected Aetherion Level 8 abilities to match Design Document (Mind Strike, Psy-Beam)
 
 ## User Preferences
 
