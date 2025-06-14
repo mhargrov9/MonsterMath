@@ -164,7 +164,7 @@ export default function MonsterCard({
   const level = userMonster?.level || 1;
   const currentHp = userMonster?.hp || monster.baseHp || 950;
   const maxHp = userMonster?.maxHp || monster.baseHp || 950;
-  const displayMp = battleMode ? currentMp : (userMonster?.mp || monster.baseMp || 200);
+  const displayMp = battleMode ? battleMp : (userMonster?.mp || monster.baseMp || 200);
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
@@ -325,7 +325,7 @@ export default function MonsterCard({
                 <Droplets className="w-3 h-3 text-cyan-500" />
                 <span className="font-semibold">Mana:</span>
               </div>
-              <div className="text-sm font-bold">{currentMp}/{maxMp}</div>
+              <div className="text-sm font-bold">{displayMp}/{maxMp}</div>
             </div>
           </div>
 
@@ -336,7 +336,7 @@ export default function MonsterCard({
               <div className="space-y-2 text-xs">
                 {monsterData.abilities.map((ability, index) => {
                   const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
-                  const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && currentMp >= manaCost;
+                  const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && battleMp >= manaCost;
                   const isClickable = battleMode && isPlayerTurn && ability.type === 'ACTIVE';
                   
                   return (

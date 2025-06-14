@@ -499,6 +499,21 @@ export default function BattleArena() {
                     maxMp: battleState.playerMonster.maxMp
                   }}
                   size="medium"
+                  battleMode={true}
+                  isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
+                  battleMp={battleState.playerMonster.mp}
+                  onAbilityClick={(abilityName, manaCost, damage, description) => {
+                    // Convert to AttackOption format and execute
+                    const attack = {
+                      id: abilityName.toLowerCase().replace(/\s+/g, '-'),
+                      name: abilityName,
+                      description: description,
+                      damage: damage,
+                      animation: 'attack',
+                      manaCost: manaCost
+                    };
+                    executeAttack('player', attack);
+                  }}
                 />
               </div>
 

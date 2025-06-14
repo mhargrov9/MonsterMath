@@ -132,6 +132,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Corrected Aetherion Level 8 abilities to match Design Document (Mind Strike, Psy-Beam)
   - Fixed frontend caching issue preventing updated ability names from displaying
   - Added cache invalidation to ensure fresh monster data loads in battles
+- June 14, 2025: Interactive Monster Card Ability System
+  - Removed separate ability button grid below monster cards
+  - Made ability boxes on monster cards directly clickable during player's turn
+  - Added red glowing borders on affordable abilities with visual feedback
+  - Implemented "Click to attack!" prompts and hover effects for interactive abilities
+  - Maintained all existing damage calculations and mana cost validation
+  - Abilities on opponent cards remain non-interactive for visual reference only
 
 ## User Preferences
 
