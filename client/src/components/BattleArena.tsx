@@ -204,20 +204,29 @@ export default function BattleArena() {
   const getMonsterAbilities = (monster: UserMonster & { monster: Monster }): AttackOption[] => {
     const abilities: AttackOption[] = [];
     
-    if (!monster.monster.abilities || !Array.isArray(monster.monster.abilities)) {
+    if (!monster.monster.abilities) {
       return abilities;
     }
 
-    // Convert database abilities to attack options
-    (monster.monster.abilities as any[]).forEach((ability: any) => {
-      if (ability.type === 'ACTIVE') {
-        const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
+    const monsterAbilities = monster.monster.abilities as any;
+    
+    // Parse abilities from database format (active1, active2, etc.)
+    Object.keys(monsterAbilities).forEach((key: string) => {
+      const ability = monsterAbilities[key];
+      
+      // Only process active abilities (not passive)
+      if (key.startsWith('active') && ability.name) {
+        const manaCost = ability.mp_cost || 0;
+        const damage = ability.type === 'physical' ? 45 : 
+                      ability.type === 'psychic' ? 40 : 
+                      ability.type === 'aoe' ? 35 : 30;
+        
         abilities.push({
           id: ability.name.toLowerCase().replace(/\s+/g, '-'),
           name: ability.name,
           description: ability.description,
-          damage: ability.damage || 30,
-          animation: ability.animation || 'attack',
+          damage: damage,
+          animation: ability.type || 'attack',
           manaCost: manaCost
         });
       }
