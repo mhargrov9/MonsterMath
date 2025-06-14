@@ -275,7 +275,10 @@ export default function MonsterLab() {
                         <VeoMonster 
                           monsterId={userMonster.monsterId} 
                           evolutionStage={userMonster.evolutionStage}
-                          upgradeChoices={userMonster.upgradeChoices || {}}
+                          upgradeChoices={{
+                            ...userMonster.upgradeChoices,
+                            level: userMonster.level
+                          }}
                           size="medium"
                         />
                         <div>

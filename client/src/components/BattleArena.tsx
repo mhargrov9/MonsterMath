@@ -465,7 +465,10 @@ export default function BattleArena() {
                   <VeoMonster
                     monsterId={battleState.playerMonster.monsterId}
                     evolutionStage={battleState.playerMonster.evolutionStage}
-                    upgradeChoices={battleState.playerMonster.upgradeChoices}
+                    upgradeChoices={{
+                      ...battleState.playerMonster.upgradeChoices,
+                      level: battleState.playerMonster.level
+                    }}
                     size="medium"
                     animationState={
                       battleState.currentAnimation?.includes('player_windup') ? 'windup' :
@@ -642,7 +645,10 @@ export default function BattleArena() {
                         <VeoMonster
                           monsterId={monster.monsterId}
                           evolutionStage={monster.evolutionStage}
-                          upgradeChoices={monster.upgradeChoices}
+                          upgradeChoices={{
+                            ...monster.upgradeChoices,
+                            level: monster.level
+                          }}
                           size="small"
                         />
                         <div className="mt-2">
@@ -719,7 +725,10 @@ export default function BattleArena() {
                     <VeoMonster
                       monsterId={selectedMonster.monsterId}
                       evolutionStage={selectedMonster.evolutionStage}
-                      upgradeChoices={selectedMonster.upgradeChoices}
+                      upgradeChoices={{
+                        ...selectedMonster.upgradeChoices,
+                        level: selectedMonster.level
+                      }}
                       size="medium"
                     />
                     <div className="mt-2 font-semibold">{selectedMonster.monster.name}</div>
