@@ -130,6 +130,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Battle interface transformed from passive viewing to interactive strategic gameplay
   - Fixed ability parsing to correctly read database format (active1/active2 structure)
   - Corrected Aetherion Level 8 abilities to match Design Document (Mind Strike, Psy-Beam)
+  - Fixed frontend caching issue preventing updated ability names from displaying
+  - Added cache invalidation to ensure fresh monster data loads in battles
 
 ## User Preferences
 

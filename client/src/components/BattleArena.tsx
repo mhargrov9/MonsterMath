@@ -52,12 +52,19 @@ export default function BattleArena() {
   const [animationKey, setAnimationKey] = useState(0);
   const { toast } = useToast();
 
+  // Force cache refresh on component mount
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/user/monsters'] });
+  }, []);
+
   const { data: user } = useQuery<GameUser>({
     queryKey: ["/api/auth/user"],
   });
 
-  const { data: userMonsters = [], isLoading: monstersLoading } = useQuery<UserMonster[]>({
+  const { data: userMonsters = [], isLoading: monstersLoading } = useQuery<(UserMonster & { monster: Monster })[]>({
     queryKey: ["/api/user/monsters"],
+    staleTime: 0, // Force fresh data every time
+    refetchOnMount: true,
   });
 
   const { data: battleHistory = [], isLoading: historyLoading } = useQuery<any[]>({
@@ -205,11 +212,11 @@ export default function BattleArena() {
     const abilities: AttackOption[] = [];
     
     if (!monster.monster.abilities) {
+      console.log('No abilities found for monster:', monster.monster.name);
       return abilities;
     }
 
     const monsterAbilities = monster.monster.abilities as any;
-    
     // Parse abilities from database format (active1, active2, etc.)
     Object.keys(monsterAbilities).forEach((key: string) => {
       const ability = monsterAbilities[key];
@@ -231,7 +238,6 @@ export default function BattleArena() {
         });
       }
     });
-
     return abilities;
   };
 
