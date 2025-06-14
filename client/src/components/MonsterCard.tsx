@@ -284,7 +284,7 @@ export default function MonsterCard({
         </div>
 
         {/* Main Content */}
-        <div className="p-2 flex gap-2" style={{ height: '240px' }}>
+        <div className="p-2 flex gap-2" style={{ height: '320px' }}>
           {/* Stats Block */}
           <div className="w-1/3 space-y-1">
             <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
