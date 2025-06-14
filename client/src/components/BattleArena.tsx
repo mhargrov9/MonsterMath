@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { GameUser, UserMonster, Battle } from "@/types/game";
 import VeoMonster from "./VeoMonster";
+import MonsterCard from "./MonsterCard";
 
 interface AttackOption {
   id: string;
@@ -250,18 +251,31 @@ export default function BattleArena() {
     return Math.floor(reducedDamage + (Math.random() * 10 - 5)); // ±5 random variance
   };
 
-  // Start battle
+  // Start battle - Always use level 10 Gigalith as opponent
   const startBattle = (opponent: any, monster: UserMonster) => {
     const aiMonster: AIMonster = {
-      ...opponent.monster,
-      hp: opponent.monster.power + opponent.monster.defense,
-      maxHp: opponent.monster.power + opponent.monster.defense
+      id: 6, // Gigalith monster ID
+      name: 'Gigalith',
+      type: 'earth',
+      power: 279,
+      speed: 42,
+      defense: 347,
+      hp: 950,
+      maxHp: 950,
+      upgradeChoices: {
+        level: 10,
+        spikes: 'metallic',
+        muscles: 'enhanced',
+        wings: 'crystal'
+      }
     };
 
     const playerMonster = {
       ...monster,
-      hp: monster.power + monster.defense,
-      maxHp: monster.power + monster.defense
+      hp: monster.hp || monster.maxHp || (monster.power + monster.defense),
+      maxHp: monster.maxHp || (monster.power + monster.defense),
+      mp: monster.mp || 100,
+      maxMp: monster.maxMp || 120
     };
 
     setBattleState({
@@ -440,55 +454,38 @@ export default function BattleArena() {
             <div className={`flex items-center justify-between mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
               battleState.screenShake ? 'animate-pulse transform translate-x-1' : ''
             }`}>
-              {/* Player Monster */}
-              <div className="text-center">
-                <div className={`transform transition-all duration-300 ease-out ${
-                  (() => {
-                    if (!battleState?.currentAnimation) return 'scale-100';
-                    
-                    const anim = battleState.currentAnimation;
-                    const isPlayerTurn = battleState.turn === 'player';
-                    
-                    if (isPlayerTurn) {
-                      if (anim.includes('windup')) return 'scale-110 -rotate-12';
-                      if (anim.includes('strike')) return 'scale-125 translate-x-12 rotate-6';
-                      if (anim.includes('impact')) return 'scale-115 translate-x-8';
-                      if (anim.includes('return')) return 'scale-105 translate-x-2';
-                    } else {
-                      // Player is being attacked - recoil animation
-                      if (anim.includes('impact')) return 'scale-95 -translate-x-6 rotate-3';
-                    }
-                    
-                    return 'scale-100';
-                  })()
-                }`} key={`player-${animationKey}`}>
-                  <VeoMonster
-                    monsterId={battleState.playerMonster.monsterId}
-                    evolutionStage={battleState.playerMonster.evolutionStage}
-                    upgradeChoices={{
-                      ...battleState.playerMonster.upgradeChoices,
-                      level: battleState.playerMonster.level
-                    }}
-                    size="medium"
-                    animationState={
-                      battleState.currentAnimation?.includes('player_windup') ? 'windup' :
-                      battleState.currentAnimation?.includes('player_attack') ? 'attack' :
-                      battleState.currentAnimation?.includes('player_hit') ? 'hit' :
-                      battleState.winner === 'player' ? 'victory' :
-                      battleState.winner === 'ai' ? 'defeat' : 'idle'
-                    }
-                    facingDirection="right"
-                  />
-                </div>
-                <div className="mt-2">
-                  <div className="font-semibold">{battleState.playerMonster.monster.name}</div>
-                  <div className="text-sm text-muted-foreground">Level {battleState.playerMonster.level}</div>
-                  <Progress 
-                    value={(battleState.playerMonster.hp / battleState.playerMonster.maxHp) * 100} 
-                    className="w-32 mt-1"
-                  />
-                  <div className="text-xs">{battleState.playerMonster.hp}/{battleState.playerMonster.maxHp} HP</div>
-                </div>
+              {/* Player Monster Card */}
+              <div className={`transform transition-all duration-300 ease-out ${
+                (() => {
+                  if (!battleState?.currentAnimation) return 'scale-100';
+                  
+                  const anim = battleState.currentAnimation;
+                  const isPlayerTurn = battleState.turn === 'player';
+                  
+                  if (isPlayerTurn) {
+                    if (anim.includes('windup')) return 'scale-105 -rotate-2';
+                    if (anim.includes('strike')) return 'scale-110 translate-x-4 rotate-1';
+                    if (anim.includes('impact')) return 'scale-108 translate-x-2';
+                    if (anim.includes('return')) return 'scale-102 translate-x-1';
+                  } else {
+                    // Player is being attacked - recoil animation
+                    if (anim.includes('impact')) return 'scale-95 -translate-x-2 rotate-1';
+                  }
+                  
+                  return 'scale-100';
+                })()
+              }`} key={`player-${animationKey}`}>
+                <MonsterCard
+                  monster={battleState.playerMonster.monster}
+                  userMonster={{
+                    ...battleState.playerMonster,
+                    hp: battleState.playerMonster.hp,
+                    maxHp: battleState.playerMonster.maxHp,
+                    mp: battleState.playerMonster.mp ? Math.floor(battleState.playerMonster.mp * 0.8) : 100,
+                    maxMp: battleState.playerMonster.maxMp || 120
+                  }}
+                  size="medium"
+                />
               </div>
 
               {/* Battle Effects */}
@@ -515,52 +512,57 @@ export default function BattleArena() {
                 battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
               }`}>VS</div>
 
-              {/* AI Monster */}
-              <div className="text-center">
-                <div className={`transform transition-all duration-300 ease-out ${
-                  (() => {
-                    if (!battleState?.currentAnimation) return 'scale-100';
-                    
-                    const anim = battleState.currentAnimation;
-                    const isAITurn = battleState.turn === 'ai';
-                    
-                    if (isAITurn) {
-                      if (anim.includes('windup')) return 'scale-110 rotate-12';
-                      if (anim.includes('strike')) return 'scale-125 -translate-x-12 -rotate-6';
-                      if (anim.includes('impact')) return 'scale-115 -translate-x-8';
-                      if (anim.includes('return')) return 'scale-105 -translate-x-2';
-                    } else {
-                      // AI is being attacked - recoil animation
-                      if (anim.includes('impact')) return 'scale-95 translate-x-6 -rotate-3';
-                    }
-                    
-                    return 'scale-100';
-                  })()
-                }`} key={`ai-${animationKey}`}>
-                  <VeoMonster
-                    monsterId={battleState.aiMonster.id}
-                    evolutionStage={2}
-                    upgradeChoices={battleState.aiMonster.upgradeChoices}
-                    size="medium"
-                    animationState={
-                      battleState.currentAnimation?.includes('ai_windup') ? 'windup' :
-                      battleState.currentAnimation?.includes('ai_attack') ? 'attack' :
-                      battleState.currentAnimation?.includes('ai_hit') ? 'hit' :
-                      battleState.winner === 'ai' ? 'victory' :
-                      battleState.winner === 'player' ? 'defeat' : 'idle'
-                    }
-                    facingDirection="left"
-                  />
-                </div>
-                <div className="mt-2">
-                  <div className="font-semibold">{battleState.aiMonster.name}</div>
-                  <div className="text-sm text-muted-foreground">AI Opponent</div>
-                  <Progress 
-                    value={(battleState.aiMonster.hp / battleState.aiMonster.maxHp) * 100} 
-                    className="w-32 mt-1"
-                  />
-                  <div className="text-xs">{battleState.aiMonster.hp}/{battleState.aiMonster.maxHp} HP</div>
-                </div>
+              {/* AI Monster Card */}
+              <div className={`transform transition-all duration-300 ease-out ${
+                (() => {
+                  if (!battleState?.currentAnimation) return 'scale-100';
+                  
+                  const anim = battleState.currentAnimation;
+                  const isAITurn = battleState.turn === 'ai';
+                  
+                  if (isAITurn) {
+                    if (anim.includes('windup')) return 'scale-105 rotate-2';
+                    if (anim.includes('strike')) return 'scale-110 -translate-x-4 -rotate-1';
+                    if (anim.includes('impact')) return 'scale-108 -translate-x-2';
+                    if (anim.includes('return')) return 'scale-102 -translate-x-1';
+                  } else {
+                    // AI is being attacked - recoil animation
+                    if (anim.includes('impact')) return 'scale-95 translate-x-2 -rotate-1';
+                  }
+                  
+                  return 'scale-100';
+                })()
+              }`} key={`ai-${animationKey}`}>
+                <MonsterCard
+                  monster={{
+                    id: 6,
+                    name: 'Gigalith',
+                    type: 'earth',
+                    basePower: 279,
+                    baseSpeed: 42,
+                    baseDefense: 347,
+                    baseHp: 950,
+                    baseMp: 200
+                  }}
+                  userMonster={{
+                    id: 9999, // Temporary AI monster ID
+                    userId: 'ai',
+                    monsterId: 6,
+                    level: 10,
+                    power: battleState.aiMonster.power,
+                    speed: battleState.aiMonster.speed,
+                    defense: battleState.aiMonster.defense,
+                    experience: 0,
+                    evolutionStage: 4,
+                    upgradeChoices: battleState.aiMonster.upgradeChoices,
+                    acquiredAt: new Date(),
+                    hp: battleState.aiMonster.hp,
+                    maxHp: battleState.aiMonster.maxHp,
+                    mp: 160, // 80% of max MP
+                    maxMp: 200
+                  }}
+                  size="medium"
+                />
               </div>
             </div>
 
