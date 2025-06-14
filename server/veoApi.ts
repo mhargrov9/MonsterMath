@@ -34,7 +34,7 @@ export class VeoApiClient {
     }
     // Force clear cache to use all Gigalith and Aetherion images
     this.imageCache.clear();
-    console.log('Cache cleared for all monster images including Aetherion update');
+    console.log('Cache cleared - loading all 10 Gigalith levels and Aetherion');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -43,19 +43,29 @@ export class VeoApiClient {
     console.log('Image cache cleared - new images will be generated');
   }
 
+  // Force clear cache for specific monster to reload level images
+  clearMonsterCache(monsterId: number) {
+    const keysToDelete = Array.from(this.imageCache.keys()).filter(key => 
+      key.startsWith(`monster_${monsterId}_`)
+    );
+    keysToDelete.forEach(key => this.imageCache.delete(key));
+    console.log(`Cleared cache for monster ${monsterId} - ${keysToDelete.length} entries removed`);
+  }
+
   async generateMonsterImage(monsterId: number, upgradeChoices: Record<string, any>): Promise<string> {
-    // Create cache key based on monster type and upgrades
-    const cacheKey = `monster_${monsterId}_${JSON.stringify(upgradeChoices)}`;
+    // Create cache key based on monster type and upgrades (including level)
+    const level = upgradeChoices.level || 1;
+    const cacheKey = `monster_${monsterId}_level_${level}_${JSON.stringify(upgradeChoices)}`;
     
     // Return cached image if available
     if (this.imageCache.has(cacheKey)) {
-      console.log(`Returning cached image for monster ${monsterId}`);
+      console.log(`Returning cached image for monster ${monsterId} level ${level}`);
       return this.imageCache.get(cacheKey)!;
     }
 
     // For custom monsters (Gigalith=6, Aetherion=7), use uploaded images directly
     if (monsterId === 6 || monsterId === 7) {
-      console.log(`Using custom uploaded image for monster ${monsterId}`);
+      console.log(`Using custom uploaded image for monster ${monsterId} level ${level}`);
       const customImage = this.generateHighQualityImageData(monsterId, upgradeChoices);
       this.imageCache.set(cacheKey, customImage);
       return customImage;
