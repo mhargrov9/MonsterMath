@@ -36,6 +36,11 @@ interface MonsterCardProps {
   onFlip?: () => void;
   showUpgradeAnimation?: boolean;
   size?: 'small' | 'medium' | 'large';
+  // Battle-specific props
+  battleMode?: boolean;
+  isPlayerTurn?: boolean;
+  battleMp?: number;
+  onAbilityClick?: (abilityName: string, manaCost: number, damage: number, description: string) => void;
 }
 
 const getMonsterData = (monsterId: number) => {
@@ -148,14 +153,18 @@ export default function MonsterCard({
   isFlipped = false, 
   onFlip, 
   showUpgradeAnimation = false,
-  size = 'medium'
+  size = 'medium',
+  battleMode = false,
+  isPlayerTurn = false,
+  battleMp = 0,
+  onAbilityClick
 }: MonsterCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
   const currentHp = userMonster?.hp || monster.baseHp || 950;
   const maxHp = userMonster?.maxHp || monster.baseHp || 950;
-  const currentMp = userMonster?.mp || monster.baseMp || 200;
+  const displayMp = battleMode ? currentMp : (userMonster?.mp || monster.baseMp || 200);
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
@@ -325,27 +334,53 @@ export default function MonsterCard({
             <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '360px' }}>
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-2 text-xs">
-                {monsterData.abilities.map((ability, index) => (
-                  <div key={index} className="bg-white/50 dark:bg-black/20 p-1.5 rounded border border-gray-300">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      {ability.type === 'PASSIVE' ? (
-                        <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">P</span>
+                {monsterData.abilities.map((ability, index) => {
+                  const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
+                  const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && currentMp >= manaCost;
+                  const isClickable = battleMode && isPlayerTurn && ability.type === 'ACTIVE';
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`p-1.5 rounded border transition-all duration-200 ${
+                        canAfford 
+                          ? 'bg-red-100 border-red-500 border-2 shadow-lg cursor-pointer hover:bg-red-200' 
+                          : isClickable && !canAfford
+                          ? 'bg-gray-100 border-gray-400 opacity-50 cursor-not-allowed'
+                          : 'bg-white/50 dark:bg-black/20 border-gray-300'
+                      }`}
+                      onClick={() => {
+                        if (canAfford && onAbilityClick) {
+                          const damage = ability.type === 'ACTIVE' ? 40 : 0;
+                          onAbilityClick(ability.name, manaCost, damage, ability.description);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {ability.type === 'PASSIVE' ? (
+                          <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">P</span>
+                          </div>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs px-1 py-0.5 rounded-full">
+                            A
+                          </Badge>
+                        )}
+                        {getAbilityIcon(ability.name)}
+                        <span className="font-semibold">{ability.name}</span>
+                        {ability.cost && <span className="text-blue-600 font-medium">({ability.cost})</span>}
+                      </div>
+                      <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
+                        {ability.description}
+                      </div>
+                      {canAfford && (
+                        <div className="text-xs text-red-600 font-bold mt-1 ml-6">
+                          Click to attack!
                         </div>
-                      ) : (
-                        <Badge variant="destructive" className="text-xs px-1 py-0.5 rounded-full">
-                          A
-                        </Badge>
                       )}
-                      {getAbilityIcon(ability.name)}
-                      <span className="font-semibold">{ability.name}</span>
-                      {ability.cost && <span className="text-blue-600 font-medium">({ability.cost})</span>}
                     </div>
-                    <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
-                      {ability.description}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

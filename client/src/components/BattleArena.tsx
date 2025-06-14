@@ -586,33 +586,7 @@ export default function BattleArena() {
               </Badge>
             </div>
 
-            {/* Attack Options */}
-            {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {playerAttacks.map((attack: AttackOption) => (
-                  <Button
-                    key={attack.id}
-                    onClick={() => executeAttack('player', attack)}
-                    disabled={battleState.playerMonster.mp < (attack.manaCost || 0)}
-                    variant={attack.manaCost ? 'default' : 'outline'}
-                    className={`p-4 h-auto text-left ${
-                      battleState.playerMonster.mp < (attack.manaCost || 0) 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : ''
-                    }`}
-                  >
-                    <div>
-                      <div className="font-semibold">
-                        {attack.name}
-                        {attack.manaCost ? ` (${attack.manaCost} MP)` : ''}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{attack.description}</div>
-                      <div className="text-xs font-medium">Damage: {attack.damage}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            )}
+            {/* No separate attack buttons - abilities on monster cards are now interactive */}
 
             {/* Battle Log */}
             <div className="border rounded p-3 h-32 overflow-y-auto bg-muted/50">
