@@ -33,7 +33,7 @@ interface AIMonster {
 }
 
 interface BattleState {
-  playerMonster: UserMonster & { hp: number; maxHp: number };
+  playerMonster: UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number };
   aiMonster: AIMonster;
   turn: 'player' | 'ai';
   phase: 'select' | 'animate' | 'result' | 'end';
@@ -270,12 +270,16 @@ export default function BattleArena() {
       }
     };
 
+    // Calculate HP and MP from monster stats - use base values for consistent battle stats
+    const calculatedHp = (monster.monster as any)?.baseHp || 500;
+    const calculatedMp = (monster.monster as any)?.baseMp || 120;
+    
     const playerMonster = {
       ...monster,
-      hp: monster.hp || monster.maxHp || (monster.power + monster.defense),
-      maxHp: monster.maxHp || (monster.power + monster.defense),
-      mp: monster.mp || 100,
-      maxMp: monster.maxMp || 120
+      hp: calculatedHp,
+      maxHp: calculatedHp,
+      mp: Math.floor(calculatedMp * 0.8), // Start with 80% MP
+      maxMp: calculatedMp
     };
 
     setBattleState({
@@ -481,8 +485,8 @@ export default function BattleArena() {
                     ...battleState.playerMonster,
                     hp: battleState.playerMonster.hp,
                     maxHp: battleState.playerMonster.maxHp,
-                    mp: battleState.playerMonster.mp ? Math.floor(battleState.playerMonster.mp * 0.8) : 100,
-                    maxMp: battleState.playerMonster.maxMp || 120
+                    mp: battleState.playerMonster.mp,
+                    maxMp: battleState.playerMonster.maxMp
                   }}
                   size="medium"
                 />
@@ -546,8 +550,6 @@ export default function BattleArena() {
                   }}
                   userMonster={{
                     id: 9999, // Temporary AI monster ID
-                    userId: 'ai',
-                    monsterId: 6,
                     level: 10,
                     power: battleState.aiMonster.power,
                     speed: battleState.aiMonster.speed,
@@ -555,7 +557,6 @@ export default function BattleArena() {
                     experience: 0,
                     evolutionStage: 4,
                     upgradeChoices: battleState.aiMonster.upgradeChoices,
-                    acquiredAt: new Date(),
                     hp: battleState.aiMonster.hp,
                     maxHp: battleState.aiMonster.maxHp,
                     mp: 160, // 80% of max MP
