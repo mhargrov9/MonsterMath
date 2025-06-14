@@ -110,6 +110,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enhanced database schema with detailed battle stats (HP, MP, abilities, resistances, weaknesses, level upgrades)
   - Created placeholder graphics system for custom monster images
   - Updated visual generation to support upgrade-specific appearance changes
+- June 14, 2025: Enhanced monster card abilities section with professional styling
+  - Added contextual icons for each ability type (brain, target, hand, mountain, etc.)
+  - Implemented black circles with white "P" for passive abilities
+  - Maintained red badges with "A" for active abilities
+  - Added bordered containers for each ability to prevent text overflow
+  - Increased card heights significantly (medium: 840px) to accommodate all content
+  - Fixed abilities section height (320px) with proper spacing and no scroll bars
 
 ## User Preferences
 
