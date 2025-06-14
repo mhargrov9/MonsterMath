@@ -119,6 +119,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Fixed abilities section height (360px) with proper spacing and no scroll bars
   - Implemented client-side image caching to eliminate hover lag
   - Added level cap system (max level 10) with both client and server validation
+- June 14, 2025: Strategic Battle Engine Development
+  - Integrated full Monster Cards into Battle Arena replacing simple image/HP displays
+  - Implemented database-driven player attack command interface
+  - Created dynamic abilities system reading ACTIVE abilities from monster database
+  - Added mana cost validation and deduction system (abilities show "Name (40 MP)" format)
+  - Buttons disable automatically when insufficient MP available
+  - Added strategic decision-making with complete stat visibility during battles
+  - Level 10 Gigalith set as default opponent for consistent testing
+  - Battle interface transformed from passive viewing to interactive strategic gameplay
 
 ## User Preferences
 

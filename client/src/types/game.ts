@@ -20,11 +20,17 @@ export interface Monster {
   basePower: number;
   baseSpeed: number;
   baseDefense: number;
+  baseHp?: number;
+  baseMp?: number;
   goldCost: number;
   diamondCost: number;
   description?: string;
   iconClass: string;
   gradient: string;
+  abilities?: any[];
+  resistances?: any[];
+  weaknesses?: any[];
+  levelUpgrades?: any;
 }
 
 export interface UserMonster {

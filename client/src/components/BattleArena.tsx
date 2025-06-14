@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { GameUser, UserMonster, Battle } from "@/types/game";
+import { GameUser, UserMonster, Battle, Monster } from "@/types/game";
 import VeoMonster from "./VeoMonster";
 import MonsterCard from "./MonsterCard";
 
@@ -336,6 +336,11 @@ export default function BattleArena() {
         
         if (isPlayerAttacking) {
           newState.aiMonster.hp = newDefenderHp;
+          // Deduct mana cost for player attacks
+          if (attack.manaCost) {
+            newState.playerMonster.mp = Math.max(0, newState.playerMonster.mp - attack.manaCost);
+            newState.battleLog.push(`${attack.manaCost} MP consumed`);
+          }
         } else {
           newState.playerMonster.hp = newDefenderHp;
         }
@@ -432,7 +437,7 @@ export default function BattleArena() {
   };
 
   if (battleState) {
-    const playerAttacks = getAttackOptions(battleState.playerMonster, battleState.playerMonster.upgradeChoices);
+    const playerAttacks = getMonsterAbilities(battleState.playerMonster);
     
     return (
       <div className="space-y-6">
@@ -569,15 +574,23 @@ export default function BattleArena() {
             {/* Attack Options */}
             {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
               <div className="grid grid-cols-2 gap-3 mb-4">
-                {playerAttacks.map((attack) => (
+                {playerAttacks.map((attack: AttackOption) => (
                   <Button
                     key={attack.id}
                     onClick={() => executeAttack('player', attack)}
-                    variant={attack.isUpgrade ? 'default' : 'outline'}
-                    className="p-4 h-auto text-left"
+                    disabled={battleState.playerMonster.mp < (attack.manaCost || 0)}
+                    variant={attack.manaCost ? 'default' : 'outline'}
+                    className={`p-4 h-auto text-left ${
+                      battleState.playerMonster.mp < (attack.manaCost || 0) 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : ''
+                    }`}
                   >
                     <div>
-                      <div className="font-semibold">{attack.name}</div>
+                      <div className="font-semibold">
+                        {attack.name}
+                        {attack.manaCost ? ` (${attack.manaCost} MP)` : ''}
+                      </div>
                       <div className="text-xs text-muted-foreground">{attack.description}</div>
                       <div className="text-xs font-medium">Damage: {attack.damage}</div>
                     </div>
