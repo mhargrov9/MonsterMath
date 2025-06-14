@@ -115,8 +115,10 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Implemented black circles with white "P" for passive abilities
   - Maintained red badges with "A" for active abilities
   - Added bordered containers for each ability to prevent text overflow
-  - Increased card heights significantly (medium: 840px) to accommodate all content
-  - Fixed abilities section height (320px) with proper spacing and no scroll bars
+  - Increased card heights significantly (medium: 900px) to accommodate all content
+  - Fixed abilities section height (360px) with proper spacing and no scroll bars
+  - Implemented client-side image caching to eliminate hover lag
+  - Added level cap system (max level 10) with both client and server validation
 
 ## User Preferences
 

@@ -181,6 +181,7 @@ export class DatabaseStorage implements IStorage {
 
   async upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
     const upgradeCost = 200;
+    const MAX_LEVEL = 10;
 
     // Check if user owns the monster
     const [userMonster] = await db
@@ -190,6 +191,11 @@ export class DatabaseStorage implements IStorage {
 
     if (!userMonster) {
       throw new Error("Monster not found or not owned by user");
+    }
+
+    // Check if monster is already at max level
+    if (userMonster.level >= MAX_LEVEL) {
+      throw new Error("Monster is already at maximum level");
     }
 
     // Check if user has enough gold

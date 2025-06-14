@@ -13,6 +13,8 @@ import MonsterCard from "./MonsterCard";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
 
+const MAX_LEVEL = 10; // Maximum level for monsters
+
 export default function MonsterLab() {
   const { toast } = useToast();
   const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
@@ -250,18 +252,24 @@ export default function MonsterLab() {
                   />
                   {!(flippedCards[userMonster.id] || false) && (
                     <div className="flex flex-col gap-2 w-full max-w-xs">
-                      <Button 
-                        size="sm"
-                        onClick={() => {
-                          setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
-                          upgradeMutation.mutate(userMonster.id);
-                          setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
-                        }}
-                        disabled={upgradeMutation.isPending}
-                        className="shadow-lg w-full"
-                      >
-                        {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
-                      </Button>
+                      {userMonster.level < MAX_LEVEL ? (
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
+                            upgradeMutation.mutate(userMonster.id);
+                            setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
+                          }}
+                          disabled={upgradeMutation.isPending}
+                          className="shadow-lg w-full"
+                        >
+                          {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
+                        </Button>
+                      ) : (
+                        <div className="text-center py-2 text-sm text-muted-foreground font-medium">
+                          Max Level Reached
+                        </div>
+                      )}
                       <Button 
                         size="sm"
                         variant="outline"
