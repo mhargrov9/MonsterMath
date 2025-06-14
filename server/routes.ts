@@ -232,13 +232,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserBattleTokens(userId, -1);
       await storage.updateUserCurrency(userId, 0, diamondsAwarded);
 
-      // Create battle record
+      // Create battle record (use NULL for AI opponents)
       const battle = await storage.createBattle({
         attackerId: userId,
-        defenderId: opponentId,
+        defenderId: null, // AI opponent - use NULL instead of invalid user ID
         attackerMonsterId: monsterId,
         defenderMonsterId: 0, // AI monster
-        winnerId: playerWins ? userId : opponentId,
+        winnerId: playerWins ? userId : null, // NULL if AI wins
         goldFee: goldFee,
         diamondsAwarded: diamondsAwarded
       });

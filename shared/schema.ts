@@ -94,10 +94,10 @@ export const questions = pgTable("questions", {
 export const battles = pgTable("battles", {
   id: serial("id").primaryKey(),
   attackerId: varchar("attacker_id").references(() => users.id).notNull(),
-  defenderId: varchar("defender_id").references(() => users.id).notNull(),
+  defenderId: varchar("defender_id").references(() => users.id), // NULL for AI opponents
   attackerMonsterId: integer("attacker_monster_id").references(() => userMonsters.id).notNull(),
   defenderMonsterId: integer("defender_monster_id").references(() => userMonsters.id).notNull(),
-  winnerId: varchar("winner_id").references(() => users.id).notNull(),
+  winnerId: varchar("winner_id").references(() => users.id), // NULL if AI wins
   goldFee: integer("gold_fee").notNull(),
   diamondsAwarded: integer("diamonds_awarded").notNull(),
   battleAt: timestamp("battle_at").defaultNow(),
@@ -108,7 +108,10 @@ export const upsertUserSchema = createInsertSchema(users);
 export const insertMonsterSchema = createInsertSchema(monsters).omit({ id: true });
 export const insertUserMonsterSchema = createInsertSchema(userMonsters).omit({ id: true, acquiredAt: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
-export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, battleAt: true });
+export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, battleAt: true }).extend({
+  defenderId: z.string().nullable().optional(),
+  winnerId: z.string().nullable().optional()
+});
 
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;

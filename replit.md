@@ -145,6 +145,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Fixed AI attack system to use monster's actual database abilities instead of generic attacks
   - AI Gigalith now uses Basic Attack, Magma Punch, and Tremor Stomp (removed non-existent Heavy Strike)
   - Standardized damage calculations between player and AI for consistent battle mechanics
+  - Balanced AI attack distribution: Basic Attack 50%, each special ability 25%
+  - Fixed database foreign key error for AI battle completion by using NULL for AI opponents
 
 ## User Preferences
 

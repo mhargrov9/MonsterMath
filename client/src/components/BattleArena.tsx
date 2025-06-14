@@ -415,6 +415,17 @@ export default function BattleArena() {
         });
       }
       
+      // Ensure equal probability by duplicating Basic Attack to balance special abilities
+      // This gives Basic Attack 2/4 = 50% chance, each special ability 1/4 = 25% chance
+      aiAttacks.push({
+        id: 'basic-attack-2',
+        name: 'Basic Attack', 
+        description: 'Standard physical attack',
+        damage: Math.floor(battleState.aiMonster.power * 0.6),
+        animation: 'attack',
+        manaCost: 0
+      });
+      
       const randomAttack = aiAttacks[Math.floor(Math.random() * aiAttacks.length)];
       
       setTimeout(() => {
