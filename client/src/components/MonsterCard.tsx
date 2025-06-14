@@ -322,9 +322,9 @@ export default function MonsterCard({
 
           {/* Abilities Box */}
           <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '240px' }}>
+            <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '280px' }}>
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
-              <div className="space-y-2 text-xs overflow-y-auto" style={{ height: '210px' }}>
+              <div className="space-y-2 text-xs">
                 {monsterData.abilities.map((ability, index) => (
                   <div key={index} className="bg-white/50 dark:bg-black/20 p-1.5 rounded border border-gray-300">
                     <div className="flex items-center gap-1.5 mb-1">
