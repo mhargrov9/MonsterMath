@@ -121,6 +121,9 @@ export class DatabaseStorage implements IStorage {
         power: userMonsters.power,
         speed: userMonsters.speed,
         defense: userMonsters.defense,
+        experience: userMonsters.experience,
+        evolutionStage: userMonsters.evolutionStage,
+        upgradeChoices: userMonsters.upgradeChoices,
         acquiredAt: userMonsters.acquiredAt,
         monster: {
           id: monsters.id,
@@ -129,11 +132,17 @@ export class DatabaseStorage implements IStorage {
           basePower: monsters.basePower,
           baseSpeed: monsters.baseSpeed,
           baseDefense: monsters.baseDefense,
+          baseHp: monsters.baseHp,
+          baseMp: monsters.baseMp,
           goldCost: monsters.goldCost,
           diamondCost: monsters.diamondCost,
           description: monsters.description,
           iconClass: monsters.iconClass,
           gradient: monsters.gradient,
+          abilities: monsters.abilities,
+          resistances: monsters.resistances,
+          weaknesses: monsters.weaknesses,
+          levelUpgrades: monsters.levelUpgrades,
         }
       })
       .from(userMonsters)

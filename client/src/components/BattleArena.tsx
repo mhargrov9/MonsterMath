@@ -17,6 +17,7 @@ interface AttackOption {
   description: string;
   damage: number;
   animation: string;
+  manaCost?: number;
   isUpgrade?: boolean;
 }
 
@@ -199,45 +200,30 @@ export default function BattleArena() {
     return 'scale-100';
   };
 
-  // Get attack options for a monster
-  const getAttackOptions = (monster: UserMonster | AIMonster, upgradeChoices: Record<string, any>): AttackOption[] => {
-    const attacks: AttackOption[] = [];
+  // Get abilities from monster's database data
+  const getMonsterAbilities = (monster: UserMonster & { monster: Monster }): AttackOption[] => {
+    const abilities: AttackOption[] = [];
     
-    // Default attacks based on monster type
-    const defaultAttacks = {
-      1: { id: 'peck', name: 'Razor Peck', description: 'Sharp beak attack', damage: 25, animation: 'peck' },
-      2: { id: 'bite', name: 'Crushing Bite', description: 'Powerful jaw attack', damage: 30, animation: 'bite' },
-      3: { id: 'claw', name: 'Dragon Claw', description: 'Slashing claw attack', damage: 28, animation: 'claw' },
-      4: { id: 'punch', name: 'Titan Punch', description: 'Massive fist attack', damage: 35, animation: 'punch' }
-    };
-
-    const monsterId = 'monsterId' in monster ? monster.monsterId : monster.id;
-    const defaultAttack = defaultAttacks[monsterId as keyof typeof defaultAttacks];
-    if (defaultAttack) {
-      attacks.push(defaultAttack);
+    if (!monster.monster.abilities || !Array.isArray(monster.monster.abilities)) {
+      return abilities;
     }
 
-    // Upgrade attacks
-    if (upgradeChoices?.tail === 'flame' && monsterId === 1) {
-      attacks.push({ id: 'flame-tail', name: 'Flame Tail Whip', description: 'Fiery tail attack', damage: 45, animation: 'tail-whip', isUpgrade: true });
-    }
-    if (upgradeChoices?.tail === 'spiked' && monsterId === 2) {
-      attacks.push({ id: 'spike-tail', name: 'Spiked Tail Slam', description: 'Devastating tail attack', damage: 50, animation: 'tail-slam', isUpgrade: true });
-    }
-    if (upgradeChoices?.wings === 'storm' && monsterId === 3) {
-      attacks.push({ id: 'lightning-breath', name: 'Lightning Breath', description: 'Electric breath attack', damage: 55, animation: 'breath', isUpgrade: true });
-    }
-    if (upgradeChoices?.spikes === 'metallic' && monsterId === 4) {
-      attacks.push({ id: 'spike-barrage', name: 'Spike Barrage', description: 'Shooting metallic spikes', damage: 40, animation: 'spike-shot', isUpgrade: true });
-    }
-    if (upgradeChoices?.wings === 'flame' && monsterId === 1) {
-      attacks.push({ id: 'fire-burst', name: 'Fire Wing Burst', description: 'Explosive wing attack', damage: 38, animation: 'wing-burst', isUpgrade: true });
-    }
-    if (upgradeChoices?.teeth === 'razor' && [1,2,3].includes(monsterId)) {
-      attacks.push({ id: 'razor-bite', name: 'Razor Fang Strike', description: 'Enhanced bite attack', damage: 42, animation: 'enhanced-bite', isUpgrade: true });
-    }
+    // Convert database abilities to attack options
+    (monster.monster.abilities as any[]).forEach((ability: any) => {
+      if (ability.type === 'ACTIVE') {
+        const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
+        abilities.push({
+          id: ability.name.toLowerCase().replace(/\s+/g, '-'),
+          name: ability.name,
+          description: ability.description,
+          damage: ability.damage || 30,
+          animation: ability.animation || 'attack',
+          manaCost: manaCost
+        });
+      }
+    });
 
-    return attacks;
+    return abilities;
   };
 
   // Calculate damage
@@ -373,10 +359,14 @@ export default function BattleArena() {
     attackSequence();
   };
 
-  // AI turn
+  // AI turn - use basic attacks for AI monsters
   useEffect(() => {
     if (battleState && battleState.turn === 'ai' && battleState.phase === 'select' && !battleState.winner) {
-      const aiAttacks = getAttackOptions(battleState.aiMonster, battleState.aiMonster.upgradeChoices);
+      // Simple AI attacks based on monster type
+      const aiAttacks: AttackOption[] = [
+        { id: 'basic-attack', name: 'Basic Attack', description: 'Standard attack', damage: 35, animation: 'attack', manaCost: 0 },
+        { id: 'heavy-strike', name: 'Heavy Strike', description: 'Powerful strike', damage: 50, animation: 'heavy', manaCost: 20 }
+      ];
       const randomAttack = aiAttacks[Math.floor(Math.random() * aiAttacks.length)];
       
       setTimeout(() => {
