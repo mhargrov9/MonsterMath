@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +23,19 @@ export default function MonsterLab() {
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
   const [animatingCards, setAnimatingCards] = useState<Record<number, boolean>>({});
 
+  // Force cache refresh on component mount to ensure fresh data
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+  }, []);
+
   const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
     queryKey: ["/api/monsters"],
   });
 
   const { data: userMonsters = [], isLoading: userMonstersLoading } = useQuery<UserMonster[]>({
     queryKey: ["/api/user/monsters"],
+    staleTime: 0, // Force fresh data
+    refetchOnMount: true,
   });
 
   const { data: user } = useQuery<GameUser>({
