@@ -122,7 +122,7 @@ export default function VeoMonster({
   return (
     <div className="relative flex items-center justify-center">
       <div 
-        className="relative transition-all duration-500 ease-out rounded-lg overflow-hidden"
+        className="relative transition-all duration-500 ease-out rounded-lg"
         style={{ 
           width, 
           height,
@@ -138,12 +138,21 @@ export default function VeoMonster({
         {/* Monster Image */}
         {imageData ? (
           <div 
-            className="w-full h-full rounded-lg"
+            className="w-full h-full rounded-lg flex items-center justify-center"
             style={{
-              filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)'
+              filter: animationState === 'attack' ? 'contrast(1.2) saturate(1.3)' : 'contrast(1.1) saturate(1.1)',
+              overflow: 'visible'
             }}
-            dangerouslySetInnerHTML={{ __html: atob(imageData) }}
-          />
+          >
+            <div 
+              className="w-full h-full"
+              style={{ 
+                minWidth: '100%',
+                minHeight: '100%'
+              }}
+              dangerouslySetInnerHTML={{ __html: atob(imageData) }}
+            />
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-800 rounded-lg">
             <span className="text-gray-400">Loading...</span>

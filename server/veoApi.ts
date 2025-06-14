@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use expanded viewBox for full images
+    // Force clear cache to use responsive SVG for full images
     this.imageCache.clear();
-    console.log('Cache cleared - loading expanded viewBox for complete monster display');
+    console.log('Cache cleared - loading responsive SVG for complete monster display');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -453,8 +453,8 @@ export class VeoApiClient {
     const imageFile = levelImages[level as keyof typeof levelImages];
     
     if (imageFile) {
-      return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
-        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="800" height="800" preserveAspectRatio="xMinYMin meet"/>
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     } else {
       // Fallback for invalid levels
@@ -526,8 +526,8 @@ export class VeoApiClient {
     
     // Use your uploaded Aetherion image for Level 1
     if (level === 1) {
-      return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
-        <image href="/assets/Aetherion%201.png" x="0" y="0" width="800" height="800" preserveAspectRatio="xMinYMin meet"/>
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="/assets/Aetherion%201.png" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
