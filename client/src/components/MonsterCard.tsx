@@ -339,7 +339,7 @@ export default function MonsterCard({
                 if (battleMode && isPlayerTurn && onAbilityClick) {
                   const power = userMonster?.power || monster.basePower;
                   const damage = Math.floor(power * 0.6);
-                  onAbilityClick('Basic Attack', 0, damage, 'Standard physical attack');
+                  onAbilityClick('Basic Attack', 0, damage, '');
                 }
               }}
             >
@@ -351,14 +351,7 @@ export default function MonsterCard({
                 <span className="font-semibold">Basic Attack</span>
                 <span className="text-blue-600 font-medium">(0 MP)</span>
               </div>
-              <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
-                Standard physical attack
-              </div>
-              {battleMode && isPlayerTurn && (
-                <div className="text-xs text-blue-600 font-bold mt-1 ml-6">
-                  Click to attack!
-                </div>
-              )}
+
             </div>
           </div>
 
@@ -406,11 +399,6 @@ export default function MonsterCard({
                       <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
                         {ability.description}
                       </div>
-                      {canAfford && (
-                        <div className="text-xs text-red-600 font-bold mt-1 ml-6">
-                          Click to attack!
-                        </div>
-                      )}
                     </div>
                   );
                 })}

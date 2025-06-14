@@ -147,6 +147,10 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Standardized damage calculations between player and AI for consistent battle mechanics
   - Balanced AI attack distribution: Basic Attack 50%, each special ability 25%
   - Fixed database foreign key error for AI battle completion by using NULL for AI opponents
+- June 14, 2025: UI Polish and Clean Design
+  - Removed redundant text prompts from Basic Attack button ("Standard physical attack", "Click to attack!")
+  - Cleaned up abilities section by removing all "Click to attack!" prompts
+  - Maintained visual interaction cues (red glow, hover effects) for cleaner professional appearance
 
 ## User Preferences
 
