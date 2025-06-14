@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import VeoMonster from "./VeoMonster";
 import UpgradeChoice from "./UpgradeChoice";
+import MonsterCard from "./MonsterCard";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
 
@@ -202,56 +203,23 @@ export default function MonsterLab() {
         {/* Available Monsters */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Available Monsters</h3>
-          <div className="space-y-4">
+          <div className="flex flex-wrap gap-4 justify-center">
             {monsters.map((monster) => (
-              <Card key={monster.id}>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-4 items-center">
-                      <VeoMonster 
-                        monsterId={monster.id} 
-                        evolutionStage={1}
-                        upgradeChoices={{}}
-                        size="medium"
-                      />
-                      <div>
-                        <h4 className="font-semibold">{monster.name}</h4>
-                        <p className="text-sm text-muted-foreground">{monster.type}</p>
-                        <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-                          <div className="flex items-center gap-1">
-                            <Zap className="w-3 h-3 text-red-500" />
-                            <span>PWR: {monster.basePower}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Gauge className="w-3 h-3 text-blue-500" />
-                            <span>SPD: {monster.baseSpeed}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Shield className="w-3 h-3 text-green-500" />
-                            <span>DEF: {monster.baseDefense}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-3 mt-2">
-                          <div className="flex items-center gap-1">
-                            <Coins className="w-4 h-4 text-yellow-500" />
-                            <span className="text-sm">{monster.goldCost}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Gem className="w-4 h-4 text-blue-500" />
-                            <span className="text-sm">{monster.diamondCost}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => purchaseMutation.mutate(monster.id)}
-                      disabled={purchaseMutation.isPending}
-                    >
-                      {purchaseMutation.isPending ? "Purchasing..." : "Purchase"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={monster.id} className="relative">
+                <MonsterCard
+                  monster={monster}
+                  size="medium"
+                />
+                <div className="absolute bottom-4 right-4">
+                  <Button 
+                    onClick={() => purchaseMutation.mutate(monster.id)}
+                    disabled={purchaseMutation.isPending}
+                    className="shadow-lg"
+                  >
+                    {purchaseMutation.isPending ? "Purchasing..." : `Buy ${monster.goldCost}g`}
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -259,51 +227,39 @@ export default function MonsterLab() {
         {/* User's Monsters */}
         <div>
           <h3 className="text-lg font-semibold mb-4">Your Monsters</h3>
-          <div className="space-y-4">
+          <div className="flex flex-wrap gap-4 justify-center">
             {userMonsters.length === 0 ? (
-              <Card>
+              <Card className="w-full">
                 <CardContent className="p-6 text-center">
                   <p className="text-muted-foreground">No monsters yet. Purchase one to get started!</p>
                 </CardContent>
               </Card>
             ) : (
-              userMonsters.map((userMonster) => (
-                <Card key={userMonster.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-center">
-                      <div className="flex gap-4 items-center">
-                        <VeoMonster 
-                          monsterId={userMonster.monsterId} 
-                          evolutionStage={userMonster.evolutionStage}
-                          upgradeChoices={{
-                            ...userMonster.upgradeChoices,
-                            level: userMonster.level
-                          }}
-                          size="medium"
-                        />
-                        <div>
-                          <h4 className="font-semibold">{userMonster.monster.name}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Level {userMonster.level} • Stage {userMonster.evolutionStage}
-                          </p>
-                          <div className="flex gap-3 mt-1">
-                            <Badge variant="destructive" className="text-xs">
-                              <Zap className="w-3 h-3 mr-1" />{userMonster.power}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              <Gauge className="w-3 h-3 mr-1" />{userMonster.speed}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              <Shield className="w-3 h-3 mr-1" />{userMonster.defense}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2">
+              userMonsters.map((userMonster) => {
+                const [isFlipped, setIsFlipped] = useState(false);
+                const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
+
+                return (
+                  <div key={userMonster.id} className="relative">
+                    <MonsterCard
+                      monster={userMonster.monster}
+                      userMonster={userMonster}
+                      isFlipped={isFlipped}
+                      onFlip={() => setIsFlipped(!isFlipped)}
+                      showUpgradeAnimation={showUpgradeAnimation}
+                      size="medium"
+                    />
+                    {!isFlipped && (
+                      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
                         <Button 
                           size="sm"
-                          onClick={() => upgradeMutation.mutate(userMonster.id)}
+                          onClick={() => {
+                            setShowUpgradeAnimation(true);
+                            upgradeMutation.mutate(userMonster.id);
+                            setTimeout(() => setShowUpgradeAnimation(false), 2000);
+                          }}
                           disabled={upgradeMutation.isPending}
+                          className="shadow-lg"
                         >
                           {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
                         </Button>
@@ -311,14 +267,15 @@ export default function MonsterLab() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleSpecialUpgrade(userMonster)}
+                          className="shadow-lg"
                         >
                           Special Upgrades
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
