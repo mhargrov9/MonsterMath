@@ -32,9 +32,9 @@ export class VeoApiClient {
     if (!this.apiKey) {
       throw new Error('GOOGLE_API_KEY environment variable is required');
     }
-    // Force clear cache to use all Gigalith and Aetherion images
+    // Force clear cache to use full uncropped images
     this.imageCache.clear();
-    console.log('Cache cleared - loading all 10 Gigalith levels and Aetherion');
+    console.log('Cache cleared - loading full uncropped monster images');
   }
 
   // Clear cache to regenerate images with new prompts
@@ -454,7 +454,7 @@ export class VeoApiClient {
     
     if (imageFile) {
       return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="512" height="512" preserveAspectRatio="none"/>
       </svg>`;
     } else {
       // Fallback for invalid levels
@@ -527,7 +527,7 @@ export class VeoApiClient {
     // Use your uploaded Aetherion image for Level 1
     if (level === 1) {
       return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-        <image href="/assets/Aetherion%201.png" x="0" y="0" width="512" height="512" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/assets/Aetherion%201.png" x="0" y="0" width="512" height="512" preserveAspectRatio="none"/>
       </svg>`;
     }
     
