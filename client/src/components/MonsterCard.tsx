@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake } from 'lucide-react';
+import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Hand, Mountain, Sparkles, Target } from 'lucide-react';
 
 interface MonsterCardProps {
   monster: {
@@ -129,6 +129,17 @@ const getResistanceIcon = (resistance: string) => {
     case 'psychic': return <Eye className="w-4 h-4 text-purple-500" />;
     default: return <div className="w-4 h-4 bg-gray-400 rounded-full" />;
   }
+};
+
+const getAbilityIcon = (abilityName: string) => {
+  const name = abilityName.toLowerCase();
+  if (name.includes('precognition') || name.includes('mind')) return <Brain className="w-3 h-3 text-purple-500" />;
+  if (name.includes('strike') || name.includes('beam')) return <Target className="w-3 h-3 text-blue-500" />;
+  if (name.includes('punch') || name.includes('fist')) return <Hand className="w-3 h-3 text-red-500" />;
+  if (name.includes('stomp') || name.includes('tremor') || name.includes('core')) return <Mountain className="w-3 h-3 text-orange-500" />;
+  if (name.includes('magma') || name.includes('fire')) return <Flame className="w-3 h-3 text-red-500" />;
+  if (name.includes('psy') || name.includes('psychic')) return <Sparkles className="w-3 h-3 text-purple-500" />;
+  return <Sword className="w-3 h-3 text-gray-500" />;
 };
 
 export default function MonsterCard({ 
@@ -311,19 +322,26 @@ export default function MonsterCard({
 
           {/* Abilities Box */}
           <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded" style={{ height: '220px' }}>
-              <div className="text-xs font-bold mb-1 border-b border-gray-400 pb-1">ABILITIES</div>
-              <div className="space-y-1 text-xs" style={{ height: '190px', overflowY: 'visible' }}>
+            <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '220px' }}>
+              <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
+              <div className="space-y-3 text-xs" style={{ height: '190px', overflowY: 'visible' }}>
                 {monsterData.abilities.map((ability, index) => (
-                  <div key={index}>
-                    <div className="flex gap-1">
-                      <Badge variant={ability.type === 'PASSIVE' ? 'secondary' : 'destructive'} className="text-xs px-1 py-0">
-                        {ability.type === 'PASSIVE' ? 'P' : 'A'}
-                      </Badge>
+                  <div key={index} className="bg-white/50 dark:bg-black/20 p-2 rounded border border-gray-300">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      {ability.type === 'PASSIVE' ? (
+                        <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">P</span>
+                        </div>
+                      ) : (
+                        <Badge variant="destructive" className="text-xs px-1 py-0.5 rounded-full">
+                          A
+                        </Badge>
+                      )}
+                      {getAbilityIcon(ability.name)}
                       <span className="font-semibold">{ability.name}</span>
-                      {ability.cost && <span className="text-blue-600">({ability.cost})</span>}
+                      {ability.cost && <span className="text-blue-600 font-medium">({ability.cost})</span>}
                     </div>
-                    <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs">
+                    <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
                       {ability.description}
                     </div>
                   </div>
