@@ -17,6 +17,8 @@ export default function MonsterLab() {
   const { toast } = useToast();
   const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
   const [showUpgradeChoice, setShowUpgradeChoice] = useState(false);
+  const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+  const [animatingCards, setAnimatingCards] = useState<Record<number, boolean>>({});
 
   const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
     queryKey: ["/api/monsters"],
@@ -235,47 +237,45 @@ export default function MonsterLab() {
                 </CardContent>
               </Card>
             ) : (
-              userMonsters.map((userMonster) => {
-                const [isFlipped, setIsFlipped] = useState(false);
-                const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
-
-                return (
-                  <div key={userMonster.id} className="relative">
-                    <MonsterCard
-                      monster={userMonster.monster}
-                      userMonster={userMonster}
-                      isFlipped={isFlipped}
-                      onFlip={() => setIsFlipped(!isFlipped)}
-                      showUpgradeAnimation={showUpgradeAnimation}
-                      size="medium"
-                    />
-                    {!isFlipped && (
-                      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-                        <Button 
-                          size="sm"
-                          onClick={() => {
-                            setShowUpgradeAnimation(true);
-                            upgradeMutation.mutate(userMonster.id);
-                            setTimeout(() => setShowUpgradeAnimation(false), 2000);
-                          }}
-                          disabled={upgradeMutation.isPending}
-                          className="shadow-lg"
-                        >
-                          {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
-                        </Button>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleSpecialUpgrade(userMonster)}
-                          className="shadow-lg"
-                        >
-                          Special Upgrades
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              userMonsters.map((userMonster) => (
+                <div key={userMonster.id} className="relative">
+                  <MonsterCard
+                    monster={userMonster.monster}
+                    userMonster={userMonster}
+                    isFlipped={flippedCards[userMonster.id] || false}
+                    onFlip={() => setFlippedCards(prev => ({
+                      ...prev,
+                      [userMonster.id]: !prev[userMonster.id]
+                    }))}
+                    showUpgradeAnimation={animatingCards[userMonster.id] || false}
+                    size="medium"
+                  />
+                  {!(flippedCards[userMonster.id] || false) && (
+                    <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                      <Button 
+                        size="sm"
+                        onClick={() => {
+                          setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
+                          upgradeMutation.mutate(userMonster.id);
+                          setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
+                        }}
+                        disabled={upgradeMutation.isPending}
+                        className="shadow-lg"
+                      >
+                        {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
+                      </Button>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSpecialUpgrade(userMonster)}
+                        className="shadow-lg"
+                      >
+                        Special Upgrades
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
         </div>
