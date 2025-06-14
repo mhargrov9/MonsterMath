@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake } from 'lucide-react';
 
@@ -147,9 +148,9 @@ export default function MonsterCard({
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
-    small: { width: 280, height: 480 },
-    medium: { width: 350, height: 580 },
-    large: { width: 420, height: 680 }
+    small: { width: 280, height: 520 },
+    medium: { width: 350, height: 620 },
+    large: { width: 420, height: 720 }
   };
 
   const cardSize = cardSizes[size];
@@ -312,7 +313,7 @@ export default function MonsterCard({
           <div className="w-2/3">
             <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded h-full">
               <div className="text-xs font-bold mb-1 border-b border-gray-400 pb-1">ABILITIES</div>
-              <div className="space-y-1 text-xs overflow-y-auto max-h-24">
+              <div className="space-y-1 text-xs">
                 {monsterData.abilities.map((ability, index) => (
                   <div key={index}>
                     <div className="flex gap-1">
@@ -322,7 +323,7 @@ export default function MonsterCard({
                       <span className="font-semibold">{ability.name}</span>
                       {ability.cost && <span className="text-blue-600">({ability.cost})</span>}
                     </div>
-                    <div className="text-gray-700 dark:text-gray-300 leading-tight">
+                    <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs">
                       {ability.description}
                     </div>
                   </div>
@@ -352,6 +353,24 @@ export default function MonsterCard({
             <span>{monsterData.resistance}</span>
           </div>
         </div>
+
+        {/* Flip Button - Only show if monster is owned and has flip functionality */}
+        {userMonster && onFlip && (
+          <div className="absolute top-2 right-2 z-20">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="w-8 h-8 p-0 rounded-full bg-white/90 hover:bg-white text-gray-800 border-2 border-gray-300 shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                onFlip();
+              }}
+              title="View Battle Record"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
 
         {onFlip && (
           <div className="absolute bottom-1 right-1 text-xs text-gray-500 dark:text-gray-400">
