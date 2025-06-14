@@ -148,9 +148,9 @@ export default function MonsterCard({
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
-    small: { width: 280, height: 600 },
-    medium: { width: 350, height: 720 },
-    large: { width: 420, height: 840 }
+    small: { width: 280, height: 640 },
+    medium: { width: 350, height: 760 },
+    large: { width: 420, height: 880 }
   };
 
   const cardSize = cardSizes[size];
@@ -273,7 +273,7 @@ export default function MonsterCard({
         </div>
 
         {/* Main Content */}
-        <div className="p-2 flex gap-2" style={{ height: '200px' }}>
+        <div className="p-2 flex gap-2" style={{ height: '240px' }}>
           {/* Stats Block */}
           <div className="w-1/3 space-y-1">
             <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
@@ -311,9 +311,9 @@ export default function MonsterCard({
 
           {/* Abilities Box */}
           <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded h-full">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded" style={{ height: '220px' }}>
               <div className="text-xs font-bold mb-1 border-b border-gray-400 pb-1">ABILITIES</div>
-              <div className="space-y-1 text-xs h-full overflow-visible">
+              <div className="space-y-1 text-xs" style={{ height: '190px', overflowY: 'visible' }}>
                 {monsterData.abilities.map((ability, index) => (
                   <div key={index}>
                     <div className="flex gap-1">
