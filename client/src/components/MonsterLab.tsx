@@ -207,20 +207,18 @@ export default function MonsterLab() {
           <h3 className="text-lg font-semibold mb-4">Available Monsters</h3>
           <div className="flex flex-wrap gap-4 justify-center">
             {monsters.map((monster) => (
-              <div key={monster.id} className="relative">
+              <div key={monster.id} className="flex flex-col items-center gap-3">
                 <MonsterCard
                   monster={monster}
                   size="medium"
                 />
-                <div className="absolute bottom-4 right-4">
-                  <Button 
-                    onClick={() => purchaseMutation.mutate(monster.id)}
-                    disabled={purchaseMutation.isPending}
-                    className="shadow-lg"
-                  >
-                    {purchaseMutation.isPending ? "Purchasing..." : `Buy ${monster.goldCost}g`}
-                  </Button>
-                </div>
+                <Button 
+                  onClick={() => purchaseMutation.mutate(monster.id)}
+                  disabled={purchaseMutation.isPending}
+                  className="shadow-lg w-full max-w-xs"
+                >
+                  {purchaseMutation.isPending ? "Purchasing..." : `Buy ${monster.goldCost}g`}
+                </Button>
               </div>
             ))}
           </div>
@@ -238,7 +236,7 @@ export default function MonsterLab() {
               </Card>
             ) : (
               userMonsters.map((userMonster) => (
-                <div key={userMonster.id} className="relative">
+                <div key={userMonster.id} className="flex flex-col items-center gap-3">
                   <MonsterCard
                     monster={userMonster.monster}
                     userMonster={userMonster}
@@ -251,7 +249,7 @@ export default function MonsterLab() {
                     size="medium"
                   />
                   {!(flippedCards[userMonster.id] || false) && (
-                    <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 w-full max-w-xs">
                       <Button 
                         size="sm"
                         onClick={() => {
@@ -260,7 +258,7 @@ export default function MonsterLab() {
                           setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
                         }}
                         disabled={upgradeMutation.isPending}
-                        className="shadow-lg"
+                        className="shadow-lg w-full"
                       >
                         {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
                       </Button>
@@ -268,7 +266,7 @@ export default function MonsterLab() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleSpecialUpgrade(userMonster)}
-                        className="shadow-lg"
+                        className="shadow-lg w-full"
                       >
                         Special Upgrades
                       </Button>

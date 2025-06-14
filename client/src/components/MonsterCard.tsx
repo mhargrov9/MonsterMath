@@ -147,9 +147,9 @@ export default function MonsterCard({
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
-    small: { width: 280, height: 400 },
-    medium: { width: 350, height: 500 },
-    large: { width: 420, height: 600 }
+    small: { width: 280, height: 480 },
+    medium: { width: 350, height: 580 },
+    large: { width: 420, height: 680 }
   };
 
   const cardSize = cardSizes[size];
@@ -272,35 +272,35 @@ export default function MonsterCard({
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-3 flex gap-3">
+        <div className="flex-1 p-2 flex gap-2">
           {/* Stats Block */}
-          <div className="w-1/3 space-y-2">
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded text-xs">
-              <div className="flex items-center gap-1 mb-1">
+          <div className="w-1/3 space-y-1">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
+              <div className="flex items-center gap-1 mb-0.5">
                 <Zap className="w-3 h-3 text-red-500" />
                 <span className="font-semibold">Power:</span>
               </div>
-              <div className="text-lg font-bold">{userMonster?.power || monster.basePower}</div>
+              <div className="text-sm font-bold">{userMonster?.power || monster.basePower}</div>
             </div>
 
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded text-xs">
-              <div className="flex items-center gap-1 mb-1">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
+              <div className="flex items-center gap-1 mb-0.5">
                 <Shield className="w-3 h-3 text-blue-500" />
                 <span className="font-semibold">Defense:</span>
               </div>
-              <div className="text-lg font-bold">{userMonster?.defense || monster.baseDefense}</div>
+              <div className="text-sm font-bold">{userMonster?.defense || monster.baseDefense}</div>
             </div>
 
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded text-xs">
-              <div className="flex items-center gap-1 mb-1">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
+              <div className="flex items-center gap-1 mb-0.5">
                 <Gauge className="w-3 h-3 text-green-500" />
                 <span className="font-semibold">Speed:</span>
               </div>
-              <div className="text-lg font-bold">{userMonster?.speed || monster.baseSpeed}</div>
+              <div className="text-sm font-bold">{userMonster?.speed || monster.baseSpeed}</div>
             </div>
 
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded text-xs">
-              <div className="flex items-center gap-1 mb-1">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
+              <div className="flex items-center gap-1 mb-0.5">
                 <Droplets className="w-3 h-3 text-cyan-500" />
                 <span className="font-semibold">Mana:</span>
               </div>
@@ -310,9 +310,9 @@ export default function MonsterCard({
 
           {/* Abilities Box */}
           <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded h-full">
-              <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
-              <div className="space-y-2 text-xs">
+            <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded h-full">
+              <div className="text-xs font-bold mb-1 border-b border-gray-400 pb-1">ABILITIES</div>
+              <div className="space-y-1 text-xs overflow-y-auto max-h-24">
                 {monsterData.abilities.map((ability, index) => (
                   <div key={index}>
                     <div className="flex gap-1">
@@ -333,14 +333,14 @@ export default function MonsterCard({
         </div>
 
         {/* Flavor Text */}
-        <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-3">
-          <div className="text-xs italic text-center text-gray-700 dark:text-gray-300 leading-relaxed">
+        <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 p-2">
+          <div className="text-xs italic text-center text-gray-700 dark:text-gray-300 leading-tight">
             "{monsterData.flavorText}"
           </div>
         </div>
 
         {/* Footer - Weakness & Resistance */}
-        <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-2 flex justify-between items-center text-xs">
+        <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white p-1.5 flex justify-between items-center text-xs">
           <div className="flex items-center gap-1">
             <span>Weakness:</span>
             {getWeaknessIcon(monsterData.weakness)}
