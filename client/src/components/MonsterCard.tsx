@@ -348,7 +348,10 @@ export default function MonsterCard({
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                     <AlertDialogAction 
-                      onClick={() => healMutation.mutate()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        healMutation.mutate();
+                      }}
                       disabled={healMutation.isPending}
                     >
                       {healMutation.isPending ? 'Healing...' : 'Yes, Heal'}
