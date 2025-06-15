@@ -125,6 +125,10 @@ export class DatabaseStorage implements IStorage {
         experience: userMonsters.experience,
         evolutionStage: userMonsters.evolutionStage,
         upgradeChoices: userMonsters.upgradeChoices,
+        hp: userMonsters.hp,
+        maxHp: userMonsters.maxHp,
+        mp: userMonsters.mp,
+        maxMp: userMonsters.maxMp,
         acquiredAt: userMonsters.acquiredAt,
         monster: {
           id: monsters.id,

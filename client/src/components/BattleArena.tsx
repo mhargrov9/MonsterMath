@@ -276,10 +276,18 @@ export default function BattleArena() {
     };
 
     // Use monster's current HP and MP values to persist stats between battles
-    const currentHp = (monster as any).hp || (monster.monster as any)?.baseHp || 500;
-    const maxHp = (monster as any).maxHp || (monster.monster as any)?.baseHp || 500;
-    const currentMp = (monster as any).mp || Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
-    const maxMp = (monster as any).maxMp || (monster.monster as any)?.baseMp || 120;
+    const currentHp = (monster as any).hp !== null && (monster as any).hp !== undefined 
+      ? (monster as any).hp 
+      : ((monster.monster as any)?.baseHp || 500);
+    const maxHp = (monster as any).maxHp !== null && (monster as any).maxHp !== undefined 
+      ? (monster as any).maxHp 
+      : ((monster.monster as any)?.baseHp || 500);
+    const currentMp = (monster as any).mp !== null && (monster as any).mp !== undefined 
+      ? (monster as any).mp 
+      : Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
+    const maxMp = (monster as any).maxMp !== null && (monster as any).maxMp !== undefined 
+      ? (monster as any).maxMp 
+      : ((monster.monster as any)?.baseMp || 120);
     
     const playerMonster = {
       ...monster,

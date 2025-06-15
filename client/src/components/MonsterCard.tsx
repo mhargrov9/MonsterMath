@@ -162,10 +162,19 @@ export default function MonsterCard({
   const [isHovered, setIsHovered] = useState(false);
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
-  const currentHp = userMonster?.hp || monster.baseHp || 950;
-  const maxHp = userMonster?.maxHp || monster.baseHp || 950;
-  const displayMp = battleMode ? (battleMp ?? (userMonster?.mp || monster.baseMp || 200)) : (userMonster?.mp || monster.baseMp || 200);
-  const maxMp = userMonster?.maxMp || monster.baseMp || 200;
+  // Use persistent HP/MP from database, fall back to base values only for new monsters
+  const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
+    ? userMonster.hp 
+    : (monster.baseHp || 950);
+  const maxHp = userMonster?.maxHp !== null && userMonster?.maxHp !== undefined 
+    ? userMonster.maxHp 
+    : (monster.baseHp || 950);
+  const displayMp = battleMode 
+    ? (battleMp ?? (userMonster?.mp !== null && userMonster?.mp !== undefined ? userMonster.mp : (monster.baseMp || 200)))
+    : (userMonster?.mp !== null && userMonster?.mp !== undefined ? userMonster.mp : (monster.baseMp || 200));
+  const maxMp = userMonster?.maxMp !== null && userMonster?.maxMp !== undefined 
+    ? userMonster.maxMp 
+    : (monster.baseMp || 200);
 
   const cardSizes = {
     small: { width: 280, height: 780 },
