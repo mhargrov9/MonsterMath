@@ -174,6 +174,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Monster healing endpoint
+  app.post("/api/monsters/heal", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { monsterId, healingCost } = req.body;
+      
+      if (!monsterId || healingCost === undefined) {
+        return res.status(400).json({ message: "Monster ID and healing cost are required" });
+      }
+
+      // Get user to check gold balance
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.gold < healingCost) {
+        return res.status(400).json({ message: "Insufficient gold for healing" });
+      }
+
+      // Get user's monsters to verify ownership and get current HP
+      const userMonsters = await storage.getUserMonsters(userId);
+      const userMonster = userMonsters.find(m => m.id === monsterId);
+      
+      if (!userMonster) {
+        return res.status(404).json({ message: "Monster not found" });
+      }
+
+      // Calculate max HP based on monster level and base HP
+      const maxHp = userMonster.monster.baseHp || 950;
+      const currentHp = userMonster.hp || maxHp;
+
+      if (currentHp >= maxHp) {
+        return res.status(400).json({ message: "Monster is already at full health" });
+      }
+
+      // Deduct gold and heal monster to full HP
+      await storage.updateUserCurrency(userId, -healingCost, 0);
+      await storage.updateMonsterStats(userId, monsterId, maxHp, userMonster.mp || userMonster.monster.baseMp || 200);
+
+      res.json({ 
+        message: "Monster healed successfully",
+        goldSpent: healingCost,
+        newHp: maxHp
+      });
+    } catch (error) {
+      console.error("Error healing monster:", error);
+      res.status(500).json({ message: "Failed to heal monster" });
+    }
+  });
+
   app.get("/api/battle/opponents", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

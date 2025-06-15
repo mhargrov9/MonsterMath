@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Hand, Mountain, Sparkles, Target } from 'lucide-react';
+import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Hand, Mountain, Sparkles, Target, Plus } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface MonsterCardProps {
   monster: {
@@ -160,6 +164,8 @@ export default function MonsterCard({
   onAbilityClick
 }: MonsterCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
@@ -183,6 +189,39 @@ export default function MonsterCard({
   };
 
   const cardSize = cardSizes[size];
+
+  // Calculate healing cost (1 Gold per 10 HP healed, rounded up)
+  const hpMissing = maxHp - currentHp;
+  const healingCost = Math.ceil(hpMissing / 10);
+  const needsHealing = currentHp < maxHp && !battleMode;
+
+  // Healing mutation
+  const healMutation = useMutation({
+    mutationFn: async () => {
+      if (!userMonster) throw new Error("No monster to heal");
+      
+      return await apiRequest("POST", "/api/monsters/heal", {
+        monsterId: userMonster.id,
+        healingCost: healingCost
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Monster Healed!",
+        description: `${monster.name} has been fully healed for ${healingCost} Gold.`,
+        variant: "default",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Healing Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isFlipped && userMonster) {
     // Battle Record (Back of Card)
@@ -266,10 +305,53 @@ export default function MonsterCard({
             }`}>
               LV. {level}
             </div>
+            {/* Pulsating Eye (moved here) */}
+            {monster.id === 7 && (
+              <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
+                <Eye className="w-4 h-4 text-white" />
+              </div>
+            )}
             <h1 className="text-xl font-bold tracking-wider">{monster.name.toUpperCase()}</h1>
           </div>
           <div className="text-right">
             <div className="text-sm text-red-400 font-bold">HP {currentHp} / {maxHp}</div>
+            {/* Heal Button */}
+            {needsHealing && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="mt-1 h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600"
+                    disabled={healMutation.isPending}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Heal
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Heal {monster.name}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Fully heal for {healingCost} Gold?
+                      <br />
+                      <span className="text-sm text-muted-foreground">
+                        Restoring {hpMissing} HP ({currentHp} → {maxHp})
+                      </span>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => healMutation.mutate()}
+                      disabled={healMutation.isPending}
+                    >
+                      {healMutation.isPending ? 'Healing...' : 'Yes, Heal'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
 
