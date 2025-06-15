@@ -75,6 +75,10 @@ export const userMonsters = pgTable("user_monsters", {
   experience: integer("experience").default(0).notNull(),
   evolutionStage: integer("evolution_stage").default(1).notNull(),
   upgradeChoices: jsonb("upgrade_choices").default('{}').notNull(), // Track chosen upgrades
+  hp: integer("hp"), // Current HP - null means use base HP
+  maxHp: integer("max_hp"), // Maximum HP - null means use base HP
+  mp: integer("mp"), // Current MP - null means use base MP
+  maxMp: integer("max_mp"), // Maximum MP - null means use base MP
   acquiredAt: timestamp("acquired_at").defaultNow(),
 });
 

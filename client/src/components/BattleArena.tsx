@@ -275,16 +275,18 @@ export default function BattleArena() {
       }
     };
 
-    // Calculate HP and MP from monster stats - use base values for consistent battle stats
-    const calculatedHp = (monster.monster as any)?.baseHp || 500;
-    const calculatedMp = (monster.monster as any)?.baseMp || 120;
+    // Use monster's current HP and MP values to persist stats between battles
+    const currentHp = monster.hp || (monster.monster as any)?.baseHp || 500;
+    const maxHp = monster.maxHp || (monster.monster as any)?.baseHp || 500;
+    const currentMp = monster.mp || Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
+    const maxMp = monster.maxMp || (monster.monster as any)?.baseMp || 120;
     
     const playerMonster = {
       ...monster,
-      hp: calculatedHp,
-      maxHp: calculatedHp,
-      mp: Math.floor(calculatedMp * 0.8), // Start with 80% MP
-      maxMp: calculatedMp
+      hp: currentHp,
+      maxHp: maxHp,
+      mp: currentMp,
+      maxMp: maxMp
     };
 
     setBattleState({

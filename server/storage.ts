@@ -40,6 +40,7 @@ export interface IStorage {
     goldCost: number,
     diamondCost: number
   ): Promise<UserMonster>;
+  updateMonsterStats(userId: string, userMonsterId: number, hp: number, mp: number): Promise<UserMonster>;
   
   // Question operations
   getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined>;
@@ -283,6 +284,23 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return upgraded;
+  }
+
+  async updateMonsterStats(userId: string, userMonsterId: number, hp: number, mp: number): Promise<UserMonster> {
+    const [updated] = await db
+      .update(userMonsters)
+      .set({
+        hp: hp,
+        mp: mp,
+      })
+      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)))
+      .returning();
+
+    if (!updated) {
+      throw new Error("Monster not found");
+    }
+
+    return updated;
   }
 
   // Question operations
