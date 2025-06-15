@@ -833,7 +833,11 @@ export default function BattleArena() {
               <h3 className="text-lg font-semibold mb-3">Choose Your Monster</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {userMonsters.map((monster) => (
-                  <Card key={monster.id} className="cursor-pointer hover:bg-accent" onClick={() => setSelectedMonster(monster)}>
+                  <Card 
+                    key={monster.id} 
+                    className={`${monster.isShattered ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-accent'}`} 
+                    onClick={() => monster.isShattered ? null : setSelectedMonster(monster)}
+                  >
                     <CardContent className="p-4">
                       <div className="text-center">
                         <VeoMonster
@@ -849,6 +853,14 @@ export default function BattleArena() {
                           <div className="font-semibold">{monster.monster.name}</div>
                           <div className="text-sm text-muted-foreground">Level {monster.level}</div>
                           <div className="text-xs">Power: {monster.power} | Defense: {monster.defense}</div>
+                          {monster.isShattered && (
+                            <div className="flex items-center justify-center gap-1 mt-1">
+                              <div className="w-4 h-4 bg-red-600 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">⚡</span>
+                              </div>
+                              <span className="text-red-600 text-xs font-bold">SHATTERED</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>

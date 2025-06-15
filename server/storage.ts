@@ -131,6 +131,7 @@ export class DatabaseStorage implements IStorage {
         maxHp: userMonsters.maxHp,
         mp: userMonsters.mp,
         maxMp: userMonsters.maxMp,
+        isShattered: userMonsters.isShattered,
         acquiredAt: userMonsters.acquiredAt,
         monster: {
           id: monsters.id,
