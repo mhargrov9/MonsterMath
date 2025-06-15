@@ -4,16 +4,19 @@ import {
   userMonsters,
   questions,
   battles,
+  inventory,
   type User,
   type UpsertUser,
   type Monster,
   type UserMonster,
   type Question,
   type Battle,
+  type InventoryItem,
   type InsertMonster,
   type InsertUserMonster,
   type InsertQuestion,
   type InsertBattle,
+  type InsertInventoryItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
@@ -56,6 +59,13 @@ export interface IStorage {
   getAvailableOpponents(userId: string): Promise<User[]>;
   createBattle(battle: InsertBattle): Promise<Battle>;
   getBattleHistory(userId: string): Promise<(Battle & { attacker: User; defender: User })[]>;
+  
+  // Inventory operations
+  getUserInventory(userId: string): Promise<InventoryItem[]>;
+  addInventoryItem(userId: string, item: InsertInventoryItem): Promise<InventoryItem>;
+  updateInventoryQuantity(userId: string, itemName: string, quantityDelta: number): Promise<InventoryItem>;
+  removeInventoryItem(userId: string, itemName: string): Promise<void>;
+  getInventoryItem(userId: string, itemName: string): Promise<InventoryItem | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -471,6 +481,72 @@ export class DatabaseStorage implements IStorage {
       .limit(10);
     
     return results as any;
+  }
+
+  // Inventory operations
+  async getUserInventory(userId: string): Promise<InventoryItem[]> {
+    return await db
+      .select()
+      .from(inventory)
+      .where(eq(inventory.userId, userId))
+      .orderBy(asc(inventory.itemName));
+  }
+
+  async addInventoryItem(userId: string, item: InsertInventoryItem): Promise<InventoryItem> {
+    // Check if item already exists - if so, update quantity
+    const existing = await this.getInventoryItem(userId, item.itemName);
+    
+    if (existing) {
+      return await this.updateInventoryQuantity(userId, item.itemName, item.quantity || 1);
+    }
+
+    const [newItem] = await db
+      .insert(inventory)
+      .values({
+        ...item,
+        userId
+      })
+      .returning();
+    
+    return newItem;
+  }
+
+  async updateInventoryQuantity(userId: string, itemName: string, quantityDelta: number): Promise<InventoryItem> {
+    const existing = await this.getInventoryItem(userId, itemName);
+    
+    if (!existing) {
+      throw new Error("Item not found in inventory");
+    }
+
+    const newQuantity = existing.quantity + quantityDelta;
+    
+    if (newQuantity <= 0) {
+      await this.removeInventoryItem(userId, itemName);
+      throw new Error("Item removed from inventory");
+    }
+
+    const [updated] = await db
+      .update(inventory)
+      .set({ quantity: newQuantity })
+      .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)))
+      .returning();
+    
+    return updated;
+  }
+
+  async removeInventoryItem(userId: string, itemName: string): Promise<void> {
+    await db
+      .delete(inventory)
+      .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)));
+  }
+
+  async getInventoryItem(userId: string, itemName: string): Promise<InventoryItem | undefined> {
+    const [item] = await db
+      .select()
+      .from(inventory)
+      .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)));
+    
+    return item;
   }
 }
 

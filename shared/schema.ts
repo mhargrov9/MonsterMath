@@ -111,6 +111,19 @@ export const battles = pgTable("battles", {
   battleAt: timestamp("battle_at").defaultNow(),
 });
 
+// Player inventory for non-monster items
+export const inventory = pgTable("inventory", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  itemName: varchar("item_name").notNull(),
+  itemDescription: text("item_description"),
+  quantity: integer("quantity").default(1).notNull(),
+  itemType: varchar("item_type").notNull(), // 'consumable', 'tool', 'quest', 'material'
+  rarity: varchar("rarity").default('common'), // 'common', 'rare', 'epic', 'legendary'
+  iconClass: varchar("icon_class").default('fas fa-box'), // Font Awesome icon
+  acquiredAt: timestamp("acquired_at").defaultNow(),
+});
+
 // Schemas for validation
 export const upsertUserSchema = createInsertSchema(users);
 export const insertMonsterSchema = createInsertSchema(monsters).omit({ id: true });
@@ -120,6 +133,7 @@ export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, b
   defenderId: z.string().nullable().optional(),
   winnerId: z.string().nullable().optional()
 });
+export const insertInventorySchema = createInsertSchema(inventory).omit({ id: true, acquiredAt: true });
 
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -128,7 +142,9 @@ export type Monster = typeof monsters.$inferSelect;
 export type UserMonster = typeof userMonsters.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type Battle = typeof battles.$inferSelect;
+export type InventoryItem = typeof inventory.$inferSelect;
 export type InsertMonster = z.infer<typeof insertMonsterSchema>;
 export type InsertUserMonster = z.infer<typeof insertUserMonsterSchema>;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type InsertBattle = z.infer<typeof insertBattleSchema>;
+export type InsertInventoryItem = z.infer<typeof insertInventorySchema>;
