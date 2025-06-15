@@ -473,11 +473,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           basePower: 65,
           baseSpeed: 55,
           baseDefense: 45,
+          baseHp: 800,
+          baseMp: 150,
           goldCost: 450,
           diamondCost: 0,
           description: "A fiery creature with blazing attacks",
           iconClass: "fas fa-fire",
-          gradient: "from-red-500 to-orange-500"
+          gradient: "from-red-500 to-orange-500",
+          abilities: {
+            active1: "Flame Burst (25 MP): Deal 50 damage",
+            active2: "Fire Shield (40 MP): Reduce incoming damage by 30%"
+          }
         },
         {
           name: "Thunder Drake",
@@ -485,11 +491,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           basePower: 85,
           baseSpeed: 72,
           baseDefense: 68,
+          baseHp: 750,
+          baseMp: 180,
           goldCost: 750,
           diamondCost: 0,
           description: "Lightning-fast dragon with electric powers",
           iconClass: "fas fa-bolt",
-          gradient: "from-yellow-400 to-blue-500"
+          gradient: "from-yellow-400 to-blue-500",
+          abilities: {
+            active1: "Thunder Strike (30 MP): Deal 60 damage",
+            active2: "Lightning Speed (35 MP): Increase speed by 50%"
+          }
         },
         {
           name: "Crystal Guardian",
@@ -497,11 +509,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           basePower: 45,
           baseSpeed: 40,
           baseDefense: 95,
+          baseHp: 900,
+          baseMp: 120,
           goldCost: 600,
           diamondCost: 5,
           description: "A defensive powerhouse made of living crystal",
           iconClass: "fas fa-gem",
-          gradient: "from-purple-500 to-pink-500"
+          gradient: "from-purple-500 to-pink-500",
+          abilities: {
+            active1: "Crystal Shield (20 MP): Reduce damage by 40%",
+            active2: "Gem Spike (35 MP): Deal 45 damage"
+          }
         }
       ];
 
