@@ -255,6 +255,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete battle with persistent monster stats
+  app.post("/api/battles/complete", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const { monsterId, hp, mp } = req.body;
+
+      if (!userId || !monsterId || hp === undefined || mp === undefined) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Update monster's persistent HP and MP
+      await storage.updateMonsterStats(userId, monsterId, hp, mp);
+
+      res.json({ message: "Battle completed and monster stats saved" });
+    } catch (error) {
+      console.error("Battle completion error:", error);
+      res.status(500).json({ message: "Failed to complete battle" });
+    }
+  });
+
   app.post("/api/battle/challenge", isAuthenticated, async (req: any, res) => {
     try {
       const attackerId = req.user.claims.sub;

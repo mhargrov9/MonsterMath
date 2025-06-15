@@ -276,10 +276,10 @@ export default function BattleArena() {
     };
 
     // Use monster's current HP and MP values to persist stats between battles
-    const currentHp = monster.hp || (monster.monster as any)?.baseHp || 500;
-    const maxHp = monster.maxHp || (monster.monster as any)?.baseHp || 500;
-    const currentMp = monster.mp || Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
-    const maxMp = monster.maxMp || (monster.monster as any)?.baseMp || 120;
+    const currentHp = (monster as any).hp || (monster.monster as any)?.baseHp || 500;
+    const maxHp = (monster as any).maxHp || (monster.monster as any)?.baseHp || 500;
+    const currentMp = (monster as any).mp || Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
+    const maxMp = (monster as any).maxMp || (monster.monster as any)?.baseMp || 120;
     
     const playerMonster = {
       ...monster,
@@ -449,6 +449,26 @@ export default function BattleArena() {
     }
   }, [battleState?.turn, battleState?.phase]);
 
+  const saveMonsterStatsMutation = useMutation({
+    mutationFn: async ({ monsterId, hp, mp }: {
+      monsterId: number;
+      hp: number;
+      mp: number;
+    }): Promise<any> => {
+      return await apiRequest("POST", "/api/battles/complete", { 
+        monsterId, 
+        hp, 
+        mp 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+    },
+    onError: (error: Error) => {
+      console.error("Failed to save monster stats:", error);
+    },
+  });
+
   const challengeMutation = useMutation({
     mutationFn: async ({ opponentId, monsterId }: {
       opponentId: string;
@@ -498,6 +518,13 @@ export default function BattleArena() {
   // Complete battle
   const completeBattle = () => {
     if (!battleState || !selectedOpponent || !selectedMonster) return;
+    
+    // Save monster stats first
+    saveMonsterStatsMutation.mutate({
+      monsterId: selectedMonster.id,
+      hp: battleState.playerMonster.hp,
+      mp: battleState.playerMonster.mp
+    });
     
     challengeMutation.mutate({
       opponentId: selectedOpponent.id,
