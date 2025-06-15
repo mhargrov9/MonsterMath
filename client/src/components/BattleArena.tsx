@@ -635,6 +635,8 @@ export default function BattleArena() {
                     mp: battleState.aiMonster.mp,
                     maxMp: battleState.aiMonster.maxMp
                   }}
+                  battleMode={true}
+                  battleMp={battleState.aiMonster.mp}
                   size="medium"
                 />
               </div>

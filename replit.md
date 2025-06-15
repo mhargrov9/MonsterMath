@@ -156,6 +156,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Implemented AI mana consumption when using abilities (Magma Punch: 30 MP, Tremor Stomp: 70 MP)
   - Fixed AI monster card to display dynamic mana values from battle state
   - Added battle log messages for AI mana consumption ("AI [X] MP consumed")
+  - Fixed AI monster card mana display to show real-time mana updates during battle
 
 ## User Preferences
 
