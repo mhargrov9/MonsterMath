@@ -225,6 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   app.get("/api/battle/opponents", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
