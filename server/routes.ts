@@ -546,6 +546,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Inventory API routes
+  app.get('/api/inventory', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const inventory = await storage.getUserInventory(userId);
+      res.json(inventory);
+    } catch (error) {
+      console.error("Error fetching inventory:", error);
+      res.status(500).json({ message: "Failed to fetch inventory" });
+    }
+  });
+
+  app.post('/api/inventory/add', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { itemName, itemDescription, quantity, itemType, rarity, iconClass } = req.body;
+      
+      if (!itemName || !itemType) {
+        return res.status(400).json({ message: "itemName and itemType are required" });
+      }
+
+      const item = await storage.addInventoryItem(userId, {
+        itemName,
+        itemDescription: itemDescription || "",
+        quantity: quantity || 1,
+        itemType,
+        rarity: rarity || 'common',
+        iconClass: iconClass || 'fas fa-box'
+      });
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error adding inventory item:", error);
+      res.status(500).json({ message: "Failed to add inventory item" });
+    }
+  });
+
+  app.put('/api/inventory/:itemName', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { itemName } = req.params;
+      const { quantityDelta } = req.body;
+      
+      if (quantityDelta === undefined) {
+        return res.status(400).json({ message: "quantityDelta is required" });
+      }
+
+      const item = await storage.updateInventoryQuantity(userId, itemName, quantityDelta);
+      res.json(item);
+    } catch (error) {
+      console.error("Error updating inventory item:", error);
+      res.status(500).json({ message: "Failed to update inventory item" });
+    }
+  });
+
+  app.delete('/api/inventory/:itemName', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { itemName } = req.params;
+      
+      await storage.removeInventoryItem(userId, itemName);
+      res.json({ message: "Item removed from inventory" });
+    } catch (error) {
+      console.error("Error removing inventory item:", error);
+      res.status(500).json({ message: "Failed to remove inventory item" });
+    }
+  });
+
   // Clear image cache for regeneration with improved prompts
   app.post('/api/generate/clear-cache', isAuthenticated, async (req, res) => {
     try {

@@ -6,6 +6,7 @@ import LearningSystem from "@/components/LearningSystem";
 import MonsterLab from "@/components/MonsterLab";
 import BattleArena from "@/components/BattleArena";
 import CurrencyDisplay from "@/components/CurrencyDisplay";
+import PlayerInventory from "@/components/PlayerInventory";
 import { GameTab } from "@/types/game";
 import { Button } from "@/components/ui/button";
 
