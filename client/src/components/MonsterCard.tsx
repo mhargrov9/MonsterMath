@@ -164,7 +164,7 @@ export default function MonsterCard({
   const level = userMonster?.level || 1;
   const currentHp = userMonster?.hp || monster.baseHp || 950;
   const maxHp = userMonster?.maxHp || monster.baseHp || 950;
-  const displayMp = battleMode ? battleMp : (userMonster?.mp || monster.baseMp || 200);
+  const displayMp = battleMode ? (battleMp ?? (userMonster?.mp || monster.baseMp || 200)) : (userMonster?.mp || monster.baseMp || 200);
   const maxMp = userMonster?.maxMp || monster.baseMp || 200;
 
   const cardSizes = {
