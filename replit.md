@@ -196,6 +196,16 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Auto-shattering system: monsters shatter when HP reaches 0 in battles
   - Prepared repair API endpoint for future Repair Kit item integration
   - Monster Stable now visually distinguishes between healthy and shattered monsters
+- June 15, 2025: Dual Authentication System Implementation
+  - Extended database schema with username, passwordHash, and authProvider fields
+  - Added local username/password authentication alongside existing Replit OAuth
+  - Implemented bcrypt password hashing for secure local account storage
+  - Created registration and login API endpoints for local accounts
+  - Added passport-local strategy for username/password authentication
+  - Built beautiful tabbed interface on landing page with "Quick Start" (OAuth) and "Create Account" (local) options
+  - Local accounts support username/password registration with email validation
+  - Users can choose between instant OAuth login or creating custom Monster Academy accounts
+  - All user data (Gold, Diamonds, Monster Stable) properly isolated by user ID regardless of auth method
 
 ## User Preferences
 

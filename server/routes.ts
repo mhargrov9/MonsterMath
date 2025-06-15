@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
+import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
