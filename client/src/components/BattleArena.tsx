@@ -523,6 +523,29 @@ export default function BattleArena() {
     },
   });
 
+  // Retreat from battle
+  const retreatFromBattle = () => {
+    if (!battleState || !selectedMonster) return;
+    
+    // Save current monster stats and exit battle
+    saveMonsterStatsMutation.mutate({
+      monsterId: selectedMonster.id,
+      hp: battleState.playerMonster.hp,
+      mp: battleState.playerMonster.mp
+    });
+    
+    // Exit battle without completing
+    toast({
+      title: "Retreat Successful",
+      description: "Your monster's current HP and MP have been saved.",
+      variant: "default",
+    });
+    
+    setBattleState(null);
+    setSelectedOpponent(null);
+    setSelectedMonster(null);
+  };
+
   // Complete battle
   const completeBattle = () => {
     if (!battleState || !selectedOpponent || !selectedMonster) return;
@@ -692,7 +715,19 @@ export default function BattleArena() {
               </Badge>
             </div>
 
-            {/* No separate attack buttons - abilities on monster cards are now interactive */}
+            {/* Retreat Button - only show during player's turn */}
+            {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
+              <div className="text-center mb-4">
+                <Button 
+                  variant="destructive" 
+                  onClick={() => retreatFromBattle()}
+                  disabled={saveMonsterStatsMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {saveMonsterStatsMutation.isPending ? 'Retreating...' : 'Retreat from Battle'}
+                </Button>
+              </div>
+            )}
 
             {/* Battle Log */}
             <div className="border rounded p-3 h-32 overflow-y-auto bg-muted/50">
