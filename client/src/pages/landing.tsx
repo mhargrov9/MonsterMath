@@ -108,35 +108,98 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* Monster Card Collage Background */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="grid grid-cols-8 gap-2 transform rotate-12 scale-150 -translate-y-20">
-          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
+      {/* Monster Card Collage Background - Full Coverage */}
+      <div className="absolute inset-0 opacity-20 overflow-hidden">
+        {/* First Layer - Main Grid */}
+        <div className="grid grid-cols-10 gap-1 transform rotate-12 scale-125 -translate-x-20 -translate-y-32">
+          {/* Row 1 */}
+          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
           
-          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
+          {/* Row 2 */}
+          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
           
-          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith 1.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion 1.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-24 h-32 object-cover rounded-lg" />
+          {/* Row 3 */}
+          <img src="/assets/Gigalith 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          
+          {/* Row 4 */}
+          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          
+          {/* Row 5 */}
+          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          
+          {/* Row 6 */}
+          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+        </div>
+        
+        {/* Second Layer - Offset Grid for Full Coverage */}
+        <div className="absolute inset-0 grid grid-cols-12 gap-1 transform rotate-6 scale-110 translate-x-32 -translate-y-16">
+          {/* Additional overlapping cards */}
+          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Gigalith 1.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion 1.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
         </div>
       </div>
       
