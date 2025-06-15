@@ -133,7 +133,7 @@ export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, b
   defenderId: z.string().nullable().optional(),
   winnerId: z.string().nullable().optional()
 });
-export const insertInventorySchema = createInsertSchema(inventory).omit({ id: true, acquiredAt: true });
+export const insertInventorySchema = createInsertSchema(inventory).omit({ id: true, acquiredAt: true, userId: true });
 
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;

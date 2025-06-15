@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import ProfessorGuide from "@/components/ProfessorGuide";
 import LearningSystem from "@/components/LearningSystem";
 import MonsterLab from "@/components/MonsterLab";
@@ -13,10 +15,39 @@ import { Button } from "@/components/ui/button";
 export default function Home() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<GameTab>("learn");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: userData } = useQuery({
     queryKey: ["/api/auth/user"],
     enabled: !!user,
+  });
+
+  const addRepairKitMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/inventory/add", {
+        itemName: "Repair Kit",
+        itemDescription: "Repairs a shattered monster back to full health. Essential for monster trainers!",
+        quantity: 1,
+        itemType: "consumable",
+        rarity: "rare",
+        iconClass: "fas fa-wrench"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+      toast({
+        title: "Item Found!",
+        description: "You found a Repair Kit! Check your backpack.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add item to inventory.",
+        variant: "destructive",
+      });
+    },
   });
 
   const handleLogout = () => {
@@ -37,7 +68,24 @@ export default function Home() {
           </div>
           
           <div className="flex items-center space-x-6">
-            <CurrencyDisplay user={userData} />
+            <CurrencyDisplay user={userData as any} />
+            <PlayerInventory 
+              trigger={
+                <Button variant="outline" className="text-white border-white/20 hover:bg-white/10">
+                  <i className="fas fa-backpack mr-2"></i>
+                  Backpack
+                </Button>
+              }
+            />
+            <Button 
+              onClick={() => addRepairKitMutation.mutate()}
+              disabled={addRepairKitMutation.isPending}
+              variant="outline"
+              className="text-white border-lime-green/50 hover:bg-lime-green/10"
+            >
+              <i className="fas fa-gift mr-2"></i>
+              Find Item
+            </Button>
             <Button 
               onClick={handleLogout}
               variant="outline"
