@@ -139,6 +139,17 @@ export default function Home() {
               <i className="fas fa-fist-raised mr-2"></i>
               BATTLE ARENA
             </Button>
+            <Button
+              onClick={() => setActiveTab("story")}
+              className={`flex-1 px-6 py-4 rounded-xl font-bold text-lg transition-all ${
+                activeTab === "story"
+                  ? "bg-electric-blue text-white animate-pulse-glow"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <i className="fas fa-book-open mr-2"></i>
+              STORY
+            </Button>
           </div>
         </div>
 
@@ -146,6 +157,7 @@ export default function Home() {
         {activeTab === "learn" && <LearningSystem />}
         {activeTab === "lab" && <MonsterLab />}
         {activeTab === "battle" && <BattleArena />}
+        {activeTab === "story" && <StoryManager />}
       </div>
 
       {/* Floating Action Button for Quick Question */}

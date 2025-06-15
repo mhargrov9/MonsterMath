@@ -72,4 +72,4 @@ export interface Battle {
 }
 
 export type Subject = "math" | "spelling" | "mixed";
-export type GameTab = "learn" | "lab" | "battle";
+export type GameTab = "learn" | "lab" | "battle" | "story";
