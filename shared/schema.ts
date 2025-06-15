@@ -27,9 +27,12 @@ export const sessions = pgTable(
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
+  username: varchar("username").unique(), // For local accounts
+  passwordHash: varchar("password_hash"), // For local accounts
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  authProvider: varchar("auth_provider").default("replit").notNull(), // 'replit' or 'local'
   gold: integer("gold").default(500).notNull(),
   diamonds: integer("diamonds").default(0).notNull(),
   currentSubject: varchar("current_subject").default("mixed"),
