@@ -184,6 +184,9 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Created backend healing API with gold balance validation and ownership checks
   - Purple pulsating eye now appears for both Gigalith (ID 6) and Aetherion (ID 7) when owned
   - Healing cost: 1 Gold per 10 HP healed (rounded up) with full HP restoration
+  - Fixed Aetherion max HP from 950 to correct value of 400 HP
+  - Prevented card flipping after healing confirmation with proper event handling
+  - Corrected database values for accurate HP display and healing calculations
 
 ## User Preferences
 
