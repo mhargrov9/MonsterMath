@@ -29,6 +29,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Local registration endpoint
+  app.post('/api/register', async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      
+      // Validate input
+      if (!username || !email || !password) {
+        return res.status(400).json({ message: "Username, email, and password are required" });
+      }
+      
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+      
+      // Hash password and create user
+      const bcrypt = await import('bcrypt');
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await storage.createLocalUser(username, email, passwordHash);
+      
+      res.status(201).json({ message: "Account created successfully", userId: user.id });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to create account" });
+    }
+  });
+
+  // Local login endpoint
+  app.post('/api/login/local', (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).json({ message: "Authentication error" });
+      }
+      if (!user) {
+        return res.status(401).json({ message: info?.message || "Invalid credentials" });
+      }
+      
+      req.logIn(user, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Login error" });
+        }
+        res.json({ message: "Login successful", user: { id: user.claims.sub } });
+      });
+    })(req, res, next);
+  });
+
   // Game routes
   app.get("/api/monsters", isAuthenticated, async (req, res) => {
     try {

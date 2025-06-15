@@ -21,7 +21,10 @@ import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  createLocalUser(username: string, email: string, passwordHash: string): Promise<User>;
   updateUserCurrency(userId: string, goldDelta: number, diamondDelta?: number): Promise<User>;
   updateUserBattleTokens(userId: string, tokenDelta: number): Promise<User>;
   
@@ -59,6 +62,33 @@ export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createLocalUser(username: string, email: string, passwordHash: string): Promise<User> {
+    const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userId,
+        username,
+        email,
+        passwordHash,
+        authProvider: 'local',
+        gold: 500,
+        diamonds: 0,
+      })
+      .returning();
     return user;
   }
 

@@ -1,5 +1,7 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import bcrypt from "bcrypt";
 
 import passport from "passport";
 import session from "express-session";
@@ -74,6 +76,41 @@ export async function setupAuth(app: Express) {
 
   const config = await getOidcConfig();
 
+  // Local Strategy for username/password
+  passport.use(new LocalStrategy(
+    { usernameField: 'username', passwordField: 'password' },
+    async (username: string, password: string, done) => {
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user || !user.passwordHash) {
+          return done(null, false, { message: 'Invalid username or password' });
+        }
+        
+        const isValid = await bcrypt.compare(password, user.passwordHash);
+        if (!isValid) {
+          return done(null, false, { message: 'Invalid username or password' });
+        }
+        
+        // Create session user object for local accounts
+        const sessionUser = {
+          claims: {
+            sub: user.id,
+            email: user.email,
+            first_name: user.firstName,
+            last_name: user.lastName,
+            profile_image_url: user.profileImageUrl
+          },
+          authProvider: 'local'
+        };
+        
+        return done(null, sessionUser);
+      } catch (error) {
+        return done(error);
+      }
+    }
+  ));
+
+  // Replit OAuth Strategy
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
