@@ -193,7 +193,7 @@ export default function MonsterCard({
   // Calculate healing cost (1 Gold per 10 HP healed, rounded up)
   const hpMissing = maxHp - currentHp;
   const healingCost = Math.ceil(hpMissing / 10);
-  const needsHealing = currentHp < maxHp && !battleMode;
+  const needsHealing = userMonster && currentHp < maxHp && !battleMode;
 
   // Healing mutation
   const healMutation = useMutation({
@@ -305,8 +305,8 @@ export default function MonsterCard({
             }`}>
               LV. {level}
             </div>
-            {/* Pulsating Eye (moved here) */}
-            {monster.id === 7 && (
+            {/* Pulsating Eye - only for owned monsters */}
+            {userMonster && (monster.id === 7 || monster.id === 6) && (
               <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
                 <Eye className="w-4 h-4 text-white" />
               </div>
@@ -519,23 +519,7 @@ export default function MonsterCard({
           </div>
         </div>
 
-        {/* Flip Button - Only show if monster is owned and has flip functionality */}
-        {userMonster && onFlip && (
-          <div className="absolute top-3 right-3 z-20">
-            <Button
-              size="sm"
-              variant="default"
-              className="w-10 h-10 p-0 rounded-full bg-blue-500 hover:bg-blue-600 text-white border-2 border-white shadow-xl animate-pulse"
-              onClick={(e) => {
-                e.stopPropagation();
-                onFlip();
-              }}
-              title="View Battle Record"
-            >
-              <Eye className="w-5 h-5" />
-            </Button>
-          </div>
-        )}
+
 
         {onFlip && (
           <div className="absolute bottom-1 right-1 text-xs text-gray-500 dark:text-gray-400">

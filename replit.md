@@ -176,6 +176,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Updated battle victory rewards to award exactly 10 Diamonds for wins (0 for losses)
   - Changed victory message to display "YOU WIN! You earned 10 Diamonds!"
   - Streamlined reward structure for clear player feedback
+- June 15, 2025: Monster Card UI Polish and Healing System
+  - Moved pulsating purple eye to left side below level indicator for owned monsters only
+  - Removed blue flip button that was causing unwanted blue eye icon display
+  - Added healing button below HP bar for damaged owned monsters with cost calculation
+  - Implemented healing confirmation dialog showing cost and HP restoration details
+  - Created backend healing API with gold balance validation and ownership checks
+  - Purple pulsating eye now appears for both Gigalith (ID 6) and Aetherion (ID 7) when owned
+  - Healing cost: 1 Gold per 10 HP healed (rounded up) with full HP restoration
 
 ## User Preferences
 
