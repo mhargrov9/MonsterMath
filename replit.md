@@ -163,6 +163,19 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Corrected Gigalith ability mana costs: Magma Punch (40 MP), Tremor Stomp (50 MP)
   - Synchronized database values with AI attack generation for consistent mana consumption
   - Reverted to 80% starting MP to preserve monster stats between battles for persistent resource management
+- June 15, 2025: Persistent Monster Stats System
+  - Added HP and MP columns to user_monsters database table for persistent stat tracking
+  - Updated Monster Card display to show current HP/MP from database instead of calculated values
+  - Fixed battle initialization to use persistent HP/MP values instead of recalculating from base stats
+  - Implemented battle completion API endpoint to save monster stats after each fight
+  - Added retreat button to battle arena allowing mid-battle exit with stat preservation
+  - Updated monster purchase logic to properly initialize HP/MP for new monsters
+  - Fixed getUserMonsters query to include HP/MP columns in returned data
+  - Monsters now maintain HP/MP between battles for strategic resource management
+- June 15, 2025: Victory Rewards System
+  - Updated battle victory rewards to award exactly 10 Diamonds for wins (0 for losses)
+  - Changed victory message to display "YOU WIN! You earned 10 Diamonds!"
+  - Streamlined reward structure for clear player feedback
 
 ## User Preferences
 

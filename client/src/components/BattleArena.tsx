@@ -491,9 +491,9 @@ export default function BattleArena() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Battle Complete!",
+        title: data.result === "victory" ? "YOU WIN!" : "Battle Complete!",
         description: data.result === "victory" 
-          ? `You won! Earned ${data.diamondsAwarded} diamonds!`
+          ? "You earned 10 Diamonds!"
           : "You lost, but gained valuable experience!",
         variant: data.result === "victory" ? "default" : "destructive",
       });

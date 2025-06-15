@@ -226,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Determine battle outcome
       const playerWins = Math.random() < opponent.winChance;
-      const diamondsAwarded = playerWins ? 15 : 5;
+      const diamondsAwarded = playerWins ? 10 : 0;
       
       // Update user: consume battle token, award diamonds
       await storage.updateUserBattleTokens(userId, -1);
