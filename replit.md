@@ -151,6 +151,11 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Removed redundant text prompts from Basic Attack button ("Standard physical attack", "Click to attack!")
   - Cleaned up abilities section by removing all "Click to attack!" prompts
   - Maintained visual interaction cues (red glow, hover effects) for cleaner professional appearance
+- June 14, 2025: AI Mana System Implementation
+  - Added MP tracking to AI monsters with proper initialization (160/200 MP)
+  - Implemented AI mana consumption when using abilities (Magma Punch: 30 MP, Tremor Stomp: 70 MP)
+  - Fixed AI monster card to display dynamic mana values from battle state
+  - Added battle log messages for AI mana consumption ("AI [X] MP consumed")
 
 ## User Preferences
 

@@ -30,6 +30,8 @@ interface AIMonster {
   defense: number;
   hp: number;
   maxHp: number;
+  mp: number;
+  maxMp: number;
   upgradeChoices: Record<string, any>;
 }
 
@@ -263,6 +265,8 @@ export default function BattleArena() {
       defense: 347,
       hp: 950,
       maxHp: 950,
+      mp: 160, // 80% of max MP
+      maxMp: 200,
       upgradeChoices: {
         level: 10,
         spikes: 'metallic',
@@ -358,6 +362,11 @@ export default function BattleArena() {
           }
         } else {
           newState.playerMonster.hp = newDefenderHp;
+          // Deduct mana cost for AI attacks
+          if (attack.manaCost && attack.manaCost > 0) {
+            newState.aiMonster.mp = Math.max(0, newState.aiMonster.mp - attack.manaCost);
+            newState.battleLog.push(`AI ${attack.manaCost} MP consumed`);
+          }
         }
 
         // Check for winner
@@ -623,8 +632,8 @@ export default function BattleArena() {
                     upgradeChoices: battleState.aiMonster.upgradeChoices,
                     hp: battleState.aiMonster.hp,
                     maxHp: battleState.aiMonster.maxHp,
-                    mp: 160, // 80% of max MP
-                    maxMp: 200
+                    mp: battleState.aiMonster.mp,
+                    maxMp: battleState.aiMonster.maxMp
                   }}
                   size="medium"
                 />
