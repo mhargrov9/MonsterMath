@@ -311,6 +311,49 @@ export default function BattleArena() {
   };
 
   // Execute attack
+  // Get attack element from attack name and monster type
+  const getAttackElement = (attackName: string, attackerMonsterId: number) => {
+    // Check ability descriptions for element keywords
+    if (attackName.toLowerCase().includes('magma') || attackName.toLowerCase().includes('fire')) return 'Fire';
+    if (attackName.toLowerCase().includes('tremor') || attackName.toLowerCase().includes('earth')) return 'Earth';
+    if (attackName.toLowerCase().includes('mind') || attackName.toLowerCase().includes('psy')) return 'Psychic';
+    if (attackName.toLowerCase().includes('basic')) return 'Physical';
+    
+    // Default to monster's primary affinity
+    if (attackerMonsterId === 6) return 'Earth'; // Gigalith
+    if (attackerMonsterId === 7) return 'Psychic'; // Aetherion
+    
+    return 'Physical'; // Default
+  };
+
+  // Get monster weaknesses and resistances
+  const getMonsterAffinities = (monsterId: number) => {
+    switch (monsterId) {
+      case 6: // Gigalith
+        return { weakness: 'Water', resistance: 'Fire' };
+      case 7: // Aetherion
+        return { weakness: 'Physical', resistance: 'Psychic' };
+      default:
+        return { weakness: null, resistance: null };
+    }
+  };
+
+  // Calculate effectiveness multiplier
+  const getEffectivenessMultiplier = (attackElement: string, defenderMonsterId: number) => {
+    const { weakness, resistance } = getMonsterAffinities(defenderMonsterId);
+    
+    if (attackElement === weakness) return 1.5; // Super effective
+    if (attackElement === resistance) return 0.5; // Not very effective
+    return 1.0; // Normal effectiveness
+  };
+
+  // Get effectiveness message
+  const getEffectivenessMessage = (multiplier: number) => {
+    if (multiplier > 1.0) return "It's super effective!";
+    if (multiplier < 1.0) return "It's not very effective...";
+    return "";
+  };
+
   const executeAttack = (attacker: 'player' | 'ai', attack: AttackOption) => {
     if (!battleState || battleState.phase === 'animate') return; // Prevent duplicate execution
 
@@ -336,7 +379,17 @@ export default function BattleArena() {
       const isPlayerAttacking = attacker === 'player';
       const attackerMonster = isPlayerAttacking ? battleState.playerMonster : battleState.aiMonster;
       const defenderMonster = isPlayerAttacking ? battleState.aiMonster : battleState.playerMonster;
-      const damage = calculateDamage(attackerMonster, defenderMonster, attack.damage);
+      
+      // Get attack element and defender monster ID for affinity calculations
+      const attackerMonsterId = isPlayerAttacking ? battleState.playerMonster.monster.id : battleState.aiMonster.id;
+      const defenderMonsterId = isPlayerAttacking ? battleState.aiMonster.id : battleState.playerMonster.monster.id;
+      const attackElement = getAttackElement(attack.name, attackerMonsterId);
+      const effectivenessMultiplier = getEffectivenessMultiplier(attackElement, defenderMonsterId);
+      
+      // Calculate base damage then apply effectiveness multiplier
+      const baseDamage = calculateDamage(attackerMonster, defenderMonster, attack.damage);
+      const damage = Math.floor(baseDamage * effectivenessMultiplier);
+      const effectivenessMessage = getEffectivenessMessage(effectivenessMultiplier);
       
       setBattleState(prev => ({ 
         ...prev!, 
@@ -362,6 +415,11 @@ export default function BattleArena() {
       setBattleState(prev => {
         const newState = { ...prev! };
         newState.battleLog = [...prev!.battleLog, `${attackerName} uses ${attack.name} for ${damage} damage!`];
+        
+        // Add effectiveness message if applicable
+        if (effectivenessMessage) {
+          newState.battleLog.push(effectivenessMessage);
+        }
         
         if (isPlayerAttacking) {
           newState.aiMonster.hp = newDefenderHp;
