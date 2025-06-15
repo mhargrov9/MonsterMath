@@ -187,6 +187,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Fixed Aetherion max HP from 950 to correct value of 400 HP
   - Prevented card flipping after healing confirmation with proper event handling
   - Corrected database values for accurate HP display and healing calculations
+- June 15, 2025: Shattered Monster State System
+  - Added `isShattered` boolean field to user_monsters database table
+  - Implemented visual indicators: grayed out cards with reduced opacity
+  - Added red "SHATTERED" status icon with ShieldX symbol below HP display
+  - Disabled healing functionality for shattered monsters (no heal button)
+  - Created battle restrictions preventing shattered monster selection
+  - Auto-shattering system: monsters shatter when HP reaches 0 in battles
+  - Prepared repair API endpoint for future Repair Kit item integration
+  - Monster Stable now visually distinguishes between healthy and shattered monsters
 
 ## User Preferences
 

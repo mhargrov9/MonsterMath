@@ -225,6 +225,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Repair shattered monster endpoint (requires Repair Kit item)
+  app.post("/api/monsters/repair", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { monsterId } = req.body;
+      
+      if (!monsterId) {
+        return res.status(400).json({ message: "Monster ID is required" });
+      }
+
+      // Get user's monsters to verify ownership and shattered state
+      const userMonsters = await storage.getUserMonsters(userId);
+      const userMonster = userMonsters.find(m => m.id === monsterId);
+      
+      if (!userMonster) {
+        return res.status(404).json({ message: "Monster not found" });
+      }
+
+      if (!userMonster.isShattered) {
+        return res.status(400).json({ message: "Monster is not shattered" });
+      }
+
+      // TODO: Check for Repair Kit item in inventory (not implemented yet)
+      // For now, we'll allow repair without cost for testing
+
+      // Repair the monster
+      await storage.repairMonster(userId, monsterId);
+
+      res.json({ 
+        message: "Monster repaired successfully",
+        monsterId: monsterId
+      });
+    } catch (error) {
+      console.error("Error repairing monster:", error);
+      res.status(500).json({ message: "Failed to repair monster" });
+    }
+  });
 
   app.get("/api/battle/opponents", isAuthenticated, async (req: any, res) => {
     try {

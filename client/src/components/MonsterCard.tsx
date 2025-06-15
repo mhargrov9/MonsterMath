@@ -169,6 +169,7 @@ export default function MonsterCard({
   const { toast } = useToast();
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
+  const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
   const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
     ? userMonster.hp 
@@ -194,7 +195,7 @@ export default function MonsterCard({
   // Calculate healing cost (1 Gold per 10 HP healed, rounded up)
   const hpMissing = maxHp - currentHp;
   const healingCost = Math.ceil(hpMissing / 10);
-  const needsHealing = userMonster && currentHp < maxHp && !battleMode;
+  const needsHealing = userMonster && currentHp < maxHp && !battleMode && !isShattered;
   
 
 
@@ -287,7 +288,9 @@ export default function MonsterCard({
     <Card 
       className={`${monsterData.cardStyle} border-4 relative overflow-hidden transition-all duration-500 ${
         showUpgradeAnimation ? 'animate-pulse shadow-2xl shadow-yellow-400/50' : ''
-      } ${isHovered ? 'scale-105 shadow-xl' : ''} ${onFlip ? 'cursor-pointer' : ''}`}
+      } ${isHovered ? 'scale-105 shadow-xl' : ''} ${onFlip ? 'cursor-pointer' : ''} ${
+        isShattered ? 'grayscale opacity-60' : ''
+      }`}
       style={{ width: cardSize.width, height: cardSize.height }}
       onClick={onFlip}
       onMouseEnter={() => setIsHovered(true)}
@@ -318,6 +321,13 @@ export default function MonsterCard({
           </div>
           <div className="text-right">
             <div className="text-sm text-red-400 font-bold">HP {currentHp} / {maxHp}</div>
+            {/* Shattered Status Icon */}
+            {isShattered && (
+              <div className="flex items-center gap-1 mt-1">
+                <ShieldX className="w-4 h-4 text-red-600" />
+                <span className="text-xs text-red-600 font-bold">SHATTERED</span>
+              </div>
+            )}
             {/* Heal Button */}
             {needsHealing && (
               <AlertDialog>
