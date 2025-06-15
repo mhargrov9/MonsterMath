@@ -265,7 +265,7 @@ export default function BattleArena() {
       defense: 347,
       hp: 950,
       maxHp: 950,
-      mp: 160, // 80% of max MP
+      mp: 200, // Full MP
       maxMp: 200,
       upgradeChoices: {
         level: 10,
@@ -283,7 +283,7 @@ export default function BattleArena() {
       ...monster,
       hp: calculatedHp,
       maxHp: calculatedHp,
-      mp: Math.floor(calculatedMp * 0.8), // Start with 80% MP
+      mp: calculatedMp, // Start with full MP
       maxMp: calculatedMp
     };
 

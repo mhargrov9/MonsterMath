@@ -162,6 +162,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enhanced battle log debugging with before/after mana tracking for troubleshooting
   - Corrected Gigalith ability mana costs: Magma Punch (40 MP), Tremor Stomp (50 MP)
   - Synchronized database values with AI attack generation for consistent mana consumption
+  - Updated battle initialization to start both player and AI monsters with full MP (200/200)
 
 ## User Preferences
 
