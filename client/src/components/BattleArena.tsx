@@ -416,7 +416,7 @@ export default function BattleArena() {
           description: 'Physical attack that inflicts Burn status',
           damage: 45,
           animation: 'physical',
-          manaCost: 30
+          manaCost: 40
         });
         aiAttacks.push({
           id: 'tremor-stomp',
@@ -424,7 +424,7 @@ export default function BattleArena() {
           description: 'AoE damage with speed reduction chance',
           damage: 35,
           animation: 'aoe',
-          manaCost: 70
+          manaCost: 50
         });
       }
       
