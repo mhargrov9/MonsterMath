@@ -138,6 +138,15 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
+  // OAuth login endpoint
+  app.get("/api/login/oauth", (req, res, next) => {
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
+  });
+
+  // Legacy OAuth endpoint for backwards compatibility
   app.get("/api/login", (req, res, next) => {
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
@@ -167,7 +176,17 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // For local accounts, skip token expiration checks
+  if (user.authProvider === 'local') {
+    return next();
+  }
+
+  // For OAuth accounts, check token expiration
+  if (!user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

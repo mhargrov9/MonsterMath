@@ -17,7 +17,7 @@ export default function Landing() {
   const { toast } = useToast();
 
   const handleOAuthLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/api/login/oauth";
   };
 
   const handleLocalLogin = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ export default function Landing() {
       const data = await response.json();
 
       if (response.ok) {
-        window.location.href = "/";
+        window.location.reload();
       } else {
         toast({
           title: "Login Failed",
