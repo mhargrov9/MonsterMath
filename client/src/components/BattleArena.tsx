@@ -302,7 +302,7 @@ export default function BattleArena() {
 
   // Execute attack
   const executeAttack = (attacker: 'player' | 'ai', attack: AttackOption) => {
-    if (!battleState) return;
+    if (!battleState || battleState.phase === 'animate') return; // Prevent duplicate execution
 
     setBattleState(prev => ({
       ...prev!,
@@ -356,16 +356,20 @@ export default function BattleArena() {
         if (isPlayerAttacking) {
           newState.aiMonster.hp = newDefenderHp;
           // Deduct mana cost for player attacks
-          if (attack.manaCost) {
-            newState.playerMonster.mp = Math.max(0, newState.playerMonster.mp - attack.manaCost);
-            newState.battleLog.push(`${attack.manaCost} MP consumed`);
+          if (attack.manaCost && attack.manaCost > 0) {
+            const currentMp = newState.playerMonster.mp;
+            const newMp = Math.max(0, currentMp - attack.manaCost);
+            newState.playerMonster.mp = newMp;
+            newState.battleLog.push(`${attack.manaCost} MP consumed (${currentMp} → ${newMp})`);
           }
         } else {
           newState.playerMonster.hp = newDefenderHp;
           // Deduct mana cost for AI attacks
           if (attack.manaCost && attack.manaCost > 0) {
-            newState.aiMonster.mp = Math.max(0, newState.aiMonster.mp - attack.manaCost);
-            newState.battleLog.push(`AI ${attack.manaCost} MP consumed`);
+            const currentMp = newState.aiMonster.mp;
+            const newMp = Math.max(0, currentMp - attack.manaCost);
+            newState.aiMonster.mp = newMp;
+            newState.battleLog.push(`AI ${attack.manaCost} MP consumed (${currentMp} → ${newMp})`);
           }
         }
 

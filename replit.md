@@ -158,6 +158,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added battle log messages for AI mana consumption ("AI [X] MP consumed")
   - Fixed AI monster card mana display to show real-time mana updates during battle
   - Resolved NaN display issue with proper null coalescing for battleMp values
+  - Added attack execution guard to prevent duplicate mana deduction during animations
+  - Enhanced battle log debugging with before/after mana tracking for troubleshooting
 
 ## User Preferences
 
