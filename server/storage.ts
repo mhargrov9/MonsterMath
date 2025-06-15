@@ -175,7 +175,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Insufficient currency");
     }
 
-    // Create user monster with base stats
+    // Create user monster with base stats and initialize HP/MP
     const [userMonster] = await db
       .insert(userMonsters)
       .values({
@@ -184,6 +184,10 @@ export class DatabaseStorage implements IStorage {
         power: monster.basePower,
         speed: monster.baseSpeed,
         defense: monster.baseDefense,
+        hp: monster.baseHp,
+        maxHp: monster.baseHp,
+        mp: Math.floor((monster.baseMp || 200) * 0.8), // Start with 80% MP
+        maxMp: monster.baseMp,
       })
       .returning();
 
