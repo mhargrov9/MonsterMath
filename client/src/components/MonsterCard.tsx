@@ -194,6 +194,18 @@ export default function MonsterCard({
   const hpMissing = maxHp - currentHp;
   const healingCost = Math.ceil(hpMissing / 10);
   const needsHealing = userMonster && currentHp < maxHp && !battleMode;
+  
+  // Debug logging for healing condition
+  if (userMonster && monster.id === 7) {
+    console.log('Aetherion healing debug:', {
+      userMonster: !!userMonster,
+      currentHp,
+      maxHp,
+      hpMissing,
+      needsHealing,
+      battleMode
+    });
+  }
 
   // Healing mutation
   const healMutation = useMutation({
@@ -324,6 +336,9 @@ export default function MonsterCard({
                     variant="outline" 
                     className="mt-1 h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600"
                     disabled={healMutation.isPending}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     <Plus className="w-3 h-3 mr-1" />
                     Heal
