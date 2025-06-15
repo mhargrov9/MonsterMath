@@ -79,6 +79,7 @@ export const userMonsters = pgTable("user_monsters", {
   maxHp: integer("max_hp"), // Maximum HP - null means use base HP
   mp: integer("mp"), // Current MP - null means use base MP
   maxMp: integer("max_mp"), // Maximum MP - null means use base MP
+  isShattered: boolean("is_shattered").default(false).notNull(), // Shattered state when HP reaches 0
   acquiredAt: timestamp("acquired_at").defaultNow(),
 });
 

@@ -41,6 +41,8 @@ export interface IStorage {
     diamondCost: number
   ): Promise<UserMonster>;
   updateMonsterStats(userId: string, userMonsterId: number, hp: number, mp: number): Promise<UserMonster>;
+  shatterMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
+  repairMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   
   // Question operations
   getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined>;
@@ -300,6 +302,7 @@ export class DatabaseStorage implements IStorage {
       .set({
         hp: hp,
         mp: mp,
+        isShattered: hp <= 0 // Automatically set shattered state when HP reaches 0
       })
       .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)))
       .returning();
@@ -308,6 +311,54 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Monster not found");
     }
 
+    return updated;
+  }
+
+  async shatterMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
+    const [updated] = await db
+      .update(userMonsters)
+      .set({ 
+        hp: 0,
+        isShattered: true
+      })
+      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Monster not found or not owned by user");
+    }
+    
+    return updated;
+  }
+
+  async repairMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
+    // Get the monster's max HP to restore it
+    const userMonstersWithBase = await db
+      .select()
+      .from(userMonsters)
+      .leftJoin(monsters, eq(userMonsters.monsterId, monsters.id))
+      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
+
+    if (userMonstersWithBase.length === 0) {
+      throw new Error("Monster not found or not owned by user");
+    }
+
+    const { user_monsters: userMonster, monsters: monster } = userMonstersWithBase[0];
+    const maxHp = userMonster.maxHp || monster?.baseHp || 400;
+
+    const [updated] = await db
+      .update(userMonsters)
+      .set({ 
+        hp: maxHp,
+        isShattered: false
+      })
+      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("Monster not found or not owned by user");
+    }
+    
     return updated;
   }
 
