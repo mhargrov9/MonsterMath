@@ -66,6 +66,10 @@ export interface IStorage {
   updateInventoryQuantity(userId: string, itemName: string, quantityDelta: number): Promise<InventoryItem>;
   removeInventoryItem(userId: string, itemName: string): Promise<void>;
   getInventoryItem(userId: string, itemName: string): Promise<InventoryItem | undefined>;
+  
+  // Story progress operations
+  updateStoryProgress(userId: string, storyNode: string): Promise<User>;
+  getStoryProgress(userId: string): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -547,6 +551,37 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)));
     
     return item;
+  }
+
+  // Story progress operations
+  async updateStoryProgress(userId: string, storyNode: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ 
+        storyProgress: storyNode,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    if (!updated) {
+      throw new Error("User not found");
+    }
+    
+    return updated;
+  }
+
+  async getStoryProgress(userId: string): Promise<string> {
+    const [user] = await db
+      .select({ storyProgress: users.storyProgress })
+      .from(users)
+      .where(eq(users.id, userId));
+    
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    return user.storyProgress || "Node_Start_01";
   }
 }
 

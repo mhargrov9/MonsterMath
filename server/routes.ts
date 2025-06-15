@@ -614,6 +614,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Story progress API routes
+  app.get('/api/story/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const storyProgress = await storage.getStoryProgress(userId);
+      res.json({ storyProgress });
+    } catch (error) {
+      console.error("Error fetching story progress:", error);
+      res.status(500).json({ message: "Failed to fetch story progress" });
+    }
+  });
+
+  app.post('/api/story/progress', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { storyNode } = req.body;
+      
+      if (!storyNode) {
+        return res.status(400).json({ message: "storyNode is required" });
+      }
+
+      const updatedUser = await storage.updateStoryProgress(userId, storyNode);
+      res.json({ 
+        message: "Story progress updated",
+        storyProgress: updatedUser.storyProgress
+      });
+    } catch (error) {
+      console.error("Error updating story progress:", error);
+      res.status(500).json({ message: "Failed to update story progress" });
+    }
+  });
+
   // Clear image cache for regeneration with improved prompts
   app.post('/api/generate/clear-cache', isAuthenticated, async (req, res) => {
     try {
