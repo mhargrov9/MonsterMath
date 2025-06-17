@@ -30,6 +30,7 @@ interface MonsterCardProps {
     resistances?: string;
     weaknesses?: string;
     description?: string;
+    starterSet?: boolean;
   };
   userMonster?: {
     id: number;
@@ -179,9 +180,26 @@ export default function MonsterCard({
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
   
-  // Use database abilities if available, otherwise fall back to hardcoded data
-  const actualAbilities = monster.abilities && monster.abilities.length > 0 
-    ? monster.abilities 
+  // Parse abilities data - handle both JSON string and object formats
+  let parsedAbilities = [];
+  try {
+    if (monster.abilities) {
+      // If abilities is a string (JSON), parse it
+      if (typeof monster.abilities === 'string') {
+        parsedAbilities = JSON.parse(monster.abilities);
+      } else if (Array.isArray(monster.abilities)) {
+        // If abilities is already an array, use it directly
+        parsedAbilities = monster.abilities;
+      }
+    }
+  } catch (error) {
+    console.error('Error parsing monster abilities:', error);
+    parsedAbilities = [];
+  }
+  
+  // Use parsed database abilities if available, otherwise fall back to hardcoded data
+  const actualAbilities = parsedAbilities.length > 0 
+    ? parsedAbilities 
     : monsterData.abilities;
   const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
@@ -338,6 +356,11 @@ export default function MonsterCard({
               </div>
             )}
             <h1 className="text-xl font-bold tracking-wider">{monster.name.toUpperCase()}</h1>
+            {monster.starterSet && (
+              <span className="text-xs bg-green-600 text-white px-2 py-1 rounded font-semibold ml-2">
+                STARTER SET
+              </span>
+            )}
           </div>
           <div className="text-right">
             <div className="text-sm text-red-400 font-bold">HP {currentHp} / {maxHp}</div>
@@ -490,7 +513,7 @@ export default function MonsterCard({
             <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '360px' }}>
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-2 text-xs">
-                {actualAbilities.map((ability, index) => {
+                {actualAbilities.map((ability: any, index: number) => {
                   const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
                   const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && battleMp >= manaCost;
                   const isClickable = battleMode && isPlayerTurn && ability.type === 'ACTIVE';

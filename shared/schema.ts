@@ -65,6 +65,7 @@ export const monsters = pgTable("monsters", {
   resistances: jsonb("resistances").default('[]').notNull(), // Damage resistances
   weaknesses: jsonb("weaknesses").default('[]').notNull(), // Damage weaknesses
   levelUpgrades: jsonb("level_upgrades").default('{}').notNull(), // Upgrades per level
+  starterSet: boolean("starter_set").default(false).notNull(), // Part of starter set
 });
 
 // User monsters (owned monsters)
