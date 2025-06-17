@@ -239,8 +239,7 @@ export default function MonsterCard({
     // Battle Record (Back of Card)
     return (
       <Card 
-        className={`${monsterData.cardStyle} border-4 cursor-pointer transition-all duration-500 hover:scale-105`}
-        style={{ width: cardSize.width, height: cardSize.height }}
+        className={`${monsterData.cardStyle} ${cardClasses} border-4 cursor-pointer transition-all duration-500 hover:scale-105`}
         onClick={onFlip}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
