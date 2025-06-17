@@ -1577,7 +1577,7 @@ export class VeoApiClient {
     
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
@@ -1609,7 +1609,7 @@ export class VeoApiClient {
     
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
@@ -1632,16 +1632,16 @@ export class VeoApiClient {
     const level = upgrades.level || 1;
     
     const levelImages = {
-      1: 'Cinder-Tail Salamander_Level_1.png',
-      2: 'Cinder-Tail Salamander_Level_2.png',
-      3: 'Cinder-Tail Salamander_Level_3.png'
+      1: 'Cinder-Tail Salamander_Level_1_1750198337385.png',
+      2: 'Cinder-Tail Salamander_Level_2_1750198337394.png',
+      3: 'Cinder-Tail Salamander_Level_3_1750198337399.png'
     };
     
     const imageFile = levelImages[level as keyof typeof levelImages];
     
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
@@ -1664,16 +1664,16 @@ export class VeoApiClient {
     const level = upgrades.level || 1;
     
     const levelImages = {
-      1: 'River-Spirit Axolotl_Level_1.png',
-      2: 'River-Spirit Axolotl_Level_2.png',
-      3: 'River-Spirit Axolotl_Level_3.png'
+      1: 'River-Spirit Axolotl_Level_1_1750198323311.png',
+      2: 'River-Spirit Axolotl_Level_2_1750198323302.png',
+      3: 'River-Spirit Axolotl_Level_3_1750198323314.png'
     };
     
     const imageFile = levelImages[level as keyof typeof levelImages];
     
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
@@ -1697,16 +1697,16 @@ export class VeoApiClient {
     const level = upgrades.level || 1;
     
     const levelImages = {
-      1: 'Spark-Tail Squirrel_Level_1.png',
-      2: 'Spark-Tail Squirrel_Level_2.png',
-      3: 'Spark-Tail Squirrel_Level_3.png'
+      1: 'Spark-Tail Squirrel_Level_1_1750198309057.png',
+      2: 'Spark-Tail Squirrel_Level_2_1750198309051.png',
+      3: 'Spark-Tail Squirrel_Level_3_1750198309026.png'
     };
     
     const imageFile = levelImages[level as keyof typeof levelImages];
     
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+        <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
     
