@@ -21,6 +21,15 @@ interface MonsterCardProps {
     baseMp?: number;
     goldCost?: number;
     diamondCost?: number;
+    abilities?: Array<{
+      name: string;
+      type: 'ACTIVE' | 'PASSIVE';
+      cost?: string;
+      description: string;
+    }>;
+    resistances?: string;
+    weaknesses?: string;
+    description?: string;
   };
   userMonster?: {
     id: number;
@@ -169,6 +178,11 @@ export default function MonsterCard({
   const { toast } = useToast();
   const monsterData = getMonsterData(monster.id);
   const level = userMonster?.level || 1;
+  
+  // Use database abilities if available, otherwise fall back to hardcoded data
+  const actualAbilities = monster.abilities && monster.abilities.length > 0 
+    ? monster.abilities 
+    : monsterData.abilities;
   const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
   const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
@@ -476,7 +490,7 @@ export default function MonsterCard({
             <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '360px' }}>
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-2 text-xs">
-                {monsterData.abilities.map((ability, index) => {
+                {actualAbilities.map((ability, index) => {
                   const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
                   const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && battleMp >= manaCost;
                   const isClickable = battleMode && isPlayerTurn && ability.type === 'ACTIVE';
