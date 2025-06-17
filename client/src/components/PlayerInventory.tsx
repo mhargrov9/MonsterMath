@@ -121,9 +121,9 @@ export default function PlayerInventory({ trigger }: PlayerInventoryProps) {
         )}
       </DialogTrigger>
       
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      <DialogContent className="max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto mx-4 sm:mx-auto">
+        <DialogHeader className="pb-4">
+          <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <i className="fas fa-backpack text-vibrant-purple"></i>
             Player Backpack
           </DialogTitle>
@@ -149,19 +149,19 @@ export default function PlayerInventory({ trigger }: PlayerInventoryProps) {
             
             <Separator />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {inventory.map((item) => (
                 <Card key={item.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-3 p-3 sm:p-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-electric-blue/20 to-vibrant-purple/20 flex items-center justify-center">
-                          <i className={`${item.iconClass || getTypeIcon(item.itemType)} text-electric-blue`}></i>
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-electric-blue/20 to-vibrant-purple/20 flex items-center justify-center">
+                          <i className={`${item.iconClass || getTypeIcon(item.itemType)} text-electric-blue text-sm sm:text-base`}></i>
                         </div>
-                        <div>
-                          <CardTitle className="text-lg">{item.itemName}</CardTitle>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className={getRarityColor(item.rarity || 'common')}>
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="text-base sm:text-lg truncate">{item.itemName}</CardTitle>
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-2 mt-1">
+                            <Badge variant="outline" className={`${getRarityColor(item.rarity || 'common')} text-xs`}>
                               {item.rarity || 'common'}
                             </Badge>
                             <Badge variant="secondary" className="text-xs">
@@ -170,8 +170,8 @@ export default function PlayerInventory({ trigger }: PlayerInventoryProps) {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="bg-gold-yellow/20 text-gold-yellow px-2 py-1 rounded-md text-sm font-bold">
+                      <div className="text-right flex-shrink-0">
+                        <div className="bg-gold-yellow/20 text-gold-yellow px-2 py-1 rounded-md text-xs sm:text-sm font-bold">
                           ×{item.quantity}
                         </div>
                       </div>
@@ -179,18 +179,18 @@ export default function PlayerInventory({ trigger }: PlayerInventoryProps) {
                   </CardHeader>
                   
                   {item.itemDescription && (
-                    <CardContent className="pt-0">
-                      <CardDescription className="text-sm">
+                    <CardContent className="pt-0 p-3 sm:p-4">
+                      <CardDescription className="text-xs sm:text-sm">
                         {item.itemDescription}
                       </CardDescription>
                       
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex flex-col sm:flex-row gap-2 mt-3">
                         {item.itemType === 'consumable' && (
                           <Button
                             size="sm"
                             onClick={() => useItemMutation.mutate({ itemName: item.itemName, quantity: 1 })}
                             disabled={useItemMutation.isPending}
-                            className="bg-gradient-to-r from-lime-green to-electric-blue text-white"
+                            className="bg-gradient-to-r from-lime-green to-electric-blue text-white touch-manipulation min-h-[40px] flex-1 sm:flex-none"
                           >
                             <i className="fas fa-hand-sparkles mr-1"></i>
                             Use Item
@@ -202,7 +202,7 @@ export default function PlayerInventory({ trigger }: PlayerInventoryProps) {
                           variant="outline"
                           onClick={() => removeItemMutation.mutate(item.itemName)}
                           disabled={removeItemMutation.isPending}
-                          className="text-red-600 hover:bg-red-50"
+                          className="text-red-600 hover:bg-red-50 touch-manipulation min-h-[40px] flex-1 sm:flex-none"
                         >
                           <i className="fas fa-trash mr-1"></i>
                           Remove

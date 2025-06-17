@@ -770,8 +770,8 @@ export default function BattleArena() {
             </div>
 
             {/* Turn Indicator */}
-            <div className="text-center mb-4">
-              <Badge variant={battleState.turn === 'player' ? 'default' : 'secondary'}>
+            <div className="text-center mb-3 sm:mb-4">
+              <Badge variant={battleState.turn === 'player' ? 'default' : 'secondary'} className="text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-2">
                 {battleState.phase === 'animate' ? 'Attacking...' : 
                  battleState.phase === 'end' ? 'Battle Complete!' :
                  battleState.turn === 'player' ? 'Your Turn' : 'Opponent Turn'}
@@ -780,12 +780,12 @@ export default function BattleArena() {
 
             {/* Retreat Button - only show during player's turn */}
             {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
-              <div className="text-center mb-4">
+              <div className="text-center mb-3 sm:mb-4">
                 <Button 
                   variant="destructive" 
                   onClick={() => retreatFromBattle()}
                   disabled={saveMonsterStatsMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-red-600 hover:bg-red-700 touch-manipulation min-h-[44px] px-4 sm:px-6"
                 >
                   {saveMonsterStatsMutation.isPending ? 'Retreating...' : 'Retreat from Battle'}
                 </Button>
@@ -793,8 +793,8 @@ export default function BattleArena() {
             )}
 
             {/* Battle Log */}
-            <div className="border rounded p-3 h-32 overflow-y-auto bg-muted/50">
-              <div className="text-sm space-y-1">
+            <div className="border rounded p-2 sm:p-3 h-24 sm:h-32 overflow-y-auto bg-muted/50">
+              <div className="text-xs sm:text-sm space-y-1">
                 {battleState.battleLog.map((log, index) => (
                   <div key={index}>{log}</div>
                 ))}
