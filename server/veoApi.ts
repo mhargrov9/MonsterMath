@@ -63,8 +63,8 @@ export class VeoApiClient {
       return this.imageCache.get(cacheKey)!;
     }
 
-    // For custom monsters (Gigalith=6, Aetherion=7), use uploaded images directly
-    if (monsterId === 6 || monsterId === 7) {
+    // For custom monsters with uploaded artwork, use the specific level images
+    if (monsterId === 6 || monsterId === 7 || (monsterId >= 8 && monsterId <= 12)) {
       console.log(`Using custom uploaded image for monster ${monsterId} level ${level}`);
       const customImage = this.generateHighQualityImageData(monsterId, upgradeChoices);
       this.imageCache.set(cacheKey, customImage);

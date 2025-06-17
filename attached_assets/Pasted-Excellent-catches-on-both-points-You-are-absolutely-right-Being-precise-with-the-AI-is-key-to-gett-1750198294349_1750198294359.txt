@@ -1,0 +1,76 @@
+Excellent catches on both points. You are absolutely right. Being precise with the AI is key to getting the right results. My apologies for the oversight on the file extensions.
+
+Let's revise that prompt to be crystal clear and technically accurate.
+
+Your 'Replit' Request (Revised and Finalized)
+"I need you to implement the full upgrade paths for the five 'Starter Set' monsters. These five monsters should be the initial creatures available for players to purchase with Gold in the Monster Lab.
+
+Please update the game's database to support a multi-level upgrade path for each one. When a player upgrades a monster, the system must update its stats, abilities, and card image to match the data for its new level.
+
+Here is the complete data for each monster's upgrade path:
+
+1. Geode Tortoise
+
+Level 1 (Base):
+Image: Geode Tortoise_Level_1.png
+Passive: Crystalize (Doubles Defense below 50% HP).
+Active: Shell Slam.
+Level 2 Upgrade:
+Image: Geode Tortoise_Level_2.png
+Stat Boost: +50 HP, +10 Defense.
+Level 3 Upgrade:
+Image: Geode Tortoise_Level_3.png
+Stat Boost: +50 HP, +15 Defense.
+Ability Tweak: The Crystalize passive now also grants a 50-point Shield.
+2. Gale-Feather Griffin
+
+Level 1 (Base):
+Image: Gale-Feather Griffin_Level_1.png
+Passive: Tailwind (+5% Speed for the team).
+Active: Peck Flurry.
+Level 2 Upgrade:
+Image: Gale-Feather Griffin_Level_2.png
+Stat Boost: +10 Speed, +10 Power.
+Level 3 Upgrade:
+Image: Gale-Feather Griffin_Level_3.png
+Stat Boost: +15 Speed, +15 Power.
+Ability Tweak: Each hit of Peck Flurry now has a 10% chance to grant Hasted.
+3. Cinder-Tail Salamander
+
+Level 1 (Base):
+Image: Cinder-Tail Salamander_Level_1.png
+Passive: Soot Cloud (25% chance to Poison).
+Active: Ember Spit.
+Level 2 Upgrade:
+Image: Cinder-Tail Salamander_Level_2.png
+Stat Boost: +25 HP, +10 Power, +5 Speed.
+Level 3 Upgrade:
+Image: Cinder-Tail Salamander_Level_3.jpg
+Stat Boost: +30 HP, +15 Power, +10 Speed.
+Ability Tweak: The Poisoned status it inflicts now also slightly reduces enemy Defense.
+4. River-Spirit Axolotl
+
+Level 1 (Base):
+Image: River-Spirit Axolotl_Level_1.png
+Passive: Soothing Aura.
+Active: Restoring Geyser.
+Level 2 Upgrade:
+Image: River-Spirit Axolotl_Level_2.png
+Stat Boost: +40 HP, +30 MP.
+Level 3 Upgrade:
+Image: River-Spirit Axolotl_Level_3.png
+Stat Boost: +50 HP, +10 Defense.
+Ability Tweak: Restoring Geyser now also grants the target a temporary +20 Defense boost for 1 turn.
+5. Spark-Tail Squirrel
+
+Level 1 (Base):
+Image: Spark-Tail Squirrel_Level_1.png
+Passive: Static Charge.
+Active: Jolt.
+Level 2 Upgrade:
+Image: Spark-Tail Squirrel_Level_2.png
+Stat Boost: +15 Speed, +40 MP.
+Level 3 Upgrade:
+Image: Spark-Tail Squirrel_Level_3.png
+Stat Boost: +20 Speed, +10 Power.
+Ability Tweak: The Static Charge passive now also gains 1 counter when the squirrel is hit by a Melee attack.
