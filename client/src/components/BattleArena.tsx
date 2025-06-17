@@ -625,17 +625,17 @@ export default function BattleArena() {
     const playerAttacks = getMonsterAbilities(battleState.playerMonster);
     
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 lg:p-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Battle Arena</CardTitle>
-            <div className="text-center text-sm text-muted-foreground">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-center text-xl sm:text-2xl text-white">Battle Arena</CardTitle>
+            <div className="text-center text-sm sm:text-base text-white/70">
               {battleState.playerMonster.monster.name} vs {battleState.aiMonster.name}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             {/* Battle Field */}
-            <div className={`flex items-center justify-between mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
+            <div className={`flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8 mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-3 sm:p-4 lg:p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
               battleState.screenShake ? 'animate-pulse transform translate-x-1' : ''
             }`}>
               {/* Player Monster Card */}
@@ -668,7 +668,7 @@ export default function BattleArena() {
                     mp: battleState.playerMonster.mp,
                     maxMp: battleState.playerMonster.maxMp
                   }}
-                  size="medium"
+                  size="small"
                   battleMode={true}
                   isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
                   battleMp={battleState.playerMonster.mp}
@@ -707,9 +707,14 @@ export default function BattleArena() {
               )}
 
               {/* VS */}
-              <div className={`text-4xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
+              <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
                 battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
-              }`}>VS</div>
+              } lg:block hidden`}>VS</div>
+              
+              {/* Mobile VS - shows between stacked cards */}
+              <div className={`text-2xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
+                battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
+              } lg:hidden block`}>VS</div>
 
               {/* AI Monster Card */}
               <div className={`transform transition-all duration-300 ease-out ${
@@ -759,7 +764,7 @@ export default function BattleArena() {
                   }}
                   battleMode={true}
                   battleMp={battleState.aiMonster.mp}
-                  size="medium"
+                  size="small"
                 />
               </div>
             </div>
