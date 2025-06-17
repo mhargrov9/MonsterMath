@@ -252,6 +252,12 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added proper asset serving routes for attached_assets folder
   - All starter monsters now display their unique custom artwork instead of placeholders
   - Level-specific visual progression implemented for Geode Tortoise, Gale-Feather Griffin, Cinder-Tail Salamander, River-Spirit Axolotl, and Spark-Tail Squirrel
+- June 17, 2025: Starter Monster Abilities Implementation
+  - Fixed abilities display for all 5 starter monsters in Monster Cards
+  - Updated database abilities format to match MonsterCard component expectations
+  - Each starter monster now shows complete abilities with proper Active/Passive indicators
+  - Added mana costs and detailed descriptions for all starter monster abilities
+  - Abilities section now fully functional for Geode Tortoise, Gale-Feather Griffin, Cinder-Tail Salamander, River-Spirit Axolotl, and Spark-Tail Squirrel
 
 ## User Preferences
 
