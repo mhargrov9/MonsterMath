@@ -10,6 +10,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { GameUser, UserMonster, Battle, Monster } from "@/types/game";
 import VeoMonster from "./VeoMonster";
 import MonsterCard from "./MonsterCard";
+import { BattleTeamSelector } from "./BattleTeamSelector";
 
 interface AttackOption {
   id: string;
