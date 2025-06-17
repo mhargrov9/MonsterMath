@@ -237,6 +237,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added touch-manipulation classes and minimum touch target sizes (44px+) throughout
   - Implemented consistent responsive typography scaling across all components
   - All interactive elements now meet accessibility standards for mobile devices
+- June 17, 2025: Starter Set Monster Expansion
+  - Added five new purchasable monsters to the Monster Lab database
+  - Geode Tortoise (Earth/Tank): 400 Gold - Crystalize passive doubles defense when HP < 50%
+  - Gale-Feather Griffin (Air/Scout): 450 Gold - Tailwind passive boosts team speed +5%
+  - Cinder-Tail Salamander (Fire/Attacker): 350 Gold - Soot Cloud passive adds poison chance
+  - River-Spirit Axolotl (Water/Support): 420 Gold - Soothing Aura passive heals 3% HP per turn
+  - Spark-Tail Squirrel (Electric/Controller): 380 Gold - Static Charge builds to guaranteed stun
+  - All monsters include complete stat progressions, resistances, weaknesses, and level upgrades
+  - Expanded monster roster from 2 to 7 total purchasable creatures for diverse gameplay strategies
 
 ## User Preferences
 

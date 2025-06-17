@@ -1,0 +1,42 @@
+Please add the five new 'Starter Set' monsters to the game's database so they can be purchased with Gold in the 'Monster Lab'. Here are their complete design details:
+
+1. Geode Tortoise
+
+Archetype: Tank / Ground Unit
+Affinities: Earth / Crystal
+Weakness: Water | Resistance: Electric
+Stats: High HP, Low MP, Low Power, Very High Defense, Very Low Speed.
+Passive: Crystalize. When HP drops below 50%, Defense doubles, but Speed is halved.
+Active: Shell Slam (35 MP). Melee. Deals damage based on 75% of its Defense stat.
+2. Gale-Feather Griffin
+
+Archetype: Scout / Flying Unit
+Affinities: Air
+Weakness: Electric | Resistance: Earth
+Stats: Very Low HP, Medium MP, Medium Power, Very Low Defense, Very High Speed.
+Passive: Tailwind. All monsters on its team get a permanent +5% Speed boost.
+Active: Peck Flurry (40 MP). Melee. Hits the active opponent 3 times for 0.5x Power per hit (each hit has a separate accuracy check).
+3. Cinder-Tail Salamander
+
+Archetype: Attacker / Ground Unit
+Affinities: Fire
+Weakness: Water | Resistance: Fire
+Stats: Medium HP, Medium MP, Good Power, Medium Defense, Good Speed.
+Passive: Soot Cloud. Its Fire abilities have a 25% chance to inflict Poisoned for 2 turns.
+Active: Ember Spit (30 MP). Ranged. Deals modest Fire damage and triggers a Soot Cloud check.
+4. River-Spirit Axolotl
+
+Archetype: Support / Ground Unit
+Affinities: Water / Spirit
+Weakness: Poison | Resistance: Water
+Stats: High HP, Very High MP, Low Power, Low Defense, Medium Speed.
+Passive: Soothing Aura. At the end of its turn, the player's active monster heals for 3% of its Max HP.
+Active: Restoring Geyser (40 MP). Ranged. Heals a significant amount of HP on a single friendly target (can target benched allies).
+5. Spark-Tail Squirrel
+
+Archetype: Controller / Ground Unit
+Affinities: Electric
+Weakness: Earth | Resistance: Air
+Stats: Low HP, Very High MP, Very Low Power, Low Defense, High Speed.
+Passive: Static Charge. After using 3 Electric abilities, the next Jolt is a guaranteed Stun.
+Active: Jolt (35 MP). Ranged. Deals very low Electric damage, with a 25% chance to Stun the target
