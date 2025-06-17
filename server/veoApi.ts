@@ -425,8 +425,13 @@ export class VeoApiClient {
   private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
     // Map database IDs to custom monsters
     const monsterSVGs = {
-      6: this.generateGigalithGraphic(upgradeChoices),     // Gigalith (ID 6 in database)
-      7: this.generateAetherionGraphic(upgradeChoices)     // Aetherion (ID 7 in database)
+      6: this.generateGigalithGraphic(upgradeChoices),          // Gigalith (ID 6 in database)
+      7: this.generateAetherionGraphic(upgradeChoices),         // Aetherion (ID 7 in database)
+      8: this.generateGeodeTortoiseGraphic(upgradeChoices),     // Geode Tortoise (ID 8)
+      9: this.generateGaleFeatherGriffinGraphic(upgradeChoices), // Gale-Feather Griffin (ID 9)
+      10: this.generateCinderTailSalamanderGraphic(upgradeChoices), // Cinder-Tail Salamander (ID 10)
+      11: this.generateRiverSpiritAxolotlGraphic(upgradeChoices),   // River-Spirit Axolotl (ID 11)
+      12: this.generateSparkTailSquirrelGraphic(upgradeChoices)     // Spark-Tail Squirrel (ID 12)
     };
 
     const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || this.generatePlaceholderMonster(monsterId);
@@ -1557,6 +1562,170 @@ export class VeoApiClient {
     
     return prompt;
   }
+
+  private generateGeodeTortoiseGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    // Map level-specific images using your uploaded artwork
+    const levelImages = {
+      1: 'Geode Tortoise_Level_1_1750198366952.png',
+      2: 'Geode Tortoise_Level_2_1750198366941.png', 
+      3: 'Geode Tortoise_Level_3_1750198366935.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    // Fallback for levels without uploaded images
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="geodeTortoise" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#D2B48C"/>
+          <stop offset="50%" stop-color="#8B7355"/>
+          <stop offset="100%" stop-color="#654321"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="256" cy="300" rx="180" ry="120" fill="url(#geodeTortoise)" stroke="#654321" stroke-width="4"/>
+      <text x="256" y="256" text-anchor="middle" fill="#FFFFFF" font-size="20" font-weight="bold">Geode Tortoise</text>
+      <text x="256" y="280" text-anchor="middle" fill="#FFFFFF" font-size="16">Level ${level}</text>
+    </svg>`;
+  }
+
+  private generateGaleFeatherGriffinGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    const levelImages = {
+      1: 'Gale-Feather Griffin_Level_1_1750198352902.png',
+      2: 'Gale-Feather Griffin_Level_2_1750198352909.png',
+      3: 'Gale-Feather Griffin_Level_3_1750198352897.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="galeGriffin" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#87CEEB"/>
+          <stop offset="50%" stop-color="#4682B4"/>
+          <stop offset="100%" stop-color="#191970"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="256" cy="200" rx="120" ry="80" fill="url(#galeGriffin)" stroke="#191970" stroke-width="4"/>
+      <path d="M 150 150 Q 100 100 200 120 Q 300 100 350 150" fill="url(#galeGriffin)" stroke="#191970" stroke-width="3"/>
+      <text x="256" y="350" text-anchor="middle" fill="#191970" font-size="20" font-weight="bold">Gale Griffin</text>
+      <text x="256" y="375" text-anchor="middle" fill="#191970" font-size="16">Level ${level}</text>
+    </svg>`;
+  }
+
+  private generateCinderTailSalamanderGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    const levelImages = {
+      1: 'Cinder-Tail Salamander_Level_1.png',
+      2: 'Cinder-Tail Salamander_Level_2.png',
+      3: 'Cinder-Tail Salamander_Level_3.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="cinderSalamander" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#FF6347"/>
+          <stop offset="50%" stop-color="#FF4500"/>
+          <stop offset="100%" stop-color="#8B0000"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="256" cy="280" rx="150" ry="60" fill="url(#cinderSalamander)" stroke="#8B0000" stroke-width="4"/>
+      <path d="M 400 300 Q 450 350 480 400" stroke="url(#cinderSalamander)" stroke-width="20" fill="none"/>
+      <text x="256" y="200" text-anchor="middle" fill="#8B0000" font-size="20" font-weight="bold">Cinder Salamander</text>
+      <text x="256" y="225" text-anchor="middle" fill="#8B0000" font-size="16">Level ${level}</text>
+    </svg>`;
+  }
+
+  private generateRiverSpiritAxolotlGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    const levelImages = {
+      1: 'River-Spirit Axolotl_Level_1.png',
+      2: 'River-Spirit Axolotl_Level_2.png',
+      3: 'River-Spirit Axolotl_Level_3.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="riverAxolotl" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#87CEEB"/>
+          <stop offset="50%" stop-color="#20B2AA"/>
+          <stop offset="100%" stop-color="#008B8B"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="256" cy="280" rx="120" ry="80" fill="url(#riverAxolotl)" stroke="#008B8B" stroke-width="4"/>
+      <circle cx="230" cy="250" r="8" fill="#00CED1"/>
+      <circle cx="282" cy="250" r="8" fill="#00CED1"/>
+      <text x="256" y="200" text-anchor="middle" fill="#008B8B" font-size="20" font-weight="bold">River Axolotl</text>
+      <text x="256" y="225" text-anchor="middle" fill="#008B8B" font-size="16">Level ${level}</text>
+    </svg>`;
+  }
+
+  private generateSparkTailSquirrelGraphic(upgrades: Record<string, any>): string {
+    const level = upgrades.level || 1;
+    
+    const levelImages = {
+      1: 'Spark-Tail Squirrel_Level_1.png',
+      2: 'Spark-Tail Squirrel_Level_2.png',
+      3: 'Spark-Tail Squirrel_Level_3.png'
+    };
+    
+    const imageFile = levelImages[level as keyof typeof levelImages];
+    
+    if (imageFile) {
+      return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+        <image href="@assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
+      </svg>`;
+    }
+    
+    return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+      <defs>
+        <radialGradient id="sparkSquirrel" cx="50%" cy="50%">
+          <stop offset="0%" stop-color="#FFD700"/>
+          <stop offset="50%" stop-color="#FFA500"/>
+          <stop offset="100%" stop-color="#FF8C00"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="256" cy="280" rx="80" ry="60" fill="url(#sparkSquirrel)" stroke="#FF8C00" stroke-width="4"/>
+      <path d="M 180 200 Q 150 150 200 180" stroke="#FFD700" stroke-width="15" fill="none"/>
+      <path d="M 210 150 L 215 140 L 225 160" stroke="#FFFF00" stroke-width="3" fill="none"/>
+      <text x="256" y="400" text-anchor="middle" fill="#FF8C00" font-size="20" font-weight="bold">Spark Squirrel</text>
+      <text x="256" y="425" text-anchor="middle" fill="#FF8C00" font-size="16">Level ${level}</text>
+    </svg>`;
+  }
+
 }
 
 export const veoClient = new VeoApiClient();
