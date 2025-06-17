@@ -57,6 +57,8 @@ export const monsters = pgTable("monsters", {
   baseDefense: integer("base_defense").notNull(),
   baseHp: integer("base_hp").notNull(), // Hit Points
   baseMp: integer("base_mp").notNull(), // Mana Points
+  hpPerLevel: integer("hp_per_level").default(50).notNull(), // HP gained per level
+  mpPerLevel: integer("mp_per_level").default(20).notNull(), // MP gained per level
   goldCost: integer("gold_cost").notNull(),
   diamondCost: integer("diamond_cost").default(0).notNull(),
   description: text("description"),

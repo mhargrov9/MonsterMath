@@ -653,6 +653,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Teams and Encounter System routes
+  app.get('/api/ai-teams', isAuthenticated, async (req: any, res) => {
+    try {
+      const teams = await storage.getAllAiTeams();
+      res.json(teams);
+    } catch (error) {
+      console.error("Error fetching AI teams:", error);
+      res.status(500).json({ message: "Failed to fetch AI teams" });
+    }
+  });
+
+  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
+    try {
+      const { playerTPL } = req.body;
+      
+      if (!playerTPL || playerTPL < 1) {
+        return res.status(400).json({ message: "Valid player TPL is required" });
+      }
+      
+      const encounter = await storage.generateAiOpponent(playerTPL);
+      res.json(encounter);
+    } catch (error) {
+      console.error("Error generating AI opponent:", error);
+      res.status(500).json({ message: error.message || "Failed to generate AI opponent" });
+    }
+  });
+
+  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const battleSlots = await storage.getUserBattleSlots(userId);
+      res.json({ battleSlots });
+    } catch (error) {
+      console.error("Error fetching battle slots:", error);
+      res.status(500).json({ message: "Failed to fetch battle slots" });
+    }
+  });
+
   // Clear image cache for regeneration with improved prompts
   app.post('/api/generate/clear-cache', isAuthenticated, async (req, res) => {
     try {

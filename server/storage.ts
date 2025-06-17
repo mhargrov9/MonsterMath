@@ -603,6 +603,99 @@ export class DatabaseStorage implements IStorage {
     
     return user.storyProgress || "Node_Start_01";
   }
+
+  // AI Team operations
+  async getAllAiTeams(): Promise<AiTeam[]> {
+    return await db.select().from(aiTeams).orderBy(asc(aiTeams.name));
+  }
+
+  async createAiTeam(teamData: InsertAiTeam): Promise<AiTeam> {
+    const [team] = await db.insert(aiTeams).values(teamData).returning();
+    return team;
+  }
+
+  async generateAiOpponent(playerTPL: number): Promise<{
+    team: AiTeam;
+    scaledMonsters: Array<{
+      monster: Monster;
+      level: number;
+      hp: number;
+      mp: number;
+    }>;
+  }> {
+    // Get all available AI teams
+    const availableTeams = await this.getAllAiTeams();
+    
+    // Filter teams that can work with the player's TPL (+/- 10% range)
+    const minTPL = Math.max(2, Math.floor(playerTPL * 0.9));
+    const maxTPL = Math.ceil(playerTPL * 1.1);
+    
+    const suitableTeams = availableTeams.filter(team => 
+      team.minTPL <= maxTPL && team.maxTPL >= minTPL
+    );
+    
+    if (suitableTeams.length === 0) {
+      throw new Error("No suitable AI teams found for this power level");
+    }
+    
+    // Randomly select a team
+    const selectedTeam = suitableTeams[Math.floor(Math.random() * suitableTeams.length)];
+    
+    // Parse the team composition
+    const composition = selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>;
+    
+    // Calculate base TPL for this team
+    const baseTeamTPL = composition.reduce((sum, member) => sum + member.baseLevel, 0);
+    
+    // Calculate scaling factor to match target TPL
+    const targetTPL = playerTPL; // Exact match for fairness
+    const scalingFactor = targetTPL / baseTeamTPL;
+    
+    // Scale monster levels and get monster data
+    const scaledMonsters = [];
+    for (const member of composition) {
+      const scaledLevel = Math.max(1, Math.min(10, Math.round(member.baseLevel * scalingFactor)));
+      
+      // Get monster data
+      const [monster] = await db.select().from(monsters).where(eq(monsters.id, member.monsterId));
+      if (!monster) continue;
+      
+      // Calculate HP and MP based on level
+      const baseHp = monster.baseHp;
+      const baseMp = monster.baseMp;
+      const hpPerLevel = monster.hpPerLevel;
+      const mpPerLevel = monster.mpPerLevel;
+      
+      const hp = Math.floor(baseHp + (hpPerLevel * (scaledLevel - 1)));
+      const mp = Math.floor(baseMp + (mpPerLevel * (scaledLevel - 1)));
+      
+      scaledMonsters.push({
+        monster,
+        level: scaledLevel,
+        hp,
+        mp
+      });
+    }
+    
+    return {
+      team: selectedTeam,
+      scaledMonsters
+    };
+  }
+
+  // Battle slot operations
+  async getUserBattleSlots(userId: string): Promise<number> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user?.battleSlots || 2;
+  }
+
+  async updateUserBattleSlots(userId: string, slots: number): Promise<User> {
+    const [user] = await db.update(users)
+      .set({ battleSlots: slots, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
 }
 
 export const storage = new DatabaseStorage();
