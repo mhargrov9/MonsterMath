@@ -184,13 +184,21 @@ export default function MonsterCard({
     ? userMonster.maxMp 
     : (monster.baseMp || 200);
 
-  const cardSizes = {
-    small: { width: 280, height: 780 },
-    medium: { width: 350, height: 900 },
-    large: { width: 420, height: 1020 }
+  // Responsive card classes based on size
+  const getCardClasses = (size: string) => {
+    switch (size) {
+      case 'small':
+        return 'w-64 sm:w-72 h-[600px] sm:h-[680px] md:h-[720px]';
+      case 'medium':
+        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[700px] sm:h-[780px] md:h-[820px] lg:h-[860px]';
+      case 'large':
+        return 'w-80 sm:w-88 md:w-96 lg:w-[420px] h-[750px] sm:h-[830px] md:h-[900px] lg:h-[980px]';
+      default:
+        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[700px] sm:h-[780px] md:h-[820px] lg:h-[860px]';
+    }
   };
 
-  const cardSize = cardSizes[size];
+  const cardClasses = getCardClasses(size);
 
   // Calculate healing cost (1 Gold per 10 HP healed, rounded up)
   const hpMissing = maxHp - currentHp;
@@ -286,12 +294,11 @@ export default function MonsterCard({
 
   return (
     <Card 
-      className={`${monsterData.cardStyle} border-4 relative overflow-hidden transition-all duration-500 ${
+      className={`${monsterData.cardStyle} ${cardClasses} border-4 relative overflow-hidden transition-all duration-500 ${
         showUpgradeAnimation ? 'animate-pulse shadow-2xl shadow-yellow-400/50' : ''
       } ${isHovered ? 'scale-105 shadow-xl' : ''} ${onFlip ? 'cursor-pointer' : ''} ${
         isShattered ? 'grayscale opacity-60' : ''
       }`}
-      style={{ width: cardSize.width, height: cardSize.height }}
       onClick={onFlip}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
