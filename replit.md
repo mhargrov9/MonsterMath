@@ -258,6 +258,17 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Each starter monster now shows complete abilities with proper Active/Passive indicators
   - Added mana costs and detailed descriptions for all starter monster abilities
   - Abilities section now fully functional for Geode Tortoise, Gale-Feather Griffin, Cinder-Tail Salamander, River-Spirit Axolotl, and Spark-Tail Squirrel
+- June 17, 2025: Database Starter Set Tracking
+  - Added starter_set boolean field to monsters database table for categorization
+  - All 5 new monsters (IDs 8-12) marked as starter_set = true in database
+  - Original monsters (Gigalith, Aetherion) remain starter_set = false
+  - Removed visual "STARTER SET" badges from monster cards per user request
+  - Database maintains starter set classification for future functionality
+- June 17, 2025: Abilities Display Order Standardization
+  - Updated MonsterCard component to always display passive abilities first
+  - Active abilities now appear below passive abilities in sorted order
+  - Implemented automatic sorting for all current and future monster cards
+  - Standard format: PASSIVE abilities (top) → ACTIVE abilities (bottom)
 
 ## User Preferences
 

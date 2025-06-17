@@ -198,9 +198,16 @@ export default function MonsterCard({
   }
   
   // Use parsed database abilities if available, otherwise fall back to hardcoded data
-  const actualAbilities = parsedAbilities.length > 0 
+  const rawAbilities = parsedAbilities.length > 0 
     ? parsedAbilities 
     : monsterData.abilities;
+  
+  // Sort abilities: PASSIVE first, then ACTIVE
+  const actualAbilities = rawAbilities.sort((a: any, b: any) => {
+    if (a.type === 'PASSIVE' && b.type === 'ACTIVE') return -1;
+    if (a.type === 'ACTIVE' && b.type === 'PASSIVE') return 1;
+    return 0;
+  });
   const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
   const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
@@ -356,11 +363,6 @@ export default function MonsterCard({
               </div>
             )}
             <h1 className="text-xl font-bold tracking-wider">{monster.name.toUpperCase()}</h1>
-            {monster.starterSet && (
-              <span className="text-xs bg-green-600 text-white px-2 py-1 rounded font-semibold ml-2">
-                STARTER SET
-              </span>
-            )}
           </div>
           <div className="text-right">
             <div className="text-sm text-red-400 font-bold">HP {currentHp} / {maxHp}</div>

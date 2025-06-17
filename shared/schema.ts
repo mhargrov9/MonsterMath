@@ -41,6 +41,7 @@ export const users = pgTable("users", {
   currentStreak: integer("current_streak").default(0).notNull(),
   answeredQuestionIds: jsonb("answered_question_ids").default('[]').notNull(),
   battleTokens: integer("battle_tokens").default(0).notNull(),
+  battleSlots: integer("battle_slots").default(2).notNull(), // Number of monsters allowed in battle
   storyProgress: varchar("story_progress").default("Node_Start_01"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
