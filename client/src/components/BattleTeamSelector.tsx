@@ -181,12 +181,13 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
                   >
                     LV.{userMonster.level} • Selected
                   </Badge>
-                  <MonsterCard
-                    monster={userMonster.monster}
-                    userMonster={userMonster}
-                    size="small"
-                    onClick={() => handleMonsterSelect(userMonster)}
-                  />
+                  <div onClick={() => handleMonsterSelect(userMonster)}>
+                    <MonsterCard
+                      monster={userMonster.monster}
+                      userMonster={userMonster}
+                      size="small"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -219,10 +220,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
                       Slots Full
                     </Badge>
                   )}
-                  <MonsterCard
-                    monster={userMonster.monster}
-                    userMonster={userMonster}
-                    size="small"
+                  <div 
                     onClick={() => handleMonsterSelect(userMonster)}
                     className={`cursor-pointer transition-all ${
                       isSelected 
@@ -231,7 +229,13 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
                         ? 'hover:ring-2 ring-blue-300'
                         : 'opacity-60 cursor-not-allowed'
                     }`}
-                  />
+                  >
+                    <MonsterCard
+                      monster={userMonster.monster}
+                      userMonster={userMonster}
+                      size="small"
+                    />
+                  </div>
                 </div>
               );
             })}

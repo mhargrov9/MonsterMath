@@ -49,8 +49,9 @@ interface BattleState {
 }
 
 export default function BattleArena() {
-  const [selectedOpponent, setSelectedOpponent] = useState<any | null>(null);
-  const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
+  const [battleMode, setBattleMode] = useState<'selection' | 'combat'>('selection');
+  const [selectedTeam, setSelectedTeam] = useState<any[]>([]);
+  const [aiOpponent, setAiOpponent] = useState<any>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [animationKey, setAnimationKey] = useState(0);
   const { toast } = useToast();
@@ -73,6 +74,54 @@ export default function BattleArena() {
   const { data: battleHistory = [], isLoading: historyLoading } = useQuery<any[]>({
     queryKey: ["/api/battle/history"],
   });
+
+  const handleBattleStart = (selectedMonsters: any[], generatedOpponent: any) => {
+    setSelectedTeam(selectedMonsters);
+    setAiOpponent(generatedOpponent);
+    setBattleMode('combat');
+    
+    // Initialize battle with first monster from player team vs first AI monster
+    const playerMonster = selectedMonsters[0];
+    const aiMonster = generatedOpponent.scaledMonsters[0];
+    
+    setBattleState({
+      playerMonster: {
+        ...playerMonster,
+        hp: playerMonster.hp,
+        maxHp: playerMonster.monster.baseHp + (playerMonster.monster.hpPerLevel * (playerMonster.level - 1)),
+        mp: playerMonster.mp,
+        maxMp: playerMonster.monster.baseMp + (playerMonster.monster.mpPerLevel * (playerMonster.level - 1))
+      },
+      aiMonster: {
+        id: aiMonster.monster.id,
+        name: aiMonster.monster.name,
+        type: aiMonster.monster.type,
+        power: aiMonster.monster.basePower,
+        speed: aiMonster.monster.baseSpeed,
+        defense: aiMonster.monster.baseDefense,
+        hp: aiMonster.hp,
+        maxHp: aiMonster.hp,
+        mp: aiMonster.mp,
+        maxMp: aiMonster.mp,
+        level: aiMonster.level,
+        monster: aiMonster.monster
+      },
+      turn: 'player',
+      phase: 'select',
+      battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
+      winner: null,
+      currentAnimation: null,
+      lastDamage: null,
+      screenShake: false
+    });
+  };
+
+  const handleBackToSelection = () => {
+    setBattleMode('selection');
+    setSelectedTeam([]);
+    setAiOpponent(null);
+    setBattleState(null);
+  };
 
   // AI opponents with their monsters
   const aiOpponents = [

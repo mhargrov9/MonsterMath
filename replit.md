@@ -269,6 +269,16 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Active abilities now appear below passive abilities in sorted order
   - Implemented automatic sorting for all current and future monster cards
   - Standard format: PASSIVE abilities (top) → ACTIVE abilities (bottom)
+- June 17, 2025: Dynamic Encounter System Implementation
+  - Replaced static Level 10 Gigalith opponent with comprehensive AI team generation
+  - Added Team Power Level (TPL) system: monster level = power, team TPL = sum of levels
+  - Implemented battle slots system: users start with 2 slots, can select up to that many monsters
+  - Created AI teams database with 10 pre-designed opponents (Stone Wall, Fast Swarm, Fire Storm, etc.)
+  - Added matchmaking logic: AI teams scale to match player TPL within ±10% range
+  - Built BattleTeamSelector component for strategic team assembly
+  - Enhanced database schema with hpPerLevel/mpPerLevel fields for level scaling
+  - AI teams feature diverse archetypes: tank, swarm, aggro, support, control, balanced
+  - Dynamic opponent generation ensures balanced battles regardless of team composition
 
 ## User Preferences
 

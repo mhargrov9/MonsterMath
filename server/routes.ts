@@ -676,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(encounter);
     } catch (error) {
       console.error("Error generating AI opponent:", error);
-      res.status(500).json({ message: error.message || "Failed to generate AI opponent" });
+      res.status(500).json({ message: (error as Error).message || "Failed to generate AI opponent" });
     }
   });
 
