@@ -5,6 +5,7 @@ import {
   questions,
   battles,
   inventory,
+  aiTeams,
   type User,
   type UpsertUser,
   type Monster,
@@ -12,11 +13,13 @@ import {
   type Question,
   type Battle,
   type InventoryItem,
+  type AiTeam,
   type InsertMonster,
   type InsertUserMonster,
   type InsertQuestion,
   type InsertBattle,
   type InsertInventoryItem,
+  type InsertAiTeam,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
@@ -70,6 +73,23 @@ export interface IStorage {
   // Story progress operations
   updateStoryProgress(userId: string, storyNode: string): Promise<User>;
   getStoryProgress(userId: string): Promise<string>;
+  
+  // AI Team operations
+  getAllAiTeams(): Promise<AiTeam[]>;
+  createAiTeam(team: InsertAiTeam): Promise<AiTeam>;
+  generateAiOpponent(playerTPL: number): Promise<{
+    team: AiTeam;
+    scaledMonsters: Array<{
+      monster: Monster;
+      level: number;
+      hp: number;
+      mp: number;
+    }>;
+  }>;
+  
+  // Battle slot operations
+  getUserBattleSlots(userId: string): Promise<number>;
+  updateUserBattleSlots(userId: string, slots: number): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {

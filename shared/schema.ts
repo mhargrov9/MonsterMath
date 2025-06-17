@@ -127,6 +127,17 @@ export const inventory = pgTable("inventory", {
   acquiredAt: timestamp("acquired_at").defaultNow(),
 });
 
+// AI Teams table - stores pre-designed opponent teams
+export const aiTeams = pgTable("ai_teams", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(), // e.g., "The Stone Wall", "The Fast Swarm"
+  description: text("description"),
+  composition: jsonb("composition").notNull(), // Array of {monsterId, baseLevel}
+  archetype: varchar("archetype").notNull(), // tank, swarm, balanced, etc.
+  minTPL: integer("min_tpl").default(2).notNull(), // Minimum team power level
+  maxTPL: integer("max_tpl").default(50).notNull(), // Maximum team power level
+});
+
 // Schemas for validation
 export const upsertUserSchema = createInsertSchema(users);
 export const insertMonsterSchema = createInsertSchema(monsters).omit({ id: true });
@@ -137,6 +148,7 @@ export const insertBattleSchema = createInsertSchema(battles).omit({ id: true, b
   winnerId: z.string().nullable().optional()
 });
 export const insertInventorySchema = createInsertSchema(inventory).omit({ id: true, acquiredAt: true, userId: true });
+export const insertAiTeamSchema = createInsertSchema(aiTeams).omit({ id: true });
 
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
@@ -151,3 +163,5 @@ export type InsertUserMonster = z.infer<typeof insertUserMonsterSchema>;
 export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type InsertBattle = z.infer<typeof insertBattleSchema>;
 export type InsertInventoryItem = z.infer<typeof insertInventorySchema>;
+export type AiTeam = typeof aiTeams.$inferSelect;
+export type InsertAiTeam = z.infer<typeof insertAiTeamSchema>;
