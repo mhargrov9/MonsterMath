@@ -17,6 +17,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
   app.use('/assets', express.static('attached_assets'));
+  
+  // Also serve attached assets directly for custom monster images
+  app.use('/attached_assets', (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    next();
+  });
+  app.use('/attached_assets', express.static('attached_assets'));
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

@@ -246,6 +246,12 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Spark-Tail Squirrel (Electric/Controller): 380 Gold - Static Charge builds to guaranteed stun
   - All monsters include complete stat progressions, resistances, weaknesses, and level upgrades
   - Expanded monster roster from 2 to 7 total purchasable creatures for diverse gameplay strategies
+- June 17, 2025: Custom Artwork Integration for Starter Monsters
+  - Integrated user-provided artwork for all 5 starter monsters (levels 1-3)
+  - Updated VeoApiClient with custom image generation functions for each starter monster
+  - Added proper asset serving routes for attached_assets folder
+  - All starter monsters now display their unique custom artwork instead of placeholders
+  - Level-specific visual progression implemented for Geode Tortoise, Gale-Feather Griffin, Cinder-Tail Salamander, River-Spirit Axolotl, and Spark-Tail Squirrel
 
 ## User Preferences
 
