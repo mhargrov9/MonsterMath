@@ -140,27 +140,26 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   if (currentStep === 'offer') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div className="relative max-w-4xl w-full bg-gradient-to-br from-purple-900 via-blue-800 to-purple-900 rounded-3xl shadow-2xl overflow-hidden">
-          {/* Monster Card Collage Background */}
-          {monsterCollage.map((item, index) => (
-            <div
-              key={index}
-              className="absolute pointer-events-none z-0"
-              style={{
-                top: item.position.top,
-                left: item.position.left,
-                right: item.position.right,
-                transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
-                opacity: item.position.opacity
-              }}
-            >
-              <MonsterCard monster={item.monster} />
-            </div>
-          ))}
-          
-          {/* Content Overlay */}
-          <div className="relative z-20 p-8 max-h-[90vh] overflow-y-auto">
-            <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
+        {/* Monster Card Collage Background - Full Screen */}
+        {monsterCollage.map((item, index) => (
+          <div
+            key={index}
+            className="fixed pointer-events-none z-0"
+            style={{
+              top: item.position.top,
+              left: item.position.left,
+              right: item.position.right,
+              transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+              opacity: item.position.opacity
+            }}
+          >
+            <MonsterCard monster={item.monster} />
+          </div>
+        ))}
+        
+        {/* Content Overlay */}
+        <div className="relative max-w-4xl w-full z-20">
+          <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
               <CardHeader className="text-center space-y-4">
                 <div className="text-6xl">⚔️</div>
                 <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -226,7 +225,6 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
                 </p>
               </CardContent>
             </Card>
-          </div>
         </div>
       </div>
     );
@@ -235,27 +233,26 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   // Email Capture Screen
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="relative max-w-4xl w-full bg-gradient-to-br from-purple-900 via-blue-800 to-purple-900 rounded-3xl shadow-2xl overflow-hidden">
-        {/* Monster Card Collage Background */}
-        {monsterCollage.map((item, index) => (
-          <div
-            key={index}
-            className="absolute pointer-events-none z-0"
-            style={{
-              top: item.position.top,
-              left: item.position.left,
-              right: item.position.right,
-              transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
-              opacity: item.position.opacity
-            }}
-          >
-            <MonsterCard monster={item.monster} />
-          </div>
-        ))}
-        
-        {/* Content Overlay */}
-        <div className="relative z-20 p-8 max-h-[90vh] overflow-y-auto">
-          <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
+      {/* Monster Card Collage Background - Full Screen */}
+      {monsterCollage.map((item, index) => (
+        <div
+          key={index}
+          className="fixed pointer-events-none z-0"
+          style={{
+            top: item.position.top,
+            left: item.position.left,
+            right: item.position.right,
+            transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+            opacity: item.position.opacity
+          }}
+        >
+          <MonsterCard monster={item.monster} />
+        </div>
+      ))}
+      
+      {/* Content Overlay */}
+      <div className="relative max-w-4xl w-full z-20">
+        <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
             <CardHeader className="text-center space-y-4">
               <div className="text-6xl">📧</div>
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -297,6 +294,5 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    );
 }
