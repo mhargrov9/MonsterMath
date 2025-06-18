@@ -79,15 +79,15 @@ const STORY_NODES: Record<string, {
   
   // PATH A - Village Route
   "Node_5A_Village_Arrival": {
-    title: "Monster Village",
-    description: "A haven for free monsters",
-    content: "You emerge from the forest to find a bustling village of free monsters. Creatures of all types go about their daily lives - some tending gardens, others crafting tools. The atmosphere is peaceful, but you notice guards posted at the village entrance, their eyes scanning the forest nervously.",
+    title: "Elderwood Village - Entrance",
+    description: "Arrival at the Village",
+    content: "You arrive at the village gates. It feels safe from the strange energy in the forest, but it's also tense. No one is out in the open. You see a nervous monster peeking out from behind a market stall.",
     choices: [
-      { text: "Approach the village guards", nextNode: "Node_6A_Elder_Meeting" },
-      { text: "Quietly observe the village first", nextNode: "Node_6A_Elder_Meeting" }
+      { text: "Approach the nervous monster", nextNode: "Node_6A_Elder_Meeting" },
+      { text: "Look for the elder's home", nextNode: "Node_6A_Elder_Meeting" }
     ],
-    location: "Monster Village",
-    image: "A vibrant village with monsters of various types living in harmony"
+    location: "Elderwood Village",
+    image: "@assets/Elderwood Village_1750207549399.png"
   },
   "Node_6A_Elder_Meeting": {
     title: "Village Elder's Hut",
