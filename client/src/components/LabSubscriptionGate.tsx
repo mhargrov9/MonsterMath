@@ -108,19 +108,29 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
               </Card>
             </div>
             
-            <div className="text-center space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Choose your preferred subscription to unlock unlimited upgrades!
-              </p>
-              
+            <div className="mt-8 text-center space-y-3">
               <Button
                 onClick={onClose}
-                variant="ghost"
-                className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
+                disabled={!selectedIntent}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
               >
-                Maybe Later - Return to Lab
+                Continue with {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
               </Button>
+              
+              <div>
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
+                >
+                  Maybe Later - Return to Lab
+                </Button>
+              </div>
             </div>
+            
+            <p className="text-xs text-center text-muted-foreground mt-4">
+              Choose your preferred subscription to unlock unlimited upgrades!
+            </p>
           </CardContent>
         </Card>
       </div>
