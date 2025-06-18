@@ -134,13 +134,13 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
     },
     onSuccess: (_, intent) => {
       setSelectedIntent(intent);
-      setCurrentStep('email');
     },
     onError: (error) => {
+      console.error('Subscription intent error:', error);
+      // Still allow selection even if API call fails
       toast({
-        title: "Error",
-        description: "Failed to record preference. Please try again.",
-        variant: "destructive",
+        title: "Selection Recorded Locally",
+        description: "We'll save your preference when you proceed.",
       });
     },
   });
@@ -166,6 +166,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   });
 
   const handleIntent = (intent: 'monthly' | 'yearly') => {
+    setSelectedIntent(intent);
+    // Try to record intent but don't block on it
     recordIntentMutation.mutate(intent);
   };
 

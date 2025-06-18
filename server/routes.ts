@@ -887,7 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Interest Test endpoints
+  // Interest Test endpoints (authenticated - user must be logged in)
   app.post("/api/interest/subscription", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
