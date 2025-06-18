@@ -45,6 +45,8 @@ export const users = pgTable("users", {
   storyProgress: varchar("story_progress").default("Node_Start_01"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  subscriptionIntent: varchar("subscription_intent"), // 'monthly' or 'yearly'
+  notificationEmail: varchar("notification_email"),
 });
 
 // Monsters table

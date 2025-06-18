@@ -192,6 +192,7 @@ const STORY_NODES: Record<string, {
 export default function StoryManager() {
   const [currentNode, setCurrentNode] = useState<string>("Node_01_Awakening");
   const [previousChoice, setPreviousChoice] = useState<string | null>(null);
+  const [showInterestTest, setShowInterestTest] = useState<boolean>(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 

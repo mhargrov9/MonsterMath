@@ -90,6 +90,10 @@ export interface IStorage {
   // Battle slot operations
   getUserBattleSlots(userId: string): Promise<number>;
   updateUserBattleSlots(userId: string, slots: number): Promise<User>;
+  
+  // Interest Test operations
+  recordSubscriptionIntent(userId: string, intent: 'monthly' | 'yearly'): Promise<User>;
+  recordNotificationEmail(userId: string, email: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
