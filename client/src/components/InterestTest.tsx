@@ -133,18 +133,22 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
 
   if (currentStep === 'offer') {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6 relative">
+        {/* Monster Collage Background */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          {collageStyle.map((style, index) => (
+            <div 
+              key={index} 
+              style={style}
+              className="bg-red-500"
+            />
+          ))}
+        </div>
+        
         {/* Offer Screen */}
-        <Card className="relative overflow-hidden bg-gradient-to-br from-purple-100 via-blue-50 to-purple-100 dark:from-purple-900 dark:via-blue-900 dark:to-purple-800 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
-          {/* Monster Collage Background */}
-          <div className="absolute inset-0 pointer-events-none">
-            {collageStyle.map((style, index) => (
-              <div key={index} style={style} />
-            ))}
-          </div>
-          
+        <Card className="relative bg-gradient-to-br from-purple-100/80 via-blue-50/80 to-purple-100/80 dark:from-purple-900/80 dark:via-blue-900/80 dark:to-purple-800/80 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl z-10">
           {/* Content Overlay */}
-          <div className="relative z-10">
+          <div className="relative z-20">
             <CardHeader className="text-center pb-4 bg-white/90 dark:bg-gray-900/90 rounded-t-lg">
               <div className="flex justify-center mb-4">
                 <div className="text-6xl">⚔️</div>
@@ -206,17 +210,21 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
 
   // Email Capture Screen
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Card className="relative overflow-hidden bg-gradient-to-br from-green-100 via-emerald-50 to-green-100 dark:from-green-900 dark:via-emerald-900 dark:to-green-800 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl">
-        {/* Monster Collage Background */}
-        <div className="absolute inset-0 pointer-events-none">
-          {collageStyle.map((style, index) => (
-            <div key={index} style={{...style, opacity: (style.opacity as number) * 1.2}} />
-          ))}
-        </div>
-        
+    <div className="max-w-2xl mx-auto space-y-6 relative">
+      {/* Monster Collage Background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        {collageStyle.map((style, index) => (
+          <div 
+            key={index} 
+            style={{...style, opacity: (style.opacity as number) * 1.2}}
+            className="bg-red-500"
+          />
+        ))}
+      </div>
+      
+      <Card className="relative bg-gradient-to-br from-green-100/80 via-emerald-50/80 to-green-100/80 dark:from-green-900/80 dark:via-emerald-900/80 dark:to-green-800/80 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl z-10">
         {/* Content Overlay */}
-        <div className="relative z-10">
+        <div className="relative z-20">
           <CardHeader className="text-center pb-4 bg-white/90 dark:bg-gray-900/90 rounded-t-lg">
             <div className="flex justify-center mb-4">
               <div className="text-6xl">🎉</div>
