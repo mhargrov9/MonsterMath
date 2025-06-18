@@ -100,15 +100,15 @@ const STORY_NODES: Record<string, {
     image: "@assets/Elder's Abode_1750207549398.png"
   },
   "Node_7A_Den_Entrance": {
-    title: "The Hidden Den",
-    description: "A secret sanctuary beneath the village",
-    content: "The Elder leads you to a concealed entrance beneath the village. 'This den has protected our kind for generations,' he explains. Inside, you see dozens of monsters - some injured, others simply scared. The Shard pulses warmly. 'This place... it feels safe. But I sense something approaching...'",
+    title: "Gloomfang Den - Entrance",
+    description: "The Gloomfang Den",
+    content: "The Elder guides you to the den and wishes you luck before retreating to safety. The Shard of Remembrance hums in your mind, 'There are several of Vorvax's creatures in there. They feel... like freshly broken stone and shadows. Be ready for a fight. How do we approach?'",
     choices: [
-      { text: "Prepare the den's defenses", nextNode: "Node_8A_Village_Defense" },
-      { text: "Scout for approaching threats", nextNode: "Node_8A_Village_Defense" }
+      { text: "Enter the den cautiously, ready to ambush", nextNode: "Node_8A_Village_Defense" },
+      { text: "Charge in aggressively, letting out a battle cry", nextNode: "Node_8A_Village_Defense" }
     ],
-    location: "The Hidden Den",
-    image: "An underground sanctuary filled with various monsters seeking refuge"
+    location: "Gloomfang Den - Entrance",
+    image: "@assets/Gloomfang Den - Entrance_1750207549397.png"
   },
   "Node_8A_Village_Defense": {
     title: "Under Siege",
