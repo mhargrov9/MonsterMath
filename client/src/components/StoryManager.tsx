@@ -74,7 +74,7 @@ const STORY_NODES: Record<string, {
       { text: "Investigate the Old Training Yard", nextNode: "Node_5B_Yard_Arrival" }
     ],
     location: "Forest Crossroads",
-    image: "An ancient, mossy path splitting in two - one path leads towards a village, the other towards ruins"
+    image: "@assets/Forest Crossroads_1750207549400.png"
   },
   
   // PATH A - Village Route
