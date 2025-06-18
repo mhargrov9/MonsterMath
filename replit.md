@@ -328,6 +328,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - No payment processing - purely for market research and email collection
   - Enhanced Interest Test cards with dynamic monster collage backgrounds
   - Random selection and positioning of 12 monster images from all levels creates unique visual appeal
+  - Fixed positioning system ensures monster backgrounds are visible across all screen sizes
+  - Circular monster images with varied rotations, scales, and opacity create engaging visual backdrop
 
 ## User Preferences
 
