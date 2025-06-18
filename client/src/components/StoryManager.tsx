@@ -279,7 +279,7 @@ export default function StoryManager() {
             </div>
           )}
           
-          <p className="text-gray-700 leading-relaxed mb-6 text-base">
+          <p className="text-gray-900 dark:text-gray-100 leading-relaxed mb-6 text-base font-medium">
             {currentStory.content}
           </p>
           
