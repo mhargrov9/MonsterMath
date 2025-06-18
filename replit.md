@@ -308,6 +308,10 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Maintained full responsive design compatibility across all devices
   - Updated Node 5A with corrected village entrance narrative emphasizing tension and empty atmosphere
   - Updated Node 4 choice text to use proper village name "Elderwood Village" for consistency
+  - Implemented dynamic content system for Node 3 and Node 6A based on previous player choices
+  - Node 3 now displays different text based on Node 2 choice (touch vs mental communication)
+  - Node 6A displays different text based on Node 5A choice (approach monster vs find elder's home)
+  - Enhanced narrative branching creates personalized story experiences
 
 ## User Preferences
 

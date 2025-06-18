@@ -57,8 +57,8 @@ const STORY_NODES: Record<string, {
   },
   "Node_03_Conversation": {
     title: "The Whispering Glade",
-    description: "First contact with the mysterious Shard",
-    content: "As you reach out, the Shard's glow intensifies. A voice whispers in your mind: 'At last... another free soul. I have been waiting so long...' The voice trembles with relief and ancient wisdom. 'I am but a fragment of what once was, but I remember. The darkness spreads, and the name... Vorvax... brings terror even to my fractured memories. You must be careful, young one. Great dangers lie ahead.'",
+    description: "The First Conversation",
+    content: "", // Will be set dynamically based on previous choice
     choices: [
       { text: "Continue listening to the Shard", nextNode: "Node_04_Crossroads" }
     ],
@@ -258,8 +258,22 @@ export default function StoryManager() {
     );
   }
 
-  // Get dynamic content for Node 6A based on previous choice
+  // Get dynamic content for nodes based on previous choice
   const getDynamicContent = (node: string) => {
+    if (node === "Node_03_Conversation") {
+      let introText = "";
+      
+      if (previousChoice === "Gently touch the Shard") {
+        introText = "A voice, ancient and melodic, flashes into your mind as your hand makes contact. It is startled, but warm.\n\nThe Shard: \"A touch! So bright! I haven't felt... anything... in so long. You can hear me? Your mind... it's not like the others. You are afraid, but there is courage there. Thank the cosmos.\"";
+      } else {
+        introText = "A timid voice cautiously answers your mental call, like an echo from far away.\n\nThe Shard: \"Hello? A voice in the silence... Is someone there? I can feel your thoughts... you are not one of them. You are afraid, but brave. Thank the cosmos, I am not alone.\"";
+      }
+      
+      const sharedDialogue = "The Shard: \"I do not know how I came to this place, or what I truly am. I am... a fragment. All I have are echoes of a terrible end, and a name that brings with it an unspeakable dread... Vorvax.\"\n\nYou feel a pulse of energy from the Shard, a sense of grim determination.\n\nThe Shard: \"That shadow has found this world. We cannot stay here. Its minions will be searching for me... and for any monster like you who can resist its call. I will lend you what little strength I have. We must find safety. We must find answers.\"";
+      
+      return `${introText}\n\n${sharedDialogue}`;
+    }
+    
     if (node === "Node_6A_Elder_Meeting") {
       let introText = "";
       
@@ -273,6 +287,7 @@ export default function StoryManager() {
       
       return `${introText}\n\n${sharedDialogue}`;
     }
+    
     return STORY_NODES[node]?.content || "";
   };
 
