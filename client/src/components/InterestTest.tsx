@@ -40,18 +40,18 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    // Generate grid positions programmatically to ensure all 30 cards are placed correctly
+    // Generate grid positions with proper spacing to prevent overlaps
     const positions = [];
-    const cols = 6;
-    const rows = 5;
+    const cols = 5; // Reduce columns for better spacing
+    const rows = 4; // Reduce rows for better spacing
     
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        const topPercent = 5 + (row * 18); // Start at 5%, spacing of 18%
-        const leftPercent = 2 + (col * 16); // Start at 2%, spacing of 16%
-        const scale = 0.12 + Math.random() * 0.04; // Random scale 0.12-0.16
-        const rotation = -20 + Math.random() * 40; // Random rotation -20 to +20
-        const opacity = 0.3 + Math.random() * 0.15; // Random opacity 0.3-0.45
+        const topPercent = 3 + (row * 24); // Start at 3%, spacing of 24%
+        const leftPercent = 1 + (col * 19.5); // Start at 1%, spacing of 19.5%
+        const scale = 0.24 + Math.random() * 0.06; // Double the scale: 0.24-0.30
+        const rotation = -15 + Math.random() * 30; // Random rotation -15 to +15
+        const opacity = 0.35 + Math.random() * 0.15; // Random opacity 0.35-0.50
         
         positions.push({
           top: `${topPercent}%`,
@@ -74,7 +74,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
-    console.log(`Generated ${collageMonsters.length} monster cards for collage`);
+    console.log(`Generated ${collageMonsters.length} monster cards for collage (5x4 grid)`);
     return collageMonsters;
   }, [monsters]);
 
@@ -144,8 +144,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
               left: item.position.left,
               transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
               opacity: item.position.opacity,
-              width: '200px',
-              height: '280px'
+              width: '280px',
+              height: '400px'
             }}
           >
             <MonsterCard monster={item.monster} />
@@ -238,8 +238,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
             left: item.position.left,
             transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
             opacity: item.position.opacity,
-            width: '200px',
-            height: '280px'
+            width: '280px',
+            height: '400px'
           }}
         >
           <MonsterCard monster={item.monster} />
