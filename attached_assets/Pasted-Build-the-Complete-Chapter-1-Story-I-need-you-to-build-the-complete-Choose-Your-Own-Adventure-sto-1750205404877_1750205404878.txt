@@ -1,0 +1,79 @@
+Build the Complete Chapter 1 Story
+"I need you to build the complete 'Choose Your Own Adventure' story system for my game's 'STORY' tab. This involves creating a reusable 'Story Node' template and then populating it with the full story content for the Chapter 1 Free Trial.
+
+Part 1: The Story Node System Structure
+
+First, please define the structure and functionality for each 'Story Node'. Every node must adhere to these rules:
+
+Display Elements: Each node must display four elements on the screen: a Location Title (text), a Location Image (you can use a placeholder image for now), a Descriptive Text block, and a set of Choice Buttons.
+Button Generation: The number of choice buttons displayed must match the number of choices available for that specific node.
+Navigation: When a player clicks a choice button, the system must navigate them to the corresponding next Node ID, updating all the display elements (Title, Image, Text, and Buttons) to reflect the new node's content.
+Save Progress: The system must use the story_progress variable in the player's database to automatically save the ID of the current node they are on.
+Part 2: The Story Map Content
+
+Now, here is the content for every node in the Chapter 1 story. Please use this data to build the adventure:
+
+Node 1: The Awakening
+
+Node ID: Node_01_Awakening
+Location Title: The Whispering Glade
+Location Image: A serene forest glade, but with an unnaturally dark and quiet atmosphere.
+Descriptive Text: 'The echo of the terrifying vision fades. You find yourself in a familiar glade, but the air is heavy with a silent dread... A strange, psychic hum buzzes at the edge of your thoughts. You are alone.'
+Choices:
+[1. Look for the other monsters.] -> Go to Node_02_Discovery.
+[2. Investigate the source of the hum.] -> Go to Node_02_Discovery.
+Node 2: The Discovery
+
+Node ID: Node_02_Discovery
+Location Title: The Whispering Glade
+Location Image: Same image as Node 1, but a soft, pulsating light is now visible at the base of an ancient tree.
+Descriptive Text: 'You are drawn to an ancient tree... Half-buried in its roots is a crystalline shard, glowing with a soft, warm light. It pulses in rhythm with the hum in your mind, and you feel a sense of profound sadness and loneliness coming from it...'
+Choices:
+[1. Gently touch the Shard.] -> Go to Node_03_Conversation.
+[2. Call out to it with your thoughts.] -> Go to Node_03_Conversation.
+Node 3: The First Conversation
+
+Node ID: Node_03_Conversation
+Location Title: The Whispering Glade
+Location Image: Same image as Node 2, but the Shard is now glowing more brightly.
+Descriptive Text: (Use the full dialogue we designed, where the Shard awakens, expresses relief, and warns of the name 'Vorvax'. The opening lines should change slightly based on the choice from Node 2).
+Outcome: This node automatically leads to Node_04_Crossroads.
+Node 4: A Fork in the Road
+
+Node ID: Node_04_Crossroads
+Location Title: Forest Crossroads
+Location Image: (New Key Location Image) An ancient, mossy path splitting in two. One path leads towards a village, the other towards ruins.
+Descriptive Text: The Shard says: 'I sense safety and other free monsters towards the village... but I also feel a strange, forgotten power emanating from those old ruins. The choice is yours. Where should we go?'
+Choices (Major Branch):
+[1. Head towards the Monster Village.] -> Go to Node_5A_Village_Arrival.
+[2. Investigate the Old Training Yard.] -> Go to Node_5B_Yard_Arrival.
+--- Path A ---
+
+Node 5A: Arrival at the Village (Node_5A_Village_Arrival)
+Leads to Node_6A_Elder_Meeting.
+Node 6A: Meeting the Elder (Node_6A_Elder_Meeting)
+Leads to Node_7A_Den_Entrance.
+...and so on for the entire Path A quest line (Nodes 7A, 8A, 9A) as we designed it.
+--- Path B ---
+
+Node 5B: Arrival at the Yard (Node_5B_Yard_Arrival)
+Leads to Node_6B_Confrontation.
+...and so on for the entire Path B quest line (Nodes 6B, 7B) as we designed it.
+--- Both Paths Converge Here ---
+
+Node 8: The Great Choice
+
+Node ID: Node_08_Great_Choice
+Location Title: World Map
+Location Image: (New Key Location) The World Map view showing the three new, ominous locations.
+Descriptive Text: (Use the dialogue we designed where the Shard reveals the other two locations—Sky Spire and Volcanic Forge—and presents the choice to the player).
+Choices:
+[1. Travel to the Sunken Temple.] -> Go to Node_09_Cliffhanger.
+[2. Ascend the Sky Spire.] -> Go to Node_09_Cliffhanger.
+[3. Approach the Volcanic Forge.] -> Go to Node_09_Cliffhanger.
+Node 9: The Cliffhanger
+
+Node ID: Node_09_Cliffhanger
+Action: As soon as the player arrives at this node (after making a choice in Node 8), the game action pauses.
+UI Change: A new screen appears.
+Text on Screen: 'You have completed the first chapter of your adventure! The journey to save the Monster World begins now. Subscribe to continue.'"
