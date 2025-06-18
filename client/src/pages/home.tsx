@@ -10,6 +10,7 @@ import BattleArena from "@/components/BattleArena";
 import CurrencyDisplay from "@/components/CurrencyDisplay";
 import PlayerInventory from "@/components/PlayerInventory";
 import StoryManager from "@/components/StoryManager";
+import MonsterCard from "@/components/MonsterCard";
 import { GameTab } from "@/types/game";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,11 @@ export default function Home() {
   const { data: userData } = useQuery({
     queryKey: ["/api/auth/user"],
     enabled: !!user,
+  });
+
+  // Fetch monsters for collage
+  const { data: monsters } = useQuery({
+    queryKey: ['/api/monsters'],
   });
 
   const addRepairKitMutation = useMutation({
@@ -143,7 +149,74 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6">
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 lg:p-6 relative">
+        {/* Monster Card Collage Background */}
+        <div className="fixed top-[5%] left-[5%] transform rotate-[-12deg] scale-[0.2] opacity-30 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 6, name: "Gigalith", type: "Earth", basePower: 150, baseSpeed: 80, baseDefense: 200, level: 1 }} />
+        </div>
+        <div className="fixed top-[3%] left-[25%] transform rotate-[8deg] scale-[0.18] opacity-25 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 7, name: "Aetherion", type: "Psychic", basePower: 180, baseSpeed: 120, baseDefense: 70, level: 2 }} />
+        </div>
+        <div className="fixed top-[7%] left-[45%] transform rotate-[-15deg] scale-[0.22] opacity-35 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 8, name: "Geode Tortoise", type: "Earth", basePower: 90, baseSpeed: 40, baseDefense: 160, level: 1 }} />
+        </div>
+        <div className="fixed top-[4%] left-[65%] transform rotate-[18deg] scale-[0.19] opacity-30 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 9, name: "Gale-Feather Griffin", type: "Air", basePower: 110, baseSpeed: 140, baseDefense: 80, level: 3 }} />
+        </div>
+        <div className="fixed top-[6%] left-[85%] transform rotate-[-8deg] scale-[0.17] opacity-28 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 10, name: "Cinder-Tail Salamander", type: "Fire", basePower: 130, baseSpeed: 100, baseDefense: 90, level: 2 }} />
+        </div>
+
+        {/* Second row */}
+        <div className="fixed top-[25%] left-[2%] transform rotate-[15deg] scale-[0.21] opacity-32 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 11, name: "River-Spirit Axolotl", type: "Water", basePower: 85, baseSpeed: 90, baseDefense: 110, level: 1 }} />
+        </div>
+        <div className="fixed top-[28%] left-[22%] transform rotate-[-20deg] scale-[0.16] opacity-28 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 12, name: "Spark-Tail Squirrel", type: "Electric", basePower: 95, baseSpeed: 125, baseDefense: 75, level: 3 }} />
+        </div>
+        <div className="fixed top-[26%] left-[42%] transform rotate-[12deg] scale-[0.23] opacity-33 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 6, name: "Gigalith", type: "Earth", basePower: 150, baseSpeed: 80, baseDefense: 200, level: 2 }} />
+        </div>
+        <div className="fixed top-[29%] left-[62%] transform rotate-[-25deg] scale-[0.18] opacity-29 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 7, name: "Aetherion", type: "Psychic", basePower: 180, baseSpeed: 120, baseDefense: 70, level: 1 }} />
+        </div>
+        <div className="fixed top-[27%] left-[82%] transform rotate-[22deg] scale-[0.20] opacity-26 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 8, name: "Geode Tortoise", type: "Earth", basePower: 90, baseSpeed: 40, baseDefense: 160, level: 3 }} />
+        </div>
+
+        {/* Third row */}
+        <div className="fixed top-[50%] left-[8%] transform rotate-[-10deg] scale-[0.19] opacity-34 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 9, name: "Gale-Feather Griffin", type: "Air", basePower: 110, baseSpeed: 140, baseDefense: 80, level: 2 }} />
+        </div>
+        <div className="fixed top-[52%] left-[28%] transform rotate-[25deg] scale-[0.22] opacity-30 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 10, name: "Cinder-Tail Salamander", type: "Fire", basePower: 130, baseSpeed: 100, baseDefense: 90, level: 1 }} />
+        </div>
+        <div className="fixed top-[48%] left-[48%] transform rotate-[-18deg] scale-[0.17] opacity-32 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 11, name: "River-Spirit Axolotl", type: "Water", basePower: 85, baseSpeed: 90, baseDefense: 110, level: 3 }} />
+        </div>
+        <div className="fixed top-[51%] left-[68%] transform rotate-[14deg] scale-[0.21] opacity-27 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 12, name: "Spark-Tail Squirrel", type: "Electric", basePower: 95, baseSpeed: 125, baseDefense: 75, level: 2 }} />
+        </div>
+        <div className="fixed top-[49%] left-[88%] transform rotate-[-22deg] scale-[0.18] opacity-31 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 6, name: "Gigalith", type: "Earth", basePower: 150, baseSpeed: 80, baseDefense: 200, level: 1 }} />
+        </div>
+
+        {/* Fourth row */}
+        <div className="fixed top-[72%] left-[5%] transform rotate-[20deg] scale-[0.20] opacity-28 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 7, name: "Aetherion", type: "Psychic", basePower: 180, baseSpeed: 120, baseDefense: 70, level: 3 }} />
+        </div>
+        <div className="fixed top-[75%] left-[25%] transform rotate-[-15deg] scale-[0.19] opacity-33 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 8, name: "Geode Tortoise", type: "Earth", basePower: 90, baseSpeed: 40, baseDefense: 160, level: 1 }} />
+        </div>
+        <div className="fixed top-[73%] left-[45%] transform rotate-[10deg] scale-[0.22] opacity-29 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 9, name: "Gale-Feather Griffin", type: "Air", basePower: 110, baseSpeed: 140, baseDefense: 80, level: 2 }} />
+        </div>
+        <div className="fixed top-[76%] left-[65%] transform rotate-[-28deg] scale-[0.16] opacity-31 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 10, name: "Cinder-Tail Salamander", type: "Fire", basePower: 130, baseSpeed: 100, baseDefense: 90, level: 3 }} />
+        </div>
+        <div className="fixed top-[74%] left-[85%] transform rotate-[16deg] scale-[0.21] opacity-25 pointer-events-none z-0">
+          <MonsterCard monster={{ id: 11, name: "River-Spirit Axolotl", type: "Water", basePower: 85, baseSpeed: 90, baseDefense: 110, level: 1 }} />
+        </div>
         {/* Professor Quibble Welcome Section */}
         <ProfessorGuide />
 
