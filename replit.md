@@ -304,7 +304,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added "Return to [previous node name]" navigation button for seamless story exploration
   - Integrated 8 custom story location images with ornate golden frames and mystical shimmer effects
   - Enhanced text readability with improved contrast and flexible content containers
-  - Story text now dynamically expands for varying content lengths (1-7 rows) without cutoff
+  - Story text now dynamically expands for varying content lengths (1-7 rows) without cutoff using flexible containers
   - Maintained full responsive design compatibility across all devices
 
 ## User Preferences
