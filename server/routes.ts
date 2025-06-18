@@ -925,6 +925,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interest Test - Record subscription intent
+  app.post('/api/interest/subscription', isAuthenticated, async (req: any, res) => {
+    try {
+      const { intent, source } = req.body;
+      const userId = req.user.claims.sub;
+      
+      console.log(`Subscription intent: ${intent} from ${source} by user ${userId}`);
+      
+      const user = await storage.recordSubscriptionIntent(userId, intent);
+      res.json({ message: "Subscription intent recorded", user });
+    } catch (error) {
+      console.error("Error recording subscription intent:", error);
+      res.status(500).json({ message: "Failed to record subscription intent" });
+    }
+  });
+
+  // Interest Test - Record notification email
+  app.post('/api/interest/email', isAuthenticated, async (req: any, res) => {
+    try {
+      const { email } = req.body;
+      const userId = req.user.claims.sub;
+      
+      const user = await storage.recordNotificationEmail(userId, email);
+      res.json({ message: "Email recorded successfully", user });
+    } catch (error) {
+      console.error("Error recording notification email:", error);
+      res.status(500).json({ message: "Failed to record email" });
+    }
+  });
+
+  // Battle Token - Spend token for battle
+  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const user = await storage.spendBattleToken(userId);
+      res.json({ message: "Battle token spent", user, battleTokens: user.battleTokens });
+    } catch (error) {
+      if (error instanceof Error && error.message === "NO_BATTLE_TOKENS") {
+        res.status(402).json({ 
+          message: "No battle tokens available", 
+          error: "NO_BATTLE_TOKENS" 
+        });
+        return;
+      }
+      console.error("Error spending battle token:", error);
+      res.status(500).json({ message: "Failed to spend battle token" });
+    }
+  });
+
+  // Battle Token - Check refresh status
+  app.get('/api/battle/tokens', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      const user = await storage.refreshBattleTokens(userId);
+      res.json({ 
+        battleTokens: user.battleTokens,
+        lastRefresh: user.battleTokensLastRefresh,
+        user 
+      });
+    } catch (error) {
+      console.error("Error checking battle tokens:", error);
+      res.status(500).json({ message: "Failed to check battle tokens" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -180,10 +180,11 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
               {selectedMonsters.length > 0 && (
                 <Button 
                   onClick={handleStartBattle}
-                  disabled={generateOpponentMutation.isPending}
+                  disabled={spendTokenMutation.isPending || generateOpponentMutation.isPending}
                   className="bg-red-600 hover:bg-red-700"
                 >
-                  {generateOpponentMutation.isPending ? "Finding Opponent..." : "Start Battle!"}
+                  {spendTokenMutation.isPending ? "Using Battle Token..." : 
+                   generateOpponentMutation.isPending ? "Finding Opponent..." : "Start Battle!"}
                 </Button>
               )}
             </div>
