@@ -1,0 +1,25 @@
+'Replit' Request: Redo Node 6A
+"Please completely redo the story node with the ID Node_6A_Elder_Meeting. The current version is incorrect. Here is the complete and correct specification for this node:
+
+1. Node ID: Node_6A_Elder_Meeting
+2. Location Title: Elder's Abode
+3. Image File: Elder's Abode.png
+
+4. Descriptive Text Logic: The text displayed should depend on the choice made in the previous node (Node_5A_Village_Arrival). Please implement this logic:
+
+If the player chose [Approach the nervous monster.] in the previous node, display this text:
+
+"The small, furry monster leads you through the quiet, winding paths of the village to the largest tree. 'This is the home of Elder Korin,' it whispers. 'He is very wise, but very worried.' The little monster gives you a nod of encouragement before scurrying away. You knock, and the door swings open to reveal an ancient turtle monster. He looks at you, then at the Shard's faint light. 'Pip said you could be trusted,' the Elder says, his voice like grinding stones. 'A rare quality. He tells me you seek answers about the growing darkness. I will help you, but first, you must help my village.'"
+
+If the player chose [Look for the elder's home.] in the previous node, display this text instead:
+
+"You follow a sign carved with ancient symbols to the largest tree and knock on the sturdy wooden door. It opens to reveal an ancient turtle monster, who squints at you with wary eyes. 'I was not expecting visitors. These are dark times,' he says, his voice deep and slow. 'State your purpose.' After you explain your quest with the help of the Shard, the Elder considers you for a long moment. 'A noble goal, but words are wind. The darkness you speak of has already sent its scouts to our doorstep. If you want my help, you must first prove your strength.'"
+
+After one of the above texts is displayed, this 'Shared Dialogue' text should appear for both paths:
+
+"Elder Korin points a gnarled claw towards the edge of the village map on his table. 'Vorvax's minions—foul creatures of twisted rock and shadow—have made a den in the old Gloomfang caves. They terrorize my people and poison the forest. Go there. Prove your power and your heart by clearing out the den. Do this for us, and I will give you a reward worthy of a hero and any information I have.'"
+
+5. Player Choices: This node should only have one choice button.
+
+Button Text: [I will accept this quest.]
+Destination: This button should lead to node Node_7A_Den_Entrance.

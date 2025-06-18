@@ -90,15 +90,14 @@ const STORY_NODES: Record<string, {
     image: "@assets/Elderwood Village_1750207549399.png"
   },
   "Node_6A_Elder_Meeting": {
-    title: "Village Elder's Hut",
-    description: "Wisdom and warnings from the village elder",
-    content: "The village Elder, an ancient Tortoise with crystalline growths on his shell, listens intently as you share your story. 'The Shard speaks truth,' he says gravely. 'Vorvax's influence grows stronger. We've prepared a sanctuary - the Hidden Den - but it requires a guardian. Will you help us protect the other refugees?'",
+    title: "Elder's Abode",
+    description: "Meeting with Elder Korin",
+    content: "", // Will be set dynamically based on previous choice
     choices: [
-      { text: "Agree to guard the Hidden Den", nextNode: "Node_7A_Den_Entrance" },
-      { text: "Ask about Vorvax first", nextNode: "Node_7A_Den_Entrance" }
+      { text: "I will accept this quest", nextNode: "Node_7A_Den_Entrance" }
     ],
-    location: "Village Elder's Hut",
-    image: "A wise, ancient Tortoise Elder with crystal formations on his shell"
+    location: "Elder's Abode",
+    image: "@assets/Elder's Abode_1750207549398.png"
   },
   "Node_7A_Den_Entrance": {
     title: "The Hidden Den",
@@ -181,6 +180,7 @@ const STORY_NODES: Record<string, {
 
 export default function StoryManager() {
   const [currentNode, setCurrentNode] = useState<string>("Node_01_Awakening");
+  const [previousChoice, setPreviousChoice] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -237,7 +237,10 @@ export default function StoryManager() {
     }
   }, [progressData]);
 
-  const handleChoice = (nextNode: string) => {
+  const handleChoice = (nextNode: string, choiceText?: string) => {
+    if (choiceText) {
+      setPreviousChoice(choiceText);
+    }
     setCurrentNode(nextNode);
     updateProgressMutation.mutate(nextNode);
   };
@@ -255,7 +258,28 @@ export default function StoryManager() {
     );
   }
 
-  const currentStory = STORY_NODES[currentNode] || STORY_NODES["Node_01_Awakening"];
+  // Get dynamic content for Node 6A based on previous choice
+  const getDynamicContent = (node: string) => {
+    if (node === "Node_6A_Elder_Meeting") {
+      let introText = "";
+      
+      if (previousChoice === "Approach the nervous monster") {
+        introText = "The small, furry monster leads you through the quiet, winding paths of the village to the largest tree. 'This is the home of Elder Korin,' it whispers. 'He is very wise, but very worried.' The little monster gives you a nod of encouragement before scurrying away. You knock, and the door swings open to reveal an ancient turtle monster. He looks at you, then at the Shard's faint light. 'Pip said you could be trusted,' the Elder says, his voice like grinding stones. 'A rare quality. Come in, young one. We have much to discuss.'";
+      } else {
+        introText = "You follow a sign carved with ancient symbols to the largest tree and knock on the sturdy wooden door. It opens to reveal an ancient turtle monster, who squints at you with wary eyes. 'I was not expecting visitors. These are dark times,' he says, his voice deep and slow. 'State your purpose.' After you explain your quest with the help of the Shard, the Elder considers you for a long moment. 'A noble goal, but words are wind. The darkness you speak of has already sent its scouts to test our defenses.'";
+      }
+      
+      const sharedDialogue = "Elder Korin points a gnarled claw towards the edge of the village map on his table. 'Vorvax's minions—foul creatures of twisted rock and shadow—have made a den in the old Gloomfang caves. They terrorize my people and poison the forest. Go there. Prove your power and your heart by clearing out the den. Do this for us, and I will give you a reward worthy of a hero and any information I have.'";
+      
+      return `${introText}\n\n${sharedDialogue}`;
+    }
+    return STORY_NODES[node]?.content || "";
+  };
+
+  const currentStory = {
+    ...STORY_NODES[currentNode],
+    content: getDynamicContent(currentNode)
+  } || STORY_NODES["Node_01_Awakening"];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -414,7 +438,7 @@ export default function StoryManager() {
                   {currentStory.choices.map((choice, index) => (
                     <button
                       key={index}
-                      onClick={() => handleChoice(choice.nextNode)}
+                      onClick={() => handleChoice(choice.nextNode, choice.text)}
                       disabled={updateProgressMutation.isPending}
                       className="group relative p-5 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 dark:from-amber-800 dark:via-yellow-800 dark:to-amber-800 border-3 border-amber-500/60 dark:border-amber-400/60 rounded-xl hover:from-amber-200 hover:via-yellow-200 hover:to-amber-200 dark:hover:from-amber-700 dark:hover:via-yellow-700 dark:hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-102"
                     >
