@@ -729,6 +729,51 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
+
+  async refreshBattleTokens(userId: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const now = new Date();
+    const lastRefresh = new Date(user.battleTokensLastRefresh);
+    const hoursSinceRefresh = (now.getTime() - lastRefresh.getTime()) / (1000 * 60 * 60);
+
+    // If 24+ hours have passed, refresh tokens to 5
+    if (hoursSinceRefresh >= 24) {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          battleTokens: 5,
+          battleTokensLastRefresh: now,
+          updatedAt: now
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return updatedUser;
+    }
+
+    return user;
+  }
+
+  async spendBattleToken(userId: string): Promise<User> {
+    // First check if tokens need refreshing
+    const user = await this.refreshBattleTokens(userId);
+    
+    if (user.battleTokens <= 0) {
+      throw new Error("NO_BATTLE_TOKENS");
+    }
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        battleTokens: user.battleTokens - 1,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser;
+  }
 }
 
 export const storage = new DatabaseStorage();

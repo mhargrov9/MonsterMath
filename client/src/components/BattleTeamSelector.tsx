@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import MonsterCard from "./MonsterCard";
+import ArenaSubscriptionGate from "./ArenaSubscriptionGate";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Users, Zap, Shield } from "lucide-react";
@@ -125,7 +126,8 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
     }
 
     setIsGeneratingOpponent(true);
-    generateOpponentMutation.mutate();
+    // First spend a battle token, then generate opponent
+    spendTokenMutation.mutate();
   };
 
   if (loadingMonsters) {
@@ -266,6 +268,16 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Arena Subscription Gate */}
+      {showSubscriptionGate && (
+        <ArenaSubscriptionGate 
+          onClose={() => {
+            setShowSubscriptionGate(false);
+            setIsGeneratingOpponent(false);
+          }}
+        />
+      )}
     </div>
   );
 }
