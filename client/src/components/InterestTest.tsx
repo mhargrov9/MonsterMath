@@ -40,28 +40,32 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    // Generate grid positions with proper spacing to prevent overlaps
-    const positions = [];
-    const cols = 5; // Reduce columns for better spacing
-    const rows = 4; // Reduce rows for better spacing
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        const topPercent = 3 + (row * 24); // Start at 3%, spacing of 24%
-        const leftPercent = 1 + (col * 19.5); // Start at 1%, spacing of 19.5%
-        const scale = 0.24 + Math.random() * 0.06; // Double the scale: 0.24-0.30
-        const rotation = -15 + Math.random() * 30; // Random rotation -15 to +15
-        const opacity = 0.35 + Math.random() * 0.15; // Random opacity 0.35-0.50
-        
-        positions.push({
-          top: `${topPercent}%`,
-          left: `${leftPercent}%`,
-          scale,
-          rotation,
-          opacity
-        });
-      }
-    }
+    // Generate exact grid positions - placed one by one to ensure no overlaps
+    const positions = [
+      // Top row
+      { top: '1%', left: '1%', scale: 0.36, rotation: -8, opacity: 0.4 },
+      { top: '1%', left: '26%', scale: 0.38, rotation: 6, opacity: 0.35 },
+      { top: '1%', left: '51%', scale: 0.37, rotation: -12, opacity: 0.42 },
+      { top: '1%', left: '76%', scale: 0.39, rotation: 10, opacity: 0.38 },
+      
+      // Second row
+      { top: '26%', left: '1%', scale: 0.35, rotation: 12, opacity: 0.43 },
+      { top: '26%', left: '26%', scale: 0.38, rotation: -15, opacity: 0.37 },
+      { top: '26%', left: '51%', scale: 0.37, rotation: 9, opacity: 0.41 },
+      { top: '26%', left: '76%', scale: 0.36, rotation: -18, opacity: 0.39 },
+      
+      // Third row
+      { top: '51%', left: '1%', scale: 0.39, rotation: -6, opacity: 0.44 },
+      { top: '51%', left: '26%', scale: 0.37, rotation: 16, opacity: 0.38 },
+      { top: '51%', left: '51%', scale: 0.35, rotation: -11, opacity: 0.42 },
+      { top: '51%', left: '76%', scale: 0.38, rotation: 7, opacity: 0.36 },
+      
+      // Fourth row
+      { top: '76%', left: '1%', scale: 0.36, rotation: 11, opacity: 0.37 },
+      { top: '76%', left: '26%', scale: 0.38, rotation: -9, opacity: 0.43 },
+      { top: '76%', left: '51%', scale: 0.37, rotation: 5, opacity: 0.39 },
+      { top: '76%', left: '76%', scale: 0.35, rotation: -16, opacity: 0.41 }
+    ];
 
     // Generate 30 monster cards by cycling through available monsters
     for (let i = 0; i < positions.length; i++) {
@@ -74,7 +78,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
-    console.log(`Generated ${collageMonsters.length} monster cards for collage (5x4 grid)`);
+    console.log(`Generated ${collageMonsters.length} monster cards for collage (4x4 grid, 50% bigger, exact positions)`);
     return collageMonsters;
   }, [monsters]);
 
@@ -144,8 +148,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
               left: item.position.left,
               transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
               opacity: item.position.opacity,
-              width: '280px',
-              height: '400px'
+              width: '320px',
+              height: '450px'
             }}
           >
             <MonsterCard monster={item.monster} />
@@ -238,8 +242,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
             left: item.position.left,
             transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
             opacity: item.position.opacity,
-            width: '280px',
-            height: '400px'
+            width: '320px',
+            height: '450px'
           }}
         >
           <MonsterCard monster={item.monster} />
