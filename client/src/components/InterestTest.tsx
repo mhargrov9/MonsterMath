@@ -40,47 +40,28 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    const positions = [
-      // Top row
-      { top: '2%', left: '2%', scale: 0.18, rotation: -8, opacity: 0.4 },
-      { top: '2%', left: '20%', scale: 0.16, rotation: 6, opacity: 0.35 },
-      { top: '2%', left: '38%', scale: 0.19, rotation: -12, opacity: 0.42 },
-      { top: '2%', left: '56%', scale: 0.17, rotation: 10, opacity: 0.38 },
-      { top: '2%', left: '74%', scale: 0.18, rotation: -5, opacity: 0.36 },
-      { top: '2%', left: '92%', scale: 0.16, rotation: 8, opacity: 0.33 },
-      
-      // Second row
-      { top: '22%', left: '2%', scale: 0.19, rotation: 12, opacity: 0.43 },
-      { top: '22%', left: '20%', scale: 0.17, rotation: -15, opacity: 0.37 },
-      { top: '22%', left: '38%', scale: 0.20, rotation: 9, opacity: 0.41 },
-      { top: '22%', left: '56%', scale: 0.16, rotation: -18, opacity: 0.39 },
-      { top: '22%', left: '74%', scale: 0.18, rotation: 14, opacity: 0.35 },
-      { top: '22%', left: '92%', scale: 0.17, rotation: -7, opacity: 0.32 },
-      
-      // Third row
-      { top: '42%', left: '2%', scale: 0.17, rotation: -6, opacity: 0.44 },
-      { top: '42%', left: '20%', scale: 0.19, rotation: 16, opacity: 0.38 },
-      { top: '42%', left: '38%', scale: 0.16, rotation: -11, opacity: 0.42 },
-      { top: '42%', left: '56%', scale: 0.18, rotation: 7, opacity: 0.36 },
-      { top: '42%', left: '74%', scale: 0.17, rotation: -14, opacity: 0.40 },
-      { top: '42%', left: '92%', scale: 0.19, rotation: 13, opacity: 0.34 },
-      
-      // Fourth row
-      { top: '62%', left: '2%', scale: 0.18, rotation: 11, opacity: 0.37 },
-      { top: '62%', left: '20%', scale: 0.16, rotation: -9, opacity: 0.43 },
-      { top: '62%', left: '38%', scale: 0.19, rotation: 5, opacity: 0.39 },
-      { top: '62%', left: '56%', scale: 0.17, rotation: -16, opacity: 0.41 },
-      { top: '62%', left: '74%', scale: 0.18, rotation: 8, opacity: 0.34 },
-      { top: '62%', left: '92%', scale: 0.16, rotation: -4, opacity: 0.36 },
-      
-      // Fifth row
-      { top: '82%', left: '2%', scale: 0.17, rotation: -10, opacity: 0.38 },
-      { top: '82%', left: '20%', scale: 0.19, rotation: 15, opacity: 0.35 },
-      { top: '82%', left: '38%', scale: 0.16, rotation: -3, opacity: 0.42 },
-      { top: '82%', left: '56%', scale: 0.18, rotation: 12, opacity: 0.40 },
-      { top: '82%', left: '74%', scale: 0.17, rotation: -8, opacity: 0.37 },
-      { top: '82%', left: '92%', scale: 0.18, rotation: 6, opacity: 0.33 }
-    ];
+    // Generate grid positions programmatically to ensure all 30 cards are placed correctly
+    const positions = [];
+    const cols = 6;
+    const rows = 5;
+    
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        const topPercent = 5 + (row * 18); // Start at 5%, spacing of 18%
+        const leftPercent = 2 + (col * 16); // Start at 2%, spacing of 16%
+        const scale = 0.12 + Math.random() * 0.04; // Random scale 0.12-0.16
+        const rotation = -20 + Math.random() * 40; // Random rotation -20 to +20
+        const opacity = 0.3 + Math.random() * 0.15; // Random opacity 0.3-0.45
+        
+        positions.push({
+          top: `${topPercent}%`,
+          left: `${leftPercent}%`,
+          scale,
+          rotation,
+          opacity
+        });
+      }
+    }
 
     // Generate 30 monster cards by cycling through available monsters
     for (let i = 0; i < positions.length; i++) {
@@ -93,6 +74,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
+    console.log(`Generated ${collageMonsters.length} monster cards for collage`);
     return collageMonsters;
   }, [monsters]);
 
@@ -155,14 +137,15 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         {/* Monster Card Collage Background - Full Screen */}
         {monsterCollage.map((item, index) => (
           <div
-            key={index}
+            key={`collage-${index}`}
             className="fixed pointer-events-none z-0"
             style={{
               top: item.position.top,
               left: item.position.left,
-              right: item.position.right,
               transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
-              opacity: item.position.opacity
+              opacity: item.position.opacity,
+              width: '200px',
+              height: '280px'
             }}
           >
             <MonsterCard monster={item.monster} />
@@ -248,14 +231,15 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       {/* Monster Card Collage Background - Full Screen */}
       {monsterCollage.map((item, index) => (
         <div
-          key={index}
+          key={`collage-email-${index}`}
           className="fixed pointer-events-none z-0"
           style={{
             top: item.position.top,
             left: item.position.left,
-            right: item.position.right,
             transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
-            opacity: item.position.opacity
+            opacity: item.position.opacity,
+            width: '200px',
+            height: '280px'
           }}
         >
           <MonsterCard monster={item.monster} />
