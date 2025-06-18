@@ -94,6 +94,10 @@ export interface IStorage {
   // Interest Test operations
   recordSubscriptionIntent(userId: string, intent: 'monthly' | 'yearly'): Promise<User>;
   recordNotificationEmail(userId: string, email: string): Promise<User>;
+  
+  // Battle Token operations
+  refreshBattleTokens(userId: string): Promise<User>;
+  spendBattleToken(userId: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {

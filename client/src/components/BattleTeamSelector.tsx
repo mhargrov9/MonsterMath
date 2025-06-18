@@ -15,6 +15,7 @@ interface BattleTeamSelectorProps {
 export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   const [selectedMonsters, setSelectedMonsters] = useState<any[]>([]);
   const [isGeneratingOpponent, setIsGeneratingOpponent] = useState(false);
+  const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
   const { toast } = useToast();
 
   // Get user's monsters
@@ -40,6 +41,29 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   };
 
   const currentTPL = calculateTPL(selectedMonsters);
+
+  // Spend battle token mutation
+  const spendTokenMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/battle/spend-token", {});
+    },
+    onSuccess: () => {
+      // After successfully spending token, generate opponent
+      generateOpponentMutation.mutate();
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("NO_BATTLE_TOKENS")) {
+        setShowSubscriptionGate(true);
+      } else {
+        toast({
+          title: "Battle Token Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+    },
+  });
 
   // Generate AI opponent mutation
   const generateOpponentMutation = useMutation({
