@@ -16,11 +16,11 @@ const NODE_PARENTS: Record<string, string> = {
   "Node_5A_Village_Arrival": "Node_04_Crossroads",
   "Node_6A_Elder_Meeting": "Node_5A_Village_Arrival",
   "Node_7A_Den_Entrance": "Node_6A_Elder_Meeting",
-  "Node_8A_Village_Defense": "Node_7A_Den_Entrance",
+  "Node_8A_Inner_Chamber": "Node_7A_Den_Entrance",
   "Node_5B_Yard_Arrival": "Node_04_Crossroads",
   "Node_6B_Confrontation": "Node_5B_Yard_Arrival",
   "Node_7B_Battle_Outcome": "Node_6B_Confrontation",
-  "Node_08_Great_Choice": "Node_8A_Village_Defense", // Both paths lead here
+  "Node_08_Great_Choice": "Node_8A_Inner_Chamber", // Both paths lead here
   "Node_09_Cliffhanger": "Node_08_Great_Choice"
 };
 
@@ -110,15 +110,15 @@ const STORY_NODES: Record<string, {
     location: "Gloomfang Den - Entrance",
     image: "@assets/Gloomfang Den - Entrance_1750207549397.png"
   },
-  "Node_8A_Village_Defense": {
-    title: "Under Siege",
-    description: "The village comes under attack",
-    content: "Shadow creatures emerge from the forest, their eyes glowing with malevolent energy. The villagers fight bravely, but they're outnumbered. The Shard's voice is urgent: 'These are Vorvax's servants! We must protect the innocent, but I also sense something else... three ancient locations have awakened. After this battle, we must choose our next destination carefully.'",
+  "Node_8A_Inner_Chamber": {
+    title: "Gloomfang Den - Inner Chamber",
+    description: "The Inner Chamber",
+    content: "After defeating the scouts, you push deeper into the cavern. A tougher-looking 'Scout Commander' stands guard over a crude wooden chest. It snarls, recognizing the light of the Shard as a threat. 'For the glory of Vorvax!' it screeches as it lunges!",
     choices: [
-      { text: "Fight to defend the village", nextNode: "Node_08_Great_Choice" }
+      { text: "Fight the Scout Commander", nextNode: "Node_08_Great_Choice" }
     ],
-    location: "Elderwood Village",
-    image: "@assets/Elderwood Village_1750207549399.png"
+    location: "Gloomfang Den - Inner Chamber",
+    image: "@assets/Gloomfang Den - Inner Chamber_1750207549396.png"
   },
 
   // PATH B - Training Yard Route  
@@ -188,8 +188,8 @@ export default function StoryManager() {
   useEffect(() => {
     if (currentNode === "Node_7B_Battle_Outcome") {
       NODE_PARENTS["Node_08_Great_Choice"] = "Node_7B_Battle_Outcome";
-    } else if (currentNode === "Node_8A_Village_Defense") {
-      NODE_PARENTS["Node_08_Great_Choice"] = "Node_8A_Village_Defense";
+    } else if (currentNode === "Node_8A_Inner_Chamber") {
+      NODE_PARENTS["Node_08_Great_Choice"] = "Node_8A_Inner_Chamber";
     }
   }, [currentNode]);
 

@@ -314,6 +314,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enhanced narrative branching creates personalized story experiences
   - Updated Node 6A text to properly introduce Pip by name and show correct Elder interaction sequences
   - Corrected Node 7A to reflect Gloomfang Den quest with proper combat encounter setup and tactical choices
+  - Updated Node 8A to Inner Chamber with Scout Commander battle and proper den progression
 
 ## User Preferences
 
