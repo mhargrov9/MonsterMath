@@ -291,10 +291,11 @@ export default function StoryManager() {
     return STORY_NODES[node]?.content || "";
   };
 
+  const baseStory = STORY_NODES[currentNode] || STORY_NODES["Node_01_Awakening"];
   const currentStory = {
-    ...STORY_NODES[currentNode],
+    ...baseStory,
     content: getDynamicContent(currentNode)
-  } || STORY_NODES["Node_01_Awakening"];
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -441,7 +442,7 @@ export default function StoryManager() {
                   </button>
                 </div>
               </div>
-            ) : currentStory.choices.length > 0 ? (
+            ) : currentStory.choices && currentStory.choices.length > 0 ? (
               <div className="space-y-4">
                 <h3 className="text-center text-xl font-serif font-bold text-amber-800 dark:text-amber-200 flex items-center justify-center gap-3">
                   <span className="text-2xl">🧭</span>
@@ -450,7 +451,7 @@ export default function StoryManager() {
                 </h3>
                 
                 <div className="grid gap-4 mt-6">
-                  {currentStory.choices.map((choice, index) => (
+                  {currentStory.choices?.map((choice, index) => (
                     <button
                       key={index}
                       onClick={() => handleChoice(choice.nextNode, choice.text)}
