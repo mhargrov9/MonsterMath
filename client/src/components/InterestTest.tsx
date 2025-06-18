@@ -144,8 +144,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           </div>
           
           {/* Content Overlay */}
-          <div className="relative z-10 bg-gradient-to-br from-purple-100/70 via-blue-50/70 to-purple-100/70 dark:from-purple-900/70 dark:via-blue-900/70 dark:to-purple-800/70">
-            <CardHeader className="text-center pb-4">
+          <div className="relative z-10">
+            <CardHeader className="text-center pb-4 bg-white/90 dark:bg-gray-900/90 rounded-t-lg">
               <div className="flex justify-center mb-4">
                 <div className="text-6xl">⚔️</div>
               </div>
@@ -157,7 +157,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
               </h2>
             </CardHeader>
             
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 bg-white/90 dark:bg-gray-900/90 rounded-b-lg">
               <div className="text-center">
                 <p className="text-lg text-slate-700 dark:text-slate-300 font-serif leading-relaxed">
                   Continue your epic journey through all three ancient locations. Battle legendary monsters, 
@@ -216,8 +216,8 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         </div>
         
         {/* Content Overlay */}
-        <div className="relative z-10 bg-gradient-to-br from-green-100/70 via-emerald-50/70 to-green-100/70 dark:from-green-900/70 dark:via-emerald-900/70 dark:to-green-800/70">
-          <CardHeader className="text-center pb-4">
+        <div className="relative z-10">
+          <CardHeader className="text-center pb-4 bg-white/90 dark:bg-gray-900/90 rounded-t-lg">
             <div className="flex justify-center mb-4">
               <div className="text-6xl">🎉</div>
             </div>
@@ -226,7 +226,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
             </CardTitle>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 bg-white/90 dark:bg-gray-900/90 rounded-b-lg">
             <div className="text-center">
               <p className="text-lg text-slate-700 dark:text-slate-300 font-serif leading-relaxed mb-4">
                 Monster Academy is launching soon with the complete adventure! We'll notify you the moment 
