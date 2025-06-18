@@ -292,6 +292,13 @@ export default function MonsterLab() {
                         <Button 
                           size="sm"
                           onClick={() => {
+                            // Check if monster is at Level 3 (free trial limit)
+                            if (userMonster.level >= 3) {
+                              setBlockedMonster(userMonster);
+                              setShowSubscriptionGate(true);
+                              return;
+                            }
+                            
                             setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
                             upgradeMutation.mutate(userMonster.id);
                             setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
@@ -322,6 +329,14 @@ export default function MonsterLab() {
           </div>
         </div>
       </div>
+      
+      {/* Subscription Gate Modal */}
+      {showSubscriptionGate && blockedMonster && (
+        <LabSubscriptionGate
+          monsterName={blockedMonster.monster?.name || "Monster"}
+          onClose={handleCloseSubscriptionGate}
+        />
+      )}
     </div>
   );
 }
