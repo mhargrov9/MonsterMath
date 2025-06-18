@@ -8,6 +8,22 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
+// Node navigation mapping - tracks which nodes lead to which previous nodes
+const NODE_PARENTS: Record<string, string> = {
+  "Node_02_Discovery": "Node_01_Awakening",
+  "Node_03_Conversation": "Node_02_Discovery", 
+  "Node_04_Crossroads": "Node_03_Conversation",
+  "Node_5A_Village_Arrival": "Node_04_Crossroads",
+  "Node_6A_Elder_Meeting": "Node_5A_Village_Arrival",
+  "Node_7A_Hidden_Den": "Node_6A_Elder_Meeting",
+  "Node_8A_Village_Defense": "Node_7A_Hidden_Den",
+  "Node_5B_Yard_Arrival": "Node_04_Crossroads",
+  "Node_6B_Confrontation": "Node_5B_Yard_Arrival",
+  "Node_7B_Battle_Outcome": "Node_6B_Confrontation",
+  "Node_08_Great_Choice": "Node_8A_Village_Defense", // Both paths lead here
+  "Node_09_Cliffhanger": "Node_08_Great_Choice"
+};
+
 // Chapter 1: The Complete Choose Your Own Adventure Story
 const STORY_NODES: Record<string, {
   title: string;
@@ -168,6 +184,15 @@ export default function StoryManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Handle convergence point - both paths can lead to Node_08_Great_Choice
+  useEffect(() => {
+    if (currentNode === "Node_7B_Battle_Outcome") {
+      NODE_PARENTS["Node_08_Great_Choice"] = "Node_7B_Battle_Outcome";
+    } else if (currentNode === "Node_8A_Village_Defense") {
+      NODE_PARENTS["Node_08_Great_Choice"] = "Node_8A_Village_Defense";
+    }
+  }, [currentNode]);
+
   // Fetch current story progress
   const { data: progressData, isLoading } = useQuery<{ storyProgress: string }>({
     queryKey: ["/api/story/progress"],
@@ -326,6 +351,24 @@ export default function StoryManager() {
               <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
             </div>
             
+            {/* Return to Previous Node Button */}
+            {NODE_PARENTS[currentNode] && (
+              <div className="mb-6">
+                <button
+                  onClick={() => handleChoice(NODE_PARENTS[currentNode])}
+                  disabled={updateProgressMutation.isPending}
+                  className="group relative px-6 py-3 bg-gradient-to-r from-slate-200 via-gray-200 to-slate-200 dark:from-slate-700 dark:via-gray-700 dark:to-slate-700 border-2 border-slate-400/60 dark:border-slate-500/60 rounded-xl hover:from-slate-300 hover:via-gray-300 hover:to-slate-300 dark:hover:from-slate-600 dark:hover:via-gray-600 dark:hover:to-slate-600 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">↶</span>
+                    <span className="font-serif text-slate-800 dark:text-slate-200 font-medium">
+                      Return to {STORY_NODES[NODE_PARENTS[currentNode]]?.title || NODE_PARENTS[currentNode]}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
+
             {/* Chapter Complete Handling */}
             {currentNode === "Node_09_Cliffhanger" ? (
               <div className="space-y-6">
