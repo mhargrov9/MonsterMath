@@ -47,7 +47,7 @@ const STORY_NODES: Record<string, {
   "Node_02_Discovery": {
     title: "The Whispering Glade",
     description: "A mysterious crystalline shard pulses with warm light",
-    content: "You are drawn to an ancient tree... Half-buried in its roots is a crystalline shard, glowing with a soft, warm light. It pulses in rhythm with the hum in your mind, and you feel a sense of profound sadness and loneliness coming from it, but no malice.",
+    content: "You are drawn to an ancient tree... Half-buried in its roots is a crystalline shard, glowing with a soft, warm light. It pulses in rhythm with the hum in your mind, and you feel a sense of profound sadness and loneliness coming from it...",
     choices: [
       { text: "Gently touch the Shard", nextNode: "Node_03_Conversation" },
       { text: "Call out to it with your thoughts", nextNode: "Node_03_Conversation" }
