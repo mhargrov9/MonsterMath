@@ -122,14 +122,14 @@ const STORY_NODES: Record<string, {
     image: "@assets/Gloomfang Den - Inner Chamber_1750207549396.png"
   },
   "Node_9A_Reward": {
-    title: "Victory Reward",
-    description: "The Scout Commander is defeated",
-    content: "The Scout Commander falls with a final screech. Inside the crude wooden chest, you find ancient coins and a mysterious crystal fragment. The Shard pulses with excitement: 'This fragment... it's connected to something much larger. The path ahead becomes clearer, but also more dangerous.'",
+    title: "The Elder's Reward",
+    description: "The Elder's Reward",
+    content: "You return to the grateful Elder. 'You have the strength of the old heroes,' he says, his voice filled with newfound respect. 'As promised, a reward for your courage. Choose one of these young monsters who, inspired by your deeds, has pledged to join your cause. More importantly, I found this on the commander. It is a map... it points to a major gathering point for Vorvax's forces... The Sunken Temple. This must be your next destination.'",
     choices: [
-      { text: "Continue to the convergence point", nextNode: "Node_08_Great_Choice" }
+      { text: "Accept the reward and continue", nextNode: "Node_08_Great_Choice" }
     ],
-    location: "Gloomfang Den - Inner Chamber",
-    image: "@assets/Gloomfang Den - Inner Chamber_1750207549396.png"
+    location: "Elder's Abode",
+    image: "@assets/Elder's Abode_1750207549398.png"
   },
 
   // PATH B - Training Yard Route  
