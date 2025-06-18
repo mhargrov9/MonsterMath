@@ -20,7 +20,8 @@ const NODE_PARENTS: Record<string, string> = {
   "Node_5B_Yard_Arrival": "Node_04_Crossroads",
   "Node_6B_Confrontation": "Node_5B_Yard_Arrival",
   "Node_7B_Battle_Outcome": "Node_6B_Confrontation",
-  "Node_08_Great_Choice": "Node_8A_Inner_Chamber", // Both paths lead here
+  "Node_9A_Reward": "Node_8A_Inner_Chamber",
+  "Node_08_Great_Choice": "Node_7B_Battle_Outcome", // Only Path B leads here now
   "Node_09_Cliffhanger": "Node_08_Great_Choice"
 };
 
@@ -115,7 +116,17 @@ const STORY_NODES: Record<string, {
     description: "The Inner Chamber",
     content: "After defeating the scouts, you push deeper into the cavern. A tougher-looking 'Scout Commander' stands guard over a crude wooden chest. It snarls, recognizing the light of the Shard as a threat. 'For the glory of Vorvax!' it screeches as it lunges!",
     choices: [
-      { text: "Fight the Scout Commander", nextNode: "Node_08_Great_Choice" }
+      { text: "Fight the Scout Commander", nextNode: "Node_9A_Reward" }
+    ],
+    location: "Gloomfang Den - Inner Chamber",
+    image: "@assets/Gloomfang Den - Inner Chamber_1750207549396.png"
+  },
+  "Node_9A_Reward": {
+    title: "Victory Reward",
+    description: "The Scout Commander is defeated",
+    content: "The Scout Commander falls with a final screech. Inside the crude wooden chest, you find ancient coins and a mysterious crystal fragment. The Shard pulses with excitement: 'This fragment... it's connected to something much larger. The path ahead becomes clearer, but also more dangerous.'",
+    choices: [
+      { text: "Continue to the convergence point", nextNode: "Node_08_Great_Choice" }
     ],
     location: "Gloomfang Den - Inner Chamber",
     image: "@assets/Gloomfang Den - Inner Chamber_1750207549396.png"
@@ -188,8 +199,8 @@ export default function StoryManager() {
   useEffect(() => {
     if (currentNode === "Node_7B_Battle_Outcome") {
       NODE_PARENTS["Node_08_Great_Choice"] = "Node_7B_Battle_Outcome";
-    } else if (currentNode === "Node_8A_Inner_Chamber") {
-      NODE_PARENTS["Node_08_Great_Choice"] = "Node_8A_Inner_Chamber";
+    } else if (currentNode === "Node_9A_Reward") {
+      NODE_PARENTS["Node_08_Great_Choice"] = "Node_9A_Reward";
     }
   }, [currentNode]);
 
