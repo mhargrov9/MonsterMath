@@ -82,16 +82,16 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       { top: '82%', left: '92%', scale: 0.18, rotation: 6, opacity: 0.33 }
     ];
 
-    // Use all available monsters with varied levels
-    monsters.forEach((monster: any, index: number) => {
-      if (index < positions.length) {
-        const level = Math.floor(Math.random() * 3) + 1; // Random level 1-3
-        collageMonsters.push({
-          monster: { ...monster, level },
-          position: positions[index]
-        });
-      }
-    });
+    // Generate 30 monster cards by cycling through available monsters
+    for (let i = 0; i < positions.length; i++) {
+      const monsterIndex = i % monsters.length; // Cycle through monsters
+      const randomLevel = Math.floor(Math.random() * 10) + 1; // Random level 1-10
+      
+      collageMonsters.push({
+        monster: { ...monsters[monsterIndex], level: randomLevel },
+        position: positions[i]
+      });
+    }
 
     return collageMonsters;
   }, [monsters]);
