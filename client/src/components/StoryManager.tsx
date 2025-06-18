@@ -105,8 +105,8 @@ const STORY_NODES: Record<string, {
     description: "The Gloomfang Den",
     content: "The Elder guides you to the den and wishes you luck before retreating to safety. The Shard of Remembrance hums in your mind, 'There are several of Vorvax's creatures in there. They feel... like freshly broken stone and shadows. Be ready for a fight. How do we approach?'",
     choices: [
-      { text: "Enter the den cautiously, ready to ambush", nextNode: "Node_8A_Village_Defense" },
-      { text: "Charge in aggressively, letting out a battle cry", nextNode: "Node_8A_Village_Defense" }
+      { text: "Enter the den cautiously, ready to ambush", nextNode: "Node_8A_Inner_Chamber" },
+      { text: "Charge in aggressively, letting out a battle cry", nextNode: "Node_8A_Inner_Chamber" }
     ],
     location: "Gloomfang Den - Entrance",
     image: "@assets/Gloomfang Den - Entrance_1750207549397.png"
