@@ -8,6 +8,36 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import MonsterCard from "./MonsterCard";
 
+// Helper function to get monster image filename
+function getMonsterImageFile(monsterId: number, level: number): string {
+  const monsterImageMap: Record<string, string> = {
+    "6_1": "Gigalith_Level_1_1749856385841.png",
+    "6_2": "Gigalith_Level_2_1749856393905.png", 
+    "6_3": "Gigalith_Level_3_1749856409063.png",
+    "7_1": "Aetherion_Level_1_1749866902477.png",
+    "7_2": "Aetherion_Level_2_1749866902476.png",
+    "7_3": "Aetherion_Level_3_1749866902476.png",
+    "8_1": "Geode Tortoise_Level_1_1750198366952.png",
+    "8_2": "Geode Tortoise_Level_2_1750198366941.png",
+    "8_3": "Geode Tortoise_Level_3_1750198366935.png",
+    "9_1": "Gale-Feather Griffin_Level_1_1750198352902.png",
+    "9_2": "Gale-Feather Griffin_Level_2_1750198352909.png",
+    "9_3": "Gale-Feather Griffin_Level_3_1750198352897.png",
+    "10_1": "Cinder-Tail Salamander_Level_1_1750198337385.png",
+    "10_2": "Cinder-Tail Salamander_Level_2_1750198337394.png",
+    "10_3": "Cinder-Tail Salamander_Level_3_1750198337399.png",
+    "11_1": "River-Spirit Axolotl_Level_1_1750198323311.png",
+    "11_2": "River-Spirit Axolotl_Level_2_1750198323302.png", 
+    "11_3": "River-Spirit Axolotl_Level_3_1750198323314.png",
+    "12_1": "Spark-Tail Squirrel_Level_1_1750198309057.png",
+    "12_2": "Spark-Tail Squirrel_Level_2_1750198309051.png",
+    "12_3": "Spark-Tail Squirrel_Level_3_1750198309026.png"
+  };
+  
+  const key = `${monsterId}_${level}`;
+  return monsterImageMap[key] || monsterImageMap[`${monsterId}_1`] || "Gigalith_Level_1_1749856385841.png";
+}
+
 interface InterestTestProps {
   onComplete: () => void;
 }
@@ -175,7 +205,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
               alt={item.monster.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                // Fallback to a different level if image not found
+                // Fallback to level 1 if image not found
                 const target = e.target as HTMLImageElement;
                 if (!target.src.includes('Level_1_')) {
                   target.src = `/attached_assets/${getMonsterImageFile(item.monster.id, 1)}`;
@@ -278,9 +308,16 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           }}
         >
           <img 
-            src={`/api/generate/monster-image?monster=${item.monster.id}&level=${item.monster.level}`}
+            src={`/attached_assets/${getMonsterImageFile(item.monster.id, item.monster.level)}`}
             alt={item.monster.name}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to level 1 if image not found
+              const target = e.target as HTMLImageElement;
+              if (!target.src.includes('Level_1_')) {
+                target.src = `/attached_assets/${getMonsterImageFile(item.monster.id, 1)}`;
+              }
+            }}
           />
         </div>
       ))}
