@@ -41,26 +41,33 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
     }> = [];
     
     const positions = [
-      { top: '2%', left: '1%', scale: 0.25, rotation: -8, opacity: 0.4 },
-      { top: '2%', right: '1%', scale: 0.28, rotation: 15, opacity: 0.35 },
-      { top: '15%', left: '0%', scale: 0.22, rotation: -12, opacity: 0.45 },
-      { top: '15%', right: '0%', scale: 0.24, rotation: 18, opacity: 0.38 },
-      { top: '30%', left: '2%', scale: 0.26, rotation: -5, opacity: 0.42 },
-      { top: '30%', right: '2%', scale: 0.23, rotation: 22, opacity: 0.36 },
-      { top: '45%', left: '1%', scale: 0.25, rotation: -15, opacity: 0.4 },
-      { top: '45%', right: '1%', scale: 0.27, rotation: 10, opacity: 0.33 },
-      { top: '60%', left: '0%', scale: 0.24, rotation: -20, opacity: 0.44 },
-      { top: '60%', right: '0%', scale: 0.26, rotation: 25, opacity: 0.37 },
-      { top: '75%', left: '2%', scale: 0.23, rotation: -10, opacity: 0.41 },
-      { top: '75%', right: '2%', scale: 0.25, rotation: 8, opacity: 0.39 },
-      { top: '90%', left: '1%', scale: 0.22, rotation: -6, opacity: 0.43 },
-      { top: '90%', right: '1%', scale: 0.24, rotation: 12, opacity: 0.35 },
-      { top: '8%', left: '85%', scale: 0.20, rotation: 30, opacity: 0.3 },
-      { top: '25%', left: '87%', scale: 0.21, rotation: -25, opacity: 0.32 },
-      { top: '42%', left: '86%', scale: 0.19, rotation: 35, opacity: 0.28 },
-      { top: '58%', left: '88%', scale: 0.22, rotation: -30, opacity: 0.34 },
-      { top: '72%', left: '85%', scale: 0.20, rotation: 20, opacity: 0.31 },
-      { top: '88%', left: '87%', scale: 0.21, rotation: -15, opacity: 0.33 }
+      // Top row
+      { top: '5%', left: '5%', scale: 0.3, rotation: -12, opacity: 0.4 },
+      { top: '3%', left: '25%', scale: 0.28, rotation: 8, opacity: 0.35 },
+      { top: '7%', left: '45%', scale: 0.32, rotation: -15, opacity: 0.42 },
+      { top: '4%', left: '65%', scale: 0.29, rotation: 18, opacity: 0.38 },
+      { top: '6%', left: '85%', scale: 0.27, rotation: -8, opacity: 0.36 },
+      
+      // Second row
+      { top: '25%', left: '2%', scale: 0.31, rotation: 15, opacity: 0.43 },
+      { top: '28%', left: '22%', scale: 0.26, rotation: -20, opacity: 0.37 },
+      { top: '26%', left: '42%', scale: 0.33, rotation: 12, opacity: 0.41 },
+      { top: '29%', left: '62%', scale: 0.28, rotation: -25, opacity: 0.39 },
+      { top: '27%', left: '82%', scale: 0.30, rotation: 22, opacity: 0.35 },
+      
+      // Third row
+      { top: '50%', left: '8%', scale: 0.29, rotation: -10, opacity: 0.44 },
+      { top: '52%', left: '28%', scale: 0.32, rotation: 25, opacity: 0.38 },
+      { top: '48%', left: '48%', scale: 0.27, rotation: -18, opacity: 0.42 },
+      { top: '51%', left: '68%', scale: 0.31, rotation: 14, opacity: 0.36 },
+      { top: '49%', left: '88%', scale: 0.28, rotation: -22, opacity: 0.40 },
+      
+      // Fourth row  
+      { top: '72%', left: '5%', scale: 0.30, rotation: 20, opacity: 0.37 },
+      { top: '75%', left: '25%', scale: 0.29, rotation: -15, opacity: 0.43 },
+      { top: '73%', left: '45%', scale: 0.32, rotation: 10, opacity: 0.39 },
+      { top: '76%', left: '65%', scale: 0.27, rotation: -28, opacity: 0.41 },
+      { top: '74%', left: '85%', scale: 0.31, rotation: 16, opacity: 0.34 }
     ];
 
     // Use all available monsters with varied levels
