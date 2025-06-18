@@ -279,6 +279,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enhanced database schema with hpPerLevel/mpPerLevel fields for level scaling
   - AI teams feature diverse archetypes: tank, swarm, aggro, support, control, balanced
   - Dynamic opponent generation ensures balanced battles regardless of team composition
+  - Fixed selectedMonster runtime error by replacing legacy selection code with clean encounter system
+- June 17, 2025: Monster Card Layout Fix
+  - Fixed card height constraints that were cutting off weaknesses/resistance sections
+  - Removed fixed 400px height from main content area and 360px from abilities section
+  - Increased all card heights by 120-140px to accommodate complete content display
+  - Implemented flexbox layout for natural content flow and proper section visibility
+  - All monster cards now show complete information including footer weakness/resistance data
 
 ## User Preferences
 

@@ -223,17 +223,17 @@ export default function MonsterCard({
     ? userMonster.maxMp 
     : (monster.baseMp || 200);
 
-  // Responsive card classes based on size
+  // Responsive card classes based on size - increased heights to show all content
   const getCardClasses = (size: string) => {
     switch (size) {
       case 'small':
-        return 'w-64 sm:w-72 h-[600px] sm:h-[680px] md:h-[720px]';
+        return 'w-64 sm:w-72 h-[720px] sm:h-[800px] md:h-[840px]';
       case 'medium':
-        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[700px] sm:h-[780px] md:h-[820px] lg:h-[860px]';
+        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[820px] sm:h-[900px] md:h-[940px] lg:h-[980px]';
       case 'large':
-        return 'w-80 sm:w-88 md:w-96 lg:w-[420px] h-[750px] sm:h-[830px] md:h-[900px] lg:h-[980px]';
+        return 'w-80 sm:w-88 md:w-96 lg:w-[420px] h-[870px] sm:h-[950px] md:h-[1020px] lg:h-[1100px]';
       default:
-        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[700px] sm:h-[780px] md:h-[820px] lg:h-[860px]';
+        return 'w-72 sm:w-80 md:w-84 lg:w-88 h-[820px] sm:h-[900px] md:h-[940px] lg:h-[980px]';
     }
   };
 
@@ -448,7 +448,7 @@ export default function MonsterCard({
         </div>
 
         {/* Main Content */}
-        <div className="p-2 flex gap-2" style={{ height: '400px' }}>
+        <div className="p-2 flex gap-2 flex-1 min-h-0">
           {/* Stats Block */}
           <div className="w-1/3 space-y-1">
             <div className="bg-white/70 dark:bg-black/30 p-1.5 rounded text-xs">
@@ -511,8 +511,8 @@ export default function MonsterCard({
           </div>
 
           {/* Abilities Box */}
-          <div className="w-2/3">
-            <div className="bg-white/70 dark:bg-black/30 p-2 rounded" style={{ height: '360px' }}>
+          <div className="w-2/3 flex flex-col">
+            <div className="bg-white/70 dark:bg-black/30 p-2 rounded flex-1">
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-2 text-xs">
                 {actualAbilities.map((ability: any, index: number) => {
