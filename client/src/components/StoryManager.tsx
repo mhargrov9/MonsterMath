@@ -170,7 +170,7 @@ const STORY_NODES: Record<string, {
   "Node_08_Great_Choice": {
     title: "World Map",
     description: "Three paths to destiny revealed",
-    content: "The Shard projects a mystical map in your mind, showing three ominous locations: 'The Sunken Temple holds the power of ancient knowledge, but its depths are treacherous. The Sky Spire reaches toward forgotten secrets, but the journey is perilous. The Volcanic Forge burns with primal energy, but its fires test the soul. Choose wisely - each path will change you forever.'",
+    content: "The Shard says: \"Wait... now that I know what to look for, I can sense more of Vorvax's power. There are two other locations just as powerful as the Sunken Temple... a Sky Spire that crackles with lightning, and a Volcanic Forge that burns with ancient rage. All three are connected. We must conquer them all to face Vorvax, but we can only choose one path now.\"",
     choices: [
       { text: "Travel to the Sunken Temple", nextNode: "Node_09_Cliffhanger" },
       { text: "Ascend the Sky Spire", nextNode: "Node_09_Cliffhanger" },

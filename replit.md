@@ -318,6 +318,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added Node 9A reward scene for Path A completion before convergence point
   - Fixed database story progress for existing users to use correct node IDs
   - Updated Node 9A to Elder's Reward with proper location and monster reward content
+  - Corrected Node 8 convergence point with proper Shard dialogue about three powerful locations
 
 ## User Preferences
 
