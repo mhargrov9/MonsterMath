@@ -6,6 +6,8 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
 import passport from "passport";
+import fs from "fs";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded monster assets
@@ -49,17 +51,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const monsterName = monsterNames[monsterIdNum as keyof typeof monsterNames];
         
         // Try to find the image file using fs.readdir
-        const fs = require('fs');
-        const path = require('path');
-        
         try {
           const files = fs.readdirSync('attached_assets');
+          console.log(`Looking for ${monsterName}_Level_${levelNum}_ in:`, files.filter((f: string) => f.includes(monsterName)));
+          
           const imageFile = files.find((file: string) => 
             file.startsWith(`${monsterName}_Level_${levelNum}_`) && file.endsWith('.png')
           );
           
           if (imageFile) {
             const fullPath = path.join('attached_assets', imageFile);
+            console.log(`Found image file: ${fullPath}`);
             const imageBuffer = fs.readFileSync(fullPath);
             res.set({
               'Content-Type': 'image/png',
@@ -67,9 +69,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               'Cache-Control': 'public, max-age=3600'
             });
             return res.send(imageBuffer);
+          } else {
+            console.log(`No matching file found for ${monsterName}_Level_${levelNum}_`);
           }
         } catch (err) {
-          console.log(`Custom image not found for ${monsterName} level ${levelNum}, falling back to VEO`);
+          console.error(`Error finding image for ${monsterName} level ${levelNum}:`, err);
         }
       }
 

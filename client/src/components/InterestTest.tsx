@@ -171,9 +171,16 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
             }}
           >
             <img 
-              src={`/api/generate/monster-image?monster=${item.monster.id}&level=${item.monster.level}`}
+              src={`/attached_assets/${getMonsterImageFile(item.monster.id, item.monster.level)}`}
               alt={item.monster.name}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                // Fallback to a different level if image not found
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('Level_1_')) {
+                  target.src = `/attached_assets/${getMonsterImageFile(item.monster.id, 1)}`;
+                }
+              }}
             />
           </div>
         ))}
