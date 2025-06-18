@@ -21,26 +21,12 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   // Monster images for background collage
   const monsterImages = useMemo(() => {
     const allMonsters = [
-      // Gigalith levels 1-10
-      '/api/monsters/6/image?level=1', '/api/monsters/6/image?level=2', '/api/monsters/6/image?level=3',
-      '/api/monsters/6/image?level=4', '/api/monsters/6/image?level=5', '/api/monsters/6/image?level=6',
-      '/api/monsters/6/image?level=7', '/api/monsters/6/image?level=8', '/api/monsters/6/image?level=9',
-      '/api/monsters/6/image?level=10',
-      // Aetherion levels 1-10
-      '/api/monsters/7/image?level=1', '/api/monsters/7/image?level=2', '/api/monsters/7/image?level=3',
-      '/api/monsters/7/image?level=4', '/api/monsters/7/image?level=5', '/api/monsters/7/image?level=6',
-      '/api/monsters/7/image?level=7', '/api/monsters/7/image?level=8', '/api/monsters/7/image?level=9',
-      '/api/monsters/7/image?level=10',
-      // Geode Tortoise levels 1-3
-      '/api/monsters/8/image?level=1', '/api/monsters/8/image?level=2', '/api/monsters/8/image?level=3',
-      // Gale-Feather Griffin levels 1-3
-      '/api/monsters/9/image?level=1', '/api/monsters/9/image?level=2', '/api/monsters/9/image?level=3',
-      // Cinder-Tail Salamander levels 1-3
-      '/api/monsters/10/image?level=1', '/api/monsters/10/image?level=2', '/api/monsters/10/image?level=3',
-      // River-Spirit Axolotl levels 1-3
-      '/api/monsters/11/image?level=1', '/api/monsters/11/image?level=2', '/api/monsters/11/image?level=3',
-      // Spark-Tail Squirrel levels 1-3
-      '/api/monsters/12/image?level=1', '/api/monsters/12/image?level=2', '/api/monsters/12/image?level=3'
+      // All monsters without level parameter (uses default level 1)
+      '/api/monsters/6/image', '/api/monsters/7/image', '/api/monsters/8/image',
+      '/api/monsters/9/image', '/api/monsters/10/image', '/api/monsters/11/image', '/api/monsters/12/image',
+      // Some repeated for variety
+      '/api/monsters/6/image', '/api/monsters/7/image', '/api/monsters/8/image',
+      '/api/monsters/9/image', '/api/monsters/10/image'
     ];
     
     // Shuffle and select random subset for collage
@@ -135,31 +121,62 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
         {/* Monster Collage Background */}
-        {monsterImages.slice(0, 12).map((imageUrl, index) => {
-          const position = collageStyle[index];
-          if (!position) return null;
-          
-          return (
-            <img 
-              key={index}
-              src={imageUrl.replace('?level=', '?level=')}
-              alt=""
-              className="fixed pointer-events-none z-0 rounded-full object-cover"
-              style={{
-                top: position.top,
-                left: position.left,
-                right: position.right,
-                bottom: position.bottom,
-                transform: position.transform,
-                opacity: position.opacity,
-                width: '120px',
-                height: '120px'
-              }}
-              onLoad={() => console.log('Monster image loaded:', imageUrl)}
-              onError={(e) => console.log('Monster image failed:', imageUrl)}
-            />
-          );
-        })}
+        <div 
+          className="fixed top-10 left-10 w-20 h-20 rounded-full opacity-30 z-0"
+          style={{
+            backgroundImage: `url(/attached_assets/Gigalith_Level_1_1749856385841.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed top-20 right-10 w-16 h-16 rounded-full opacity-25 z-0 transform rotate-12"
+          style={{
+            backgroundImage: `url(/attached_assets/Aetherion_Level_1_1749866902477.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed bottom-20 left-20 w-24 h-24 rounded-full opacity-35 z-0 transform -rotate-15"
+          style={{
+            backgroundImage: `url(/attached_assets/Geode Tortoise_Level_1_1750198366952.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed top-32 left-1/2 w-18 h-18 rounded-full opacity-28 z-0 transform rotate-45"
+          style={{
+            backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_1_1750198352902.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed bottom-32 right-1/4 w-22 h-22 rounded-full opacity-32 z-0 transform -rotate-30"
+          style={{
+            backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_1_1750198337385.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed top-40 right-1/3 w-20 h-20 rounded-full opacity-26 z-0 transform rotate-60"
+          style={{
+            backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_1_1750198323311.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed bottom-40 left-1/3 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
+          style={{
+            backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_1_1750198309057.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
         
         {/* Offer Screen */}
         <Card className="relative bg-gradient-to-br from-purple-100/80 via-blue-50/80 to-purple-100/80 dark:from-purple-900/80 dark:via-blue-900/80 dark:to-purple-800/80 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl z-10">
@@ -228,31 +245,62 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
       {/* Monster Collage Background */}
-      {monsterImages.slice(0, 12).map((imageUrl, index) => {
-        const position = collageStyle[index];
-        if (!position) return null;
-        
-        return (
-          <img 
-            key={index}
-            src={imageUrl.replace('?level=', '?level=')}
-            alt=""
-            className="fixed pointer-events-none z-0 rounded-full object-cover"
-            style={{
-              top: position.top,
-              left: position.left,
-              right: position.right,
-              bottom: position.bottom,
-              transform: position.transform,
-              opacity: (position.opacity as number) * 1.2,
-              width: '120px',
-              height: '120px'
-            }}
-            onLoad={() => console.log('Monster image loaded:', imageUrl)}
-            onError={(e) => console.log('Monster image failed:', imageUrl)}
-          />
-        );
-      })}
+      <div 
+        className="fixed top-10 left-10 w-20 h-20 rounded-full opacity-30 z-0"
+        style={{
+          backgroundImage: `url(/attached_assets/Gigalith_Level_2_1749856393905.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed top-20 right-10 w-16 h-16 rounded-full opacity-25 z-0 transform rotate-12"
+        style={{
+          backgroundImage: `url(/attached_assets/Aetherion_Level_2_1749866902476.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed bottom-20 left-20 w-24 h-24 rounded-full opacity-35 z-0 transform -rotate-15"
+        style={{
+          backgroundImage: `url(/attached_assets/Geode Tortoise_Level_2_1750198366941.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed top-32 left-1/2 w-18 h-18 rounded-full opacity-28 z-0 transform rotate-45"
+        style={{
+          backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_2_1750198352909.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed bottom-32 right-1/4 w-22 h-22 rounded-full opacity-32 z-0 transform -rotate-30"
+        style={{
+          backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_2_1750198337394.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed top-40 right-1/3 w-20 h-20 rounded-full opacity-26 z-0 transform rotate-60"
+        style={{
+          backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_2_1750198323302.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed bottom-40 left-1/3 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
+        style={{
+          backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_2_1750198309051.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
       
       <Card className="relative bg-gradient-to-br from-green-100/80 via-emerald-50/80 to-green-100/80 dark:from-green-900/80 dark:via-emerald-900/80 dark:to-green-800/80 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl z-10">
         {/* Content Overlay */}
