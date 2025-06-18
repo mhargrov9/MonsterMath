@@ -278,7 +278,27 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
                   </Card>
                 </div>
                 
-                <p className="text-xs text-center text-muted-foreground">
+                <div className="mt-8 text-center space-y-3">
+                  <Button
+                    onClick={() => setCurrentStep('email')}
+                    disabled={!selectedIntent}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
+                  >
+                    Continue with {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
+                  </Button>
+                  
+                  <div>
+                    <Button
+                      onClick={onComplete}
+                      variant="ghost"
+                      className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
+                    >
+                      Skip for Now - Return to Game
+                    </Button>
+                  </div>
+                </div>
+                
+                <p className="text-xs text-center text-muted-foreground mt-4">
                   Choose your preferred subscription to continue your adventure!
                 </p>
               </CardContent>
