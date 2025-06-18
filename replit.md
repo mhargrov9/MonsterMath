@@ -319,6 +319,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Fixed database story progress for existing users to use correct node IDs
   - Updated Node 9A to Elder's Reward with proper location and monster reward content
   - Corrected Node 8 convergence point with proper Shard dialogue about three powerful locations
+- June 18, 2025: Interest Test Implementation
+  - Added subscription intent tracking with monthly/yearly preference recording
+  - Created two-part Interest Test flow: subscription offer screen and email capture screen
+  - Added database fields for subscriptionIntent and notificationEmail
+  - Built InterestTest component with professional subscription pricing UI
+  - Integrated with story system to trigger after Node_08_Great_Choice selections
+  - No payment processing - purely for market research and email collection
 
 ## User Preferences
 

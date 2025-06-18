@@ -809,6 +809,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Interest Test endpoints
+  app.post("/api/interest/subscription", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { intent } = req.body;
+      
+      if (!intent || !['monthly', 'yearly'].includes(intent)) {
+        return res.status(400).json({ message: "Invalid subscription intent" });
+      }
+
+      await storage.recordSubscriptionIntent(userId, intent);
+      res.json({ message: "Subscription intent recorded", intent });
+    } catch (error) {
+      console.error("Error recording subscription intent:", error);
+      res.status(500).json({ message: "Failed to record subscription intent" });
+    }
+  });
+
+  app.post("/api/interest/email", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { email } = req.body;
+      
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ message: "Valid email address required" });
+      }
+
+      await storage.recordNotificationEmail(userId, email);
+      res.json({ message: "Notification email saved" });
+    } catch (error) {
+      console.error("Error saving notification email:", error);
+      res.status(500).json({ message: "Failed to save notification email" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

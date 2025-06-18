@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import InterestTest from "./InterestTest";
 
 // Node navigation mapping - tracks which nodes lead to which previous nodes
 const NODE_PARENTS: Record<string, string> = {
@@ -253,12 +254,24 @@ export default function StoryManager() {
     if (choiceText) {
       setPreviousChoice(choiceText);
     }
+    
+    // Check if this choice leads to the cliffhanger (interest test)
+    if (nextNode === "Node_09_Cliffhanger") {
+      setShowInterestTest(true);
+      return;
+    }
+    
     setCurrentNode(nextNode);
     updateProgressMutation.mutate(nextNode);
   };
 
   const resetStory = () => {
-    setCurrentNode("Node_01_Awakening");
+    setShowInterestTest(false);
+    updateProgressMutation.mutate("Node_01_Awakening");
+  };
+
+  const handleInterestTestComplete = () => {
+    setShowInterestTest(false);
     updateProgressMutation.mutate("Node_01_Awakening");
   };
 
@@ -268,6 +281,11 @@ export default function StoryManager() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric-blue"></div>
       </div>
     );
+  }
+
+  // Show Interest Test if triggered
+  if (showInterestTest) {
+    return <InterestTest onComplete={handleInterestTestComplete} />;
   }
 
   // Get dynamic content for nodes based on previous choice
