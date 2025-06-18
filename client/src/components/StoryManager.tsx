@@ -70,7 +70,7 @@ const STORY_NODES: Record<string, {
     description: "A fork in the road - choose your path",
     content: "The Shard says: 'I sense safety and other free monsters towards the village... but I also feel a strange, forgotten power emanating from those old ruins. The choice is yours. Where should we go?'",
     choices: [
-      { text: "Head towards the Monster Village", nextNode: "Node_5A_Village_Arrival" },
+      { text: "Head towards Elderwood Village", nextNode: "Node_5A_Village_Arrival" },
       { text: "Investigate the Old Training Yard", nextNode: "Node_5B_Yard_Arrival" }
     ],
     location: "Forest Crossroads",

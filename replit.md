@@ -307,6 +307,7 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Story text now dynamically expands for varying content lengths (1-7 rows) without cutoff using flexible containers
   - Maintained full responsive design compatibility across all devices
   - Updated Node 5A with corrected village entrance narrative emphasizing tension and empty atmosphere
+  - Updated Node 4 choice text to use proper village name "Elderwood Village" for consistency
 
 ## User Preferences
 
