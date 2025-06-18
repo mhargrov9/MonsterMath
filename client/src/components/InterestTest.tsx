@@ -40,43 +40,47 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    // Generate positions pushed higher up and 30% bigger
+    // Generate positions for monster images only - more spacing, no rotation
     const positions = [
-      // Top row - pushed to very top
-      { top: '0%', left: '1%', scale: 0.47, rotation: -8, opacity: 0.4 },
-      { top: '0%', left: '20%', scale: 0.49, rotation: 6, opacity: 0.35 },
-      { top: '0%', left: '39%', scale: 0.48, rotation: -12, opacity: 0.42 },
-      { top: '0%', left: '58%', scale: 0.51, rotation: 10, opacity: 0.38 },
-      { top: '0%', left: '77%', scale: 0.46, rotation: -5, opacity: 0.4 },
-      { top: '0%', left: '96%', scale: 0.49, rotation: 8, opacity: 0.36 },
+      // Top row - fill to very top
+      { top: '1%', left: '2%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '1%', left: '18%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      { top: '1%', left: '34%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '1%', left: '50%', scale: 0.9, rotation: 0, opacity: 0.4 },
+      { top: '1%', left: '66%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '1%', left: '82%', scale: 0.85, rotation: 0, opacity: 0.45 },
       
       // Second row
-      { top: '16%', left: '1%', scale: 0.48, rotation: 12, opacity: 0.43 },
-      { top: '16%', left: '20%', scale: 0.46, rotation: -15, opacity: 0.37 },
-      { top: '16%', left: '39%', scale: 0.51, rotation: 9, opacity: 0.41 },
-      { top: '16%', left: '58%', scale: 0.47, rotation: -18, opacity: 0.39 },
-      { top: '16%', left: '77%', scale: 0.49, rotation: 14, opacity: 0.35 },
-      { top: '16%', left: '96%', scale: 0.48, rotation: -7, opacity: 0.42 },
+      { top: '15%', left: '2%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '15%', left: '18%', scale: 0.9, rotation: 0, opacity: 0.4 },
+      { top: '15%', left: '34%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '15%', left: '50%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      { top: '15%', left: '66%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '15%', left: '82%', scale: 0.9, rotation: 0, opacity: 0.4 },
       
       // Third row
-      { top: '32%', left: '1%', scale: 0.46, rotation: -6, opacity: 0.44 },
-      { top: '32%', left: '20%', scale: 0.51, rotation: 16, opacity: 0.38 },
-      { top: '32%', left: '39%', scale: 0.47, rotation: -11, opacity: 0.42 },
-      { top: '32%', left: '58%', scale: 0.49, rotation: 7, opacity: 0.36 },
-      { top: '32%', left: '77%', scale: 0.48, rotation: -14, opacity: 0.40 },
-      { top: '32%', left: '96%', scale: 0.46, rotation: 13, opacity: 0.43 },
+      { top: '29%', left: '2%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      { top: '29%', left: '18%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '29%', left: '34%', scale: 0.9, rotation: 0, opacity: 0.4 },
+      { top: '29%', left: '50%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '29%', left: '66%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      { top: '29%', left: '82%', scale: 0.8, rotation: 0, opacity: 0.5 },
       
       // Fourth row
-      { top: '48%', left: '1%', scale: 0.49, rotation: 11, opacity: 0.37 },
-      { top: '48%', left: '20%', scale: 0.47, rotation: -9, opacity: 0.43 },
-      { top: '48%', left: '39%', scale: 0.51, rotation: 5, opacity: 0.39 },
-      { top: '48%', left: '58%', scale: 0.48, rotation: -16, opacity: 0.41 },
-      { top: '48%', left: '77%', scale: 0.46, rotation: 8, opacity: 0.34 },
-      { top: '48%', left: '96%', scale: 0.49, rotation: -4, opacity: 0.38 },
+      { top: '43%', left: '2%', scale: 0.9, rotation: 0, opacity: 0.4 },
+      { top: '43%', left: '18%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '43%', left: '34%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      { top: '43%', left: '50%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '43%', left: '66%', scale: 0.9, rotation: 0, opacity: 0.4 },
+      { top: '43%', left: '82%', scale: 0.75, rotation: 0, opacity: 0.55 },
       
       // Fifth row
-      { top: '64%', left: '1%', scale: 0.48, rotation: -10, opacity: 0.38 },
-      { top: '64%', left: '20%', scale: 0.46, rotation: 15, opacity: 0.35 }
+      { top: '57%', left: '2%', scale: 0.8, rotation: 0, opacity: 0.5 },
+      { top: '57%', left: '18%', scale: 0.85, rotation: 0, opacity: 0.45 },
+      
+      // Sixth row
+      { top: '71%', left: '2%', scale: 0.75, rotation: 0, opacity: 0.55 },
+      { top: '71%', left: '18%', scale: 0.9, rotation: 0, opacity: 0.4 }
     ];
 
     // Generate 30 monster cards by cycling through available monsters
@@ -90,7 +94,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
-    console.log(`Generated ${collageMonsters.length} monster cards for collage (pushed higher, 30% bigger)`);
+    console.log(`Generated ${collageMonsters.length} monster images for collage (clean layout, no overlap)`);
     return collageMonsters;
   }, [monsters]);
 
@@ -150,7 +154,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   if (currentStep === 'offer') {
     return (
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        {/* Monster Card Collage Background - Full Screen */}
+        {/* Monster Image Collage Background - Full Screen */}
         {monsterCollage.map((item, index) => (
           <div
             key={`collage-${index}`}
@@ -158,13 +162,19 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
             style={{
               top: item.position.top,
               left: item.position.left,
-              transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+              transform: `scale(${item.position.scale})`,
               opacity: item.position.opacity,
-              width: '320px',
-              height: '450px'
+              width: '120px',
+              height: '120px',
+              borderRadius: '12px',
+              overflow: 'hidden'
             }}
           >
-            <MonsterCard monster={item.monster} />
+            <img 
+              src={`/api/generate/monster-image?monster=${item.monster.id}&level=${item.monster.level}`}
+              alt={item.monster.name}
+              className="w-full h-full object-cover"
+            />
           </div>
         ))}
         
@@ -244,7 +254,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   // Email Capture Screen
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      {/* Monster Card Collage Background - Full Screen */}
+      {/* Monster Image Collage Background - Full Screen */}
       {monsterCollage.map((item, index) => (
         <div
           key={`collage-email-${index}`}
@@ -252,13 +262,19 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           style={{
             top: item.position.top,
             left: item.position.left,
-            transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+            transform: `scale(${item.position.scale})`,
             opacity: item.position.opacity,
-            width: '320px',
-            height: '450px'
+            width: '120px',
+            height: '120px',
+            borderRadius: '12px',
+            overflow: 'hidden'
           }}
         >
-          <MonsterCard monster={item.monster} />
+          <img 
+            src={`/api/generate/monster-image?monster=${item.monster.id}&level=${item.monster.level}`}
+            alt={item.monster.name}
+            className="w-full h-full object-cover"
+          />
         </div>
       ))}
       
