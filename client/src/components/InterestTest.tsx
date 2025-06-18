@@ -135,24 +135,24 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
         {/* Monster Collage Background */}
-        {monsterImages.map((imageUrl, index) => (
-          <img 
-            key={index}
-            src={imageUrl}
-            alt="Monster"
-            className="fixed pointer-events-none z-0 rounded-full object-cover"
-            style={{
-              top: collageStyle[index]?.top || '50%',
-              left: collageStyle[index]?.left,
-              right: collageStyle[index]?.right,
-              bottom: collageStyle[index]?.bottom,
-              transform: collageStyle[index]?.transform || 'rotate(0deg) scale(1)',
-              opacity: (collageStyle[index]?.opacity || 0.3),
-              width: '120px',
-              height: '120px'
-            }}
-          />
-        ))}
+        <img 
+          src="/api/monsters/6/image?level=1"
+          alt=""
+          className="fixed top-10 left-10 w-20 h-20 rounded-full object-cover opacity-30 z-0"
+          onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+        />
+        <img 
+          src="/api/monsters/7/image?level=1"
+          alt=""
+          className="fixed top-20 right-10 w-16 h-16 rounded-full object-cover opacity-25 z-0"
+          onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+        />
+        <img 
+          src="/api/monsters/8/image?level=1"
+          alt=""
+          className="fixed bottom-20 left-20 w-24 h-24 rounded-full object-cover opacity-35 z-0"
+          onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+        />
         
         {/* Offer Screen */}
         <Card className="relative bg-gradient-to-br from-purple-100/80 via-blue-50/80 to-purple-100/80 dark:from-purple-900/80 dark:via-blue-900/80 dark:to-purple-800/80 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl z-10">
@@ -221,24 +221,24 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
       {/* Monster Collage Background */}
-      {monsterImages.map((imageUrl, index) => (
-        <img 
-          key={index}
-          src={imageUrl}
-          alt="Monster"
-          className="fixed pointer-events-none z-0 rounded-full object-cover"
-          style={{
-            top: collageStyle[index]?.top || '50%',
-            left: collageStyle[index]?.left,
-            right: collageStyle[index]?.right,
-            bottom: collageStyle[index]?.bottom,
-            transform: collageStyle[index]?.transform || 'rotate(0deg) scale(1)',
-            opacity: ((collageStyle[index]?.opacity || 0.3) * 1.2),
-            width: '120px',
-            height: '120px'
-          }}
-        />
-      ))}
+      <img 
+        src="/api/monsters/6/image?level=1"
+        alt=""
+        className="fixed top-10 left-10 w-20 h-20 rounded-full object-cover opacity-30 z-0"
+        onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+      />
+      <img 
+        src="/api/monsters/7/image?level=1"
+        alt=""
+        className="fixed top-20 right-10 w-16 h-16 rounded-full object-cover opacity-25 z-0"
+        onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+      />
+      <img 
+        src="/api/monsters/8/image?level=1"
+        alt=""
+        className="fixed bottom-20 left-20 w-24 h-24 rounded-full object-cover opacity-35 z-0"
+        onError={(e) => console.log('Image failed to load:', e.currentTarget.src)}
+      />
       
       <Card className="relative bg-gradient-to-br from-green-100/80 via-emerald-50/80 to-green-100/80 dark:from-green-900/80 dark:via-emerald-900/80 dark:to-green-800/80 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl z-10">
         {/* Content Overlay */}
