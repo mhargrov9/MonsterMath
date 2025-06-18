@@ -146,7 +146,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           }}
         />
         <div 
-          className="fixed top-32 left-1/2 w-18 h-18 rounded-full opacity-28 z-0 transform rotate-45"
+          className="fixed top-32 left-32 w-16 h-16 rounded-full opacity-28 z-0 transform rotate-45"
           style={{
             backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_1_1750198352902.png)`,
             backgroundSize: 'cover',
@@ -154,7 +154,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           }}
         />
         <div 
-          className="fixed bottom-32 right-1/4 w-22 h-22 rounded-full opacity-32 z-0 transform -rotate-30"
+          className="fixed top-48 right-32 w-20 h-20 rounded-full opacity-32 z-0 transform -rotate-30"
           style={{
             backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_1_1750198337385.png)`,
             backgroundSize: 'cover',
@@ -162,7 +162,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           }}
         />
         <div 
-          className="fixed top-40 right-1/3 w-20 h-20 rounded-full opacity-26 z-0 transform rotate-60"
+          className="fixed top-64 left-16 w-18 h-18 rounded-full opacity-26 z-0 transform rotate-60"
           style={{
             backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_1_1750198323311.png)`,
             backgroundSize: 'cover',
@@ -170,9 +170,25 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           }}
         />
         <div 
-          className="fixed bottom-40 left-1/3 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
+          className="fixed top-80 right-16 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
           style={{
             backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_1_1750198309057.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed top-96 left-48 w-20 h-20 rounded-full opacity-25 z-0 transform rotate-30"
+          style={{
+            backgroundImage: `url(/attached_assets/Aetherion_Level_3_1749866902476.png)`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div 
+          className="fixed top-112 right-48 w-18 h-18 rounded-full opacity-35 z-0 transform -rotate-60"
+          style={{
+            backgroundImage: `url(/attached_assets/Gigalith_Level_3_1749856409063.png)`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -270,7 +286,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         }}
       />
       <div 
-        className="fixed top-32 left-1/2 w-18 h-18 rounded-full opacity-28 z-0 transform rotate-45"
+        className="fixed top-32 left-32 w-16 h-16 rounded-full opacity-28 z-0 transform rotate-45"
         style={{
           backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_2_1750198352909.png)`,
           backgroundSize: 'cover',
@@ -278,7 +294,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         }}
       />
       <div 
-        className="fixed bottom-32 right-1/4 w-22 h-22 rounded-full opacity-32 z-0 transform -rotate-30"
+        className="fixed top-48 right-32 w-20 h-20 rounded-full opacity-32 z-0 transform -rotate-30"
         style={{
           backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_2_1750198337394.png)`,
           backgroundSize: 'cover',
@@ -286,7 +302,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         }}
       />
       <div 
-        className="fixed top-40 right-1/3 w-20 h-20 rounded-full opacity-26 z-0 transform rotate-60"
+        className="fixed top-64 left-16 w-18 h-18 rounded-full opacity-26 z-0 transform rotate-60"
         style={{
           backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_2_1750198323302.png)`,
           backgroundSize: 'cover',
@@ -294,9 +310,25 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         }}
       />
       <div 
-        className="fixed bottom-40 left-1/3 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
+        className="fixed top-80 right-16 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
         style={{
           backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_2_1750198309051.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed top-96 left-48 w-20 h-20 rounded-full opacity-25 z-0 transform rotate-30"
+        style={{
+          backgroundImage: `url(/attached_assets/Aetherion_Level_4_1749866902475.png)`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+      <div 
+        className="fixed top-112 right-48 w-18 h-18 rounded-full opacity-35 z-0 transform -rotate-60"
+        style={{
+          backgroundImage: `url(/attached_assets/Gigalith_Level_4_1749856409062.png)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
