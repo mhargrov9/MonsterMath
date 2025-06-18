@@ -700,6 +700,25 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return user;
   }
+
+  // Interest Test operations
+  async recordSubscriptionIntent(userId: string, intent: 'monthly' | 'yearly'): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ subscriptionIntent: intent })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
+
+  async recordNotificationEmail(userId: string, email: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ notificationEmail: email })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
+  }
 }
 
 export const storage = new DatabaseStorage();
