@@ -585,11 +585,7 @@ export default function MonsterCard({
 
 
 
-        {onFlip && (
-          <div className="absolute bottom-1 right-1 text-xs text-gray-500 dark:text-gray-400">
-            Click to flip
-          </div>
-        )}
+
       </CardContent>
     </Card>
   );
