@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,7 +13,9 @@ interface LabSubscriptionGateProps {
 }
 
 export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscriptionGateProps) {
+  const [currentStep, setCurrentStep] = useState<'offer' | 'email'>('offer');
   const [selectedIntent, setSelectedIntent] = useState<'monthly' | 'yearly' | null>(null);
+  const [email, setEmail] = useState('');
   const { toast } = useToast();
 
   const recordIntentMutation = useMutation({
@@ -24,10 +27,6 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
     },
     onSuccess: (_, intent) => {
       setSelectedIntent(intent);
-      toast({
-        title: "Selection Recorded",
-        description: `${intent === 'monthly' ? 'Monthly' : 'Yearly'} plan preference saved!`,
-      });
     },
     onError: (error) => {
       console.error('Lab subscription intent error:', error);
@@ -38,11 +37,97 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
     },
   });
 
+  const recordEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      return await apiRequest('POST', '/api/interest/email', { email });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "We'll notify you when the full game launches!",
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save email. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleIntent = (intent: 'monthly' | 'yearly') => {
     setSelectedIntent(intent);
     recordIntentMutation.mutate(intent);
     console.log(`lab_${intent}_intent_click`); // Analytics tracking
   };
+
+  const handleEmailSubmit = () => {
+    if (!email.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    recordEmailMutation.mutate(email.trim());
+  };
+
+  // Email Capture Screen
+  if (currentStep === 'email') {
+    return (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="relative max-w-lg w-full z-20">
+          <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
+            <CardHeader className="text-center space-y-4">
+              <div className="text-6xl">📧</div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                Get Notified!
+              </CardTitle>
+              <p className="text-lg text-muted-foreground">
+                {selectedIntent === 'monthly' ? 'Monthly Plan Selected' : 'Yearly Plan Selected'}
+              </p>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <p className="text-center text-muted-foreground">
+                Enter your email address and we'll notify you as soon as Monster Academy launches with your 
+                {selectedIntent === 'monthly' ? ' monthly' : ' yearly'} subscription option!
+              </p>
+              
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="text-center text-lg p-4"
+                />
+                
+                <Button 
+                  onClick={handleEmailSubmit}
+                  disabled={recordEmailMutation.isPending}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
+                >
+                  {recordEmailMutation.isPending ? "Saving..." : "Notify Me When Ready!"}
+                </Button>
+                
+                <Button
+                  onClick={onClose}
+                  variant="ghost"
+                  className="w-full text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
+                >
+                  Skip for Now - Return to Lab
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -110,7 +195,7 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
             
             <div className="mt-8 text-center space-y-3">
               <Button
-                onClick={onClose}
+                onClick={() => setCurrentStep('email')}
                 disabled={!selectedIntent}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
               >
