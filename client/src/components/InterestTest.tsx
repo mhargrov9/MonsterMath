@@ -139,12 +139,108 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
 
   if (currentStep === 'offer') {
     return (
-      <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="relative max-w-4xl w-full bg-gradient-to-br from-purple-900 via-blue-800 to-purple-900 rounded-3xl shadow-2xl overflow-hidden">
+          {/* Monster Card Collage Background */}
+          {monsterCollage.map((item, index) => (
+            <div
+              key={index}
+              className="absolute pointer-events-none z-0"
+              style={{
+                top: item.position.top,
+                left: item.position.left,
+                right: item.position.right,
+                transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+                opacity: item.position.opacity
+              }}
+            >
+              <MonsterCard monster={item.monster} />
+            </div>
+          ))}
+          
+          {/* Content Overlay */}
+          <div className="relative z-20 p-8 max-h-[90vh] overflow-y-auto">
+            <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
+              <CardHeader className="text-center space-y-4">
+                <div className="text-6xl">⚔️</div>
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                  The Adventure Awaits!
+                </CardTitle>
+                <p className="text-lg text-muted-foreground">
+                  Unlock the Full Game
+                </p>
+              </CardHeader>
+              
+              <CardContent className="space-y-6">
+                <p className="text-center text-muted-foreground">
+                  Continue your epic journey through all three ancient locations. Battle legendary monsters, 
+                  collect rare treasures, and become the ultimate Monster Academy champion!
+                </p>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all border-2 ${
+                      selectedIntent === 'monthly' 
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                        : 'border-gray-200 hover:border-purple-300 dark:border-gray-700'
+                    }`}
+                    onClick={() => handleIntent('monthly')}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <Badge className="mb-2 bg-purple-500">Most Popular</Badge>
+                      <div className="text-3xl font-bold">$9.99</div>
+                      <div className="text-sm text-muted-foreground mb-4">per month</div>
+                      <ul className="text-sm space-y-2 text-left">
+                        <li>• Unlimited monster battles</li>
+                        <li>• All 3 story locations</li>
+                        <li>• Premium monster collection</li>
+                        <li>• Weekly tournaments</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-all border-2 ${
+                      selectedIntent === 'yearly' 
+                        ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                        : 'border-gray-200 hover:border-purple-300 dark:border-gray-700'
+                    }`}
+                    onClick={() => handleIntent('yearly')}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <Badge className="mb-2 bg-green-500">Best Value</Badge>
+                      <div className="text-3xl font-bold">$99.99</div>
+                      <div className="text-sm text-muted-foreground mb-4">per year</div>
+                      <ul className="text-sm space-y-2 text-left">
+                        <li>• Save $20 per year</li>
+                        <li>• All monthly features</li>
+                        <li>• Exclusive yearly rewards</li>
+                        <li>• Priority customer support</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <p className="text-xs text-center text-muted-foreground">
+                  Choose your preferred subscription to continue your adventure!
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Email Capture Screen
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="relative max-w-4xl w-full bg-gradient-to-br from-purple-900 via-blue-800 to-purple-900 rounded-3xl shadow-2xl overflow-hidden">
         {/* Monster Card Collage Background */}
         {monsterCollage.map((item, index) => (
           <div
             key={index}
-            className="fixed pointer-events-none z-0"
+            className="absolute pointer-events-none z-0"
             style={{
               top: item.position.top,
               left: item.position.left,
@@ -153,148 +249,54 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
               opacity: item.position.opacity
             }}
           >
-            <MonsterCard
-              monster={item.monster}
-            />
+            <MonsterCard monster={item.monster} />
           </div>
         ))}
         
-        {/* Offer Screen */}
-        <Card className="relative bg-gradient-to-br from-purple-100/80 via-blue-50/80 to-purple-100/80 dark:from-purple-900/80 dark:via-blue-900/80 dark:to-purple-800/80 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl z-10">
-          {/* Content Overlay */}
-          <div className="relative z-20">
+        {/* Content Overlay */}
+        <div className="relative z-20 p-8 max-h-[90vh] overflow-y-auto">
+          <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
             <CardHeader className="text-center space-y-4">
-              <div className="text-6xl">⚔️</div>
+              <div className="text-6xl">📧</div>
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                The Adventure Awaits!
+                Get Notified!
               </CardTitle>
               <p className="text-lg text-muted-foreground">
-                Unlock the Full Game
+                {selectedIntent === 'monthly' ? 'Monthly Plan Selected' : 'Yearly Plan Selected'}
               </p>
             </CardHeader>
             
             <CardContent className="space-y-6">
               <p className="text-center text-muted-foreground">
-                Continue your epic journey through all three ancient locations. Battle legendary monsters, 
-                collect rare treasures, and become the ultimate Monster Academy champion!
+                Enter your email address and we'll notify you as soon as Monster Academy launches with your 
+                {selectedIntent === 'monthly' ? ' monthly' : ' yearly'} subscription option!
               </p>
               
-              <div className="grid md:grid-cols-2 gap-4">
-                <Card 
-                  className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg border-2 hover:border-purple-400"
-                  onClick={() => handleIntent('monthly')}
-                >
-                  <CardContent className="p-6 text-center">
-                    <Badge className="mb-3 bg-purple-100 text-purple-700 hover:bg-purple-200">
-                      Most Popular
-                    </Badge>
-                    <div className="text-2xl font-bold">$9.99</div>
-                    <div className="text-sm text-muted-foreground mb-4">per month</div>
-                    <ul className="text-sm space-y-1 text-left">
-                      <li>• Unlimited monster battles</li>
-                      <li>• All 3 story locations</li>
-                      <li>• Premium monster collection</li>
-                      <li>• Weekly tournaments</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="text-center text-lg p-4"
+                />
                 
-                <Card 
-                  className="cursor-pointer transition-all hover:scale-105 hover:shadow-lg border-2 hover:border-green-400"
-                  onClick={() => handleIntent('yearly')}
+                <Button 
+                  onClick={handleEmailSubmit}
+                  disabled={recordEmailMutation.isPending || !email.trim()}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white p-4 text-lg"
                 >
-                  <CardContent className="p-6 text-center">
-                    <Badge className="mb-3 bg-green-100 text-green-700 hover:bg-green-200">
-                      Best Value
-                    </Badge>
-                    <div className="text-2xl font-bold">$99.99</div>
-                    <div className="text-sm text-muted-foreground mb-4">per year</div>
-                    <ul className="text-sm space-y-1 text-left">
-                      <li>• Save $20 per year</li>
-                      <li>• All monthly features</li>
-                      <li>• Exclusive yearly rewards</li>
-                      <li>• Priority customer support</li>
-                    </ul>
-                  </CardContent>
-                </Card>
+                  {recordEmailMutation.isPending ? 'Saving...' : 'Notify Me!'}
+                </Button>
               </div>
               
               <p className="text-xs text-center text-muted-foreground">
-                Choose your preferred subscription to continue your adventure!
+                We'll only email you when the game launches. No spam, we promise!
               </p>
             </CardContent>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
-    );
-  }
-
-  // Email Capture Screen
-  return (
-    <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
-      {/* Monster Card Collage Background */}
-      {monsterCollage.map((item, index) => (
-        <div
-          key={index}
-          className="fixed pointer-events-none z-0"
-          style={{
-            top: item.position.top,
-            left: item.position.left,
-            right: item.position.right,
-            transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
-            opacity: item.position.opacity * 1.1
-          }}
-        >
-          <MonsterCard
-            monster={{ ...item.monster, level: item.monster.level + 1 }}
-          />
-        </div>
-      ))}
-      
-      <Card className="relative bg-gradient-to-br from-green-100/80 via-emerald-50/80 to-green-100/80 dark:from-green-900/80 dark:via-emerald-900/80 dark:to-green-800/80 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl z-10">
-        {/* Content Overlay */}
-        <div className="relative z-20">
-          <CardHeader className="text-center space-y-4">
-            <div className="text-6xl">📧</div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Get Notified!
-            </CardTitle>
-            <p className="text-lg text-muted-foreground">
-              Be first to know when we launch
-            </p>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <p className="text-center text-muted-foreground">
-              Thank you for choosing the <strong>{selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'}</strong> plan! 
-              Enter your email below and we'll notify you the moment Monster Academy goes live.
-            </p>
-            
-            <div className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="text-center text-lg py-3"
-                onKeyPress={(e) => e.key === 'Enter' && handleEmailSubmit()}
-              />
-              
-              <Button 
-                onClick={handleEmailSubmit}
-                disabled={recordEmailMutation.isPending}
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold py-3 text-lg"
-              >
-                {recordEmailMutation.isPending ? 'Saving...' : 'Notify Me When Ready!'}
-              </Button>
-            </div>
-            
-            <p className="text-xs text-center text-muted-foreground">
-              We'll only email you when the game launches. No spam, we promise!
-            </p>
-          </CardContent>
-        </div>
-      </Card>
     </div>
   );
 }
