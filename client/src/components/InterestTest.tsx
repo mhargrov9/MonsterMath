@@ -130,7 +130,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
 
   const recordIntentMutation = useMutation({
     mutationFn: async (intent: 'monthly' | 'yearly') => {
-      await apiRequest('/api/interest/subscription', 'POST', { intent });
+      return await apiRequest('POST', '/api/interest/subscription', { intent });
     },
     onSuccess: (_, intent) => {
       setSelectedIntent(intent);
@@ -147,7 +147,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
 
   const recordEmailMutation = useMutation({
     mutationFn: async (email: string) => {
-      await apiRequest('/api/interest/email', 'POST', { email });
+      return await apiRequest('POST', '/api/interest/email', { email });
     },
     onSuccess: () => {
       toast({
