@@ -1,0 +1,25 @@
+Node 6A: Meeting the Elder
+
+Node ID: Node_6A_Elder_Meeting
+
+Location Title: Elder's Abode
+
+Image File: Elder's Abode.png
+
+Descriptive Text (Varies based on your choice in Node 5A):
+
+If you chose [Approach the nervous monster.]:
+
+You approach cautiously. The small, furry monster, named Pip, flinches at first, but then sees the gentle light of the Shard in your mind's eye. He stammers, "The Elder... you must see the Elder! He's the only one who knows what to do!" He quickly leads you through the quiet village to a large home built into a tree. Pip gives you a nod of encouragement before scurrying away. You knock, and the door swings open to reveal an ancient turtle monster. He looks at you, then at the Shard's faint light. "Pip said you could be trusted," the Elder says, his voice like grinding stones. "A rare quality. He tells me you seek answers about the growing darkness. I will help you, but first, you must help my village."
+
+If you chose [Look for the elder's home.]:
+
+You follow a sign carved with ancient symbols to the largest tree and knock on the sturdy wooden door. It opens to reveal an ancient turtle monster, Elder Korin, who squints at you with wary eyes. "I was not expecting visitors. These are dark times," he says, his voice deep and slow. "State your purpose." After you explain your quest with the help of the Shard, the Elder considers you for a long moment. "A noble goal, but words are wind. The darkness you speak of has already sent its scouts to our doorstep. If you want my help, you must first prove your strength."
+
+Shared Dialogue (This text appears for both paths):
+
+Elder Korin points a gnarled claw towards the edge of the village map on his table. "Vorvax's minions—foul creatures of twisted rock and shadow—have made a den in the old Gloomfang caves. They terrorize my people and poison the forest. Go there. Prove your power and your heart by clearing out the den. Do this for us, and I will give you a reward worthy of a hero and any information I have."
+
+Choices:
+
+[I will accept this quest.] -> (Leads to Node_7A_Den_Entrance)
