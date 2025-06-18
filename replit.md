@@ -299,6 +299,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enhanced story node system with location images, progress saving, and visual presentation
   - Location titles, descriptions, and image placeholders for each scene
   - Special handling for chapter completion with celebration screen and restart options
+- June 18, 2025: Story System Polish and Custom Artwork Integration
+  - Redesigned story interface with magical scroll aesthetic featuring enchanted borders and fantasy typography
+  - Added "Return to [previous node name]" navigation button for seamless story exploration
+  - Integrated 8 custom story location images with ornate golden frames and mystical shimmer effects
+  - Enhanced text readability with improved contrast and flexible content containers
+  - Story text now dynamically expands for varying content lengths (1-7 rows) without cutoff
+  - Maintained full responsive design compatibility across all devices
 
 ## User Preferences
 

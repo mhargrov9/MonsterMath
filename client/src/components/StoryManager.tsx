@@ -347,7 +347,7 @@ export default function StoryManager() {
             
             {/* Story Text with Enchanted Styling */}
             <div className="relative mb-8">
-              <p className="text-amber-900 dark:text-amber-100 leading-relaxed text-lg font-serif tracking-wide text-center italic relative z-10 px-4">
+              <p className="text-amber-900 dark:text-amber-100 leading-relaxed text-lg font-serif tracking-wide text-center italic relative z-10 px-6 py-4 min-h-[120px]">
                 "{currentStory.content}"
               </p>
               {/* Subtle Text Glow */}
