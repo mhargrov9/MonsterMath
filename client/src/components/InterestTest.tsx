@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import MonsterCard from "./MonsterCard";
 
 interface InterestTestProps {
   onComplete: () => void;
@@ -18,21 +19,55 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Monster images for background collage
-  const monsterImages = useMemo(() => {
-    const allMonsters = [
-      // All monsters without level parameter (uses default level 1)
-      '/api/monsters/6/image', '/api/monsters/7/image', '/api/monsters/8/image',
-      '/api/monsters/9/image', '/api/monsters/10/image', '/api/monsters/11/image', '/api/monsters/12/image',
-      // Some repeated for variety
-      '/api/monsters/6/image', '/api/monsters/7/image', '/api/monsters/8/image',
-      '/api/monsters/9/image', '/api/monsters/10/image'
-    ];
+  // Fetch all monsters for collage
+  const { data: monsters } = useQuery({
+    queryKey: ['/api/monsters'],
+  });
+
+  // Create monster collage with varied levels and positions
+  const monsterCollage = useMemo(() => {
+    if (!monsters || !Array.isArray(monsters)) return [];
     
-    // Shuffle and select random subset for collage
-    const shuffled = [...allMonsters].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, 12); // Use 12 random monster images
-  }, []);
+    const collageMonsters: Array<{
+      monster: any;
+      position: {
+        top?: string;
+        left?: string;
+        right?: string;
+        scale: number;
+        rotation: number;
+        opacity: number;
+      };
+    }> = [];
+    
+    const positions = [
+      { top: '5%', left: '2%', scale: 0.4, rotation: -15, opacity: 0.3 },
+      { top: '8%', right: '3%', scale: 0.35, rotation: 12, opacity: 0.25 },
+      { top: '15%', left: '5%', scale: 0.45, rotation: -8, opacity: 0.35 },
+      { top: '22%', right: '8%', scale: 0.3, rotation: 20, opacity: 0.28 },
+      { top: '35%', left: '1%', scale: 0.4, rotation: -25, opacity: 0.32 },
+      { top: '45%', right: '2%', scale: 0.38, rotation: 18, opacity: 0.26 },
+      { top: '55%', left: '4%', scale: 0.35, rotation: -12, opacity: 0.34 },
+      { top: '65%', right: '5%', scale: 0.42, rotation: 25, opacity: 0.3 },
+      { top: '75%', left: '2%', scale: 0.3, rotation: -18, opacity: 0.22 },
+      { top: '85%', right: '3%', scale: 0.45, rotation: 22, opacity: 0.28 },
+      { top: '25%', left: '45%', scale: 0.35, rotation: -10, opacity: 0.2 },
+      { top: '70%', right: '45%', scale: 0.4, rotation: 15, opacity: 0.25 }
+    ];
+
+    // Use all available monsters with varied levels
+    monsters.forEach((monster: any, index: number) => {
+      if (index < positions.length) {
+        const level = Math.floor(Math.random() * 3) + 1; // Random level 1-3
+        collageMonsters.push({
+          monster: { ...monster, level },
+          position: positions[index]
+        });
+      }
+    });
+
+    return collageMonsters;
+  }, [monsters]);
 
   // Generate background collage style
   const collageStyle = useMemo(() => {
@@ -120,79 +155,26 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   if (currentStep === 'offer') {
     return (
       <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
-        {/* Monster Collage Background */}
-        <div 
-          className="fixed top-10 left-10 w-20 h-20 rounded-full opacity-30 z-0"
-          style={{
-            backgroundImage: `url(/attached_assets/Gigalith_Level_1_1749856385841.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-20 right-10 w-16 h-16 rounded-full opacity-25 z-0 transform rotate-12"
-          style={{
-            backgroundImage: `url(/attached_assets/Aetherion_Level_1_1749866902477.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed bottom-20 left-20 w-24 h-24 rounded-full opacity-35 z-0 transform -rotate-15"
-          style={{
-            backgroundImage: `url(/attached_assets/Geode Tortoise_Level_1_1750198366952.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-32 left-32 w-16 h-16 rounded-full opacity-28 z-0 transform rotate-45"
-          style={{
-            backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_1_1750198352902.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-48 right-32 w-20 h-20 rounded-full opacity-32 z-0 transform -rotate-30"
-          style={{
-            backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_1_1750198337385.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-64 left-16 w-18 h-18 rounded-full opacity-26 z-0 transform rotate-60"
-          style={{
-            backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_1_1750198323311.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-80 right-16 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
-          style={{
-            backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_1_1750198309057.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-96 left-48 w-20 h-20 rounded-full opacity-25 z-0 transform rotate-30"
-          style={{
-            backgroundImage: `url(/attached_assets/Aetherion_Level_3_1749866902476.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
-        <div 
-          className="fixed top-112 right-48 w-18 h-18 rounded-full opacity-35 z-0 transform -rotate-60"
-          style={{
-            backgroundImage: `url(/attached_assets/Gigalith_Level_3_1749856409063.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        />
+        {/* Monster Card Collage Background */}
+        {monsterCollage.map((item, index) => (
+          <div
+            key={index}
+            className="fixed pointer-events-none z-0"
+            style={{
+              top: item.position.top,
+              left: item.position.left,
+              right: item.position.right,
+              transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+              opacity: item.position.opacity
+            }}
+          >
+            <MonsterCard
+              monster={item.monster}
+              showControls={false}
+              compact={true}
+            />
+          </div>
+        ))}
         
         {/* Offer Screen */}
         <Card className="relative bg-gradient-to-br from-purple-100/80 via-blue-50/80 to-purple-100/80 dark:from-purple-900/80 dark:via-blue-900/80 dark:to-purple-800/80 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl z-10">
@@ -260,79 +242,26 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   // Email Capture Screen
   return (
     <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
-      {/* Monster Collage Background */}
-      <div 
-        className="fixed top-10 left-10 w-20 h-20 rounded-full opacity-30 z-0"
-        style={{
-          backgroundImage: `url(/attached_assets/Gigalith_Level_2_1749856393905.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-20 right-10 w-16 h-16 rounded-full opacity-25 z-0 transform rotate-12"
-        style={{
-          backgroundImage: `url(/attached_assets/Aetherion_Level_2_1749866902476.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed bottom-20 left-20 w-24 h-24 rounded-full opacity-35 z-0 transform -rotate-15"
-        style={{
-          backgroundImage: `url(/attached_assets/Geode Tortoise_Level_2_1750198366941.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-32 left-32 w-16 h-16 rounded-full opacity-28 z-0 transform rotate-45"
-        style={{
-          backgroundImage: `url(/attached_assets/Gale-Feather Griffin_Level_2_1750198352909.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-48 right-32 w-20 h-20 rounded-full opacity-32 z-0 transform -rotate-30"
-        style={{
-          backgroundImage: `url(/attached_assets/Cinder-Tail Salamander_Level_2_1750198337394.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-64 left-16 w-18 h-18 rounded-full opacity-26 z-0 transform rotate-60"
-        style={{
-          backgroundImage: `url(/attached_assets/River-Spirit Axolotl_Level_2_1750198323302.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-80 right-16 w-16 h-16 rounded-full opacity-30 z-0 transform -rotate-45"
-        style={{
-          backgroundImage: `url(/attached_assets/Spark-Tail Squirrel_Level_2_1750198309051.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-96 left-48 w-20 h-20 rounded-full opacity-25 z-0 transform rotate-30"
-        style={{
-          backgroundImage: `url(/attached_assets/Aetherion_Level_4_1749866902475.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
-      <div 
-        className="fixed top-112 right-48 w-18 h-18 rounded-full opacity-35 z-0 transform -rotate-60"
-        style={{
-          backgroundImage: `url(/attached_assets/Gigalith_Level_4_1749856409062.png)`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      />
+      {/* Monster Card Collage Background */}
+      {monsterCollage.map((item, index) => (
+        <div
+          key={index}
+          className="fixed pointer-events-none z-0"
+          style={{
+            top: item.position.top,
+            left: item.position.left,
+            right: item.position.right,
+            transform: `rotate(${item.position.rotation}deg) scale(${item.position.scale})`,
+            opacity: item.position.opacity * 1.1
+          }}
+        >
+          <MonsterCard
+            monster={{ ...item.monster, level: item.monster.level + 1 }}
+            showControls={false}
+            compact={true}
+          />
+        </div>
+      ))}
       
       <Card className="relative bg-gradient-to-br from-green-100/80 via-emerald-50/80 to-green-100/80 dark:from-green-900/80 dark:via-emerald-900/80 dark:to-green-800/80 border-4 border-green-500/60 dark:border-green-400/60 shadow-2xl z-10">
         {/* Content Overlay */}
