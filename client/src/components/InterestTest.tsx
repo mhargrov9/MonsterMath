@@ -51,18 +51,18 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   // Generate background collage style
   const collageStyle = useMemo(() => {
     const positions = [
-      { top: '5%', left: '5%', transform: 'rotate(-15deg) scale(0.8)', opacity: 0.15 },
-      { top: '10%', right: '8%', transform: 'rotate(12deg) scale(0.7)', opacity: 0.12 },
-      { top: '25%', left: '12%', transform: 'rotate(-8deg) scale(0.9)', opacity: 0.18 },
-      { top: '35%', right: '15%', transform: 'rotate(20deg) scale(0.6)', opacity: 0.14 },
-      { top: '50%', left: '8%', transform: 'rotate(-25deg) scale(0.75)', opacity: 0.16 },
-      { top: '60%', right: '10%', transform: 'rotate(18deg) scale(0.85)', opacity: 0.13 },
-      { bottom: '20%', left: '15%', transform: 'rotate(-12deg) scale(0.7)', opacity: 0.17 },
-      { bottom: '10%', right: '12%', transform: 'rotate(25deg) scale(0.8)', opacity: 0.15 },
-      { top: '15%', left: '40%', transform: 'rotate(-18deg) scale(0.6)', opacity: 0.11 },
-      { top: '45%', left: '45%', transform: 'rotate(22deg) scale(0.9)', opacity: 0.14 },
-      { bottom: '30%', left: '50%', transform: 'rotate(-10deg) scale(0.7)', opacity: 0.16 },
-      { top: '70%', right: '40%', transform: 'rotate(15deg) scale(0.8)', opacity: 0.12 }
+      { top: '5%', left: '5%', transform: 'rotate(-15deg) scale(0.8)', opacity: 0.3 },
+      { top: '10%', right: '8%', transform: 'rotate(12deg) scale(0.7)', opacity: 0.25 },
+      { top: '25%', left: '12%', transform: 'rotate(-8deg) scale(0.9)', opacity: 0.35 },
+      { top: '35%', right: '15%', transform: 'rotate(20deg) scale(0.6)', opacity: 0.28 },
+      { top: '50%', left: '8%', transform: 'rotate(-25deg) scale(0.75)', opacity: 0.32 },
+      { top: '60%', right: '10%', transform: 'rotate(18deg) scale(0.85)', opacity: 0.26 },
+      { bottom: '20%', left: '15%', transform: 'rotate(-12deg) scale(0.7)', opacity: 0.34 },
+      { bottom: '10%', right: '12%', transform: 'rotate(25deg) scale(0.8)', opacity: 0.3 },
+      { top: '15%', left: '40%', transform: 'rotate(-18deg) scale(0.6)', opacity: 0.22 },
+      { top: '45%', left: '45%', transform: 'rotate(22deg) scale(0.9)', opacity: 0.28 },
+      { bottom: '30%', left: '50%', transform: 'rotate(-10deg) scale(0.7)', opacity: 0.32 },
+      { top: '70%', right: '40%', transform: 'rotate(15deg) scale(0.8)', opacity: 0.24 }
     ];
 
     return monsterImages.map((image, index) => ({
@@ -144,7 +144,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
           </div>
           
           {/* Content Overlay */}
-          <div className="relative z-10 bg-gradient-to-br from-purple-100/90 via-blue-50/90 to-purple-100/90 dark:from-purple-900/90 dark:via-blue-900/90 dark:to-purple-800/90">
+          <div className="relative z-10 bg-gradient-to-br from-purple-100/70 via-blue-50/70 to-purple-100/70 dark:from-purple-900/70 dark:via-blue-900/70 dark:to-purple-800/70">
             <CardHeader className="text-center pb-4">
               <div className="flex justify-center mb-4">
                 <div className="text-6xl">⚔️</div>
@@ -211,12 +211,12 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         {/* Monster Collage Background */}
         <div className="absolute inset-0 pointer-events-none">
           {collageStyle.map((style, index) => (
-            <div key={index} style={{...style, opacity: (style.opacity as number) * 0.8}} />
+            <div key={index} style={{...style, opacity: (style.opacity as number) * 1.2}} />
           ))}
         </div>
         
         {/* Content Overlay */}
-        <div className="relative z-10 bg-gradient-to-br from-green-100/90 via-emerald-50/90 to-green-100/90 dark:from-green-900/90 dark:via-emerald-900/90 dark:to-green-800/90">
+        <div className="relative z-10 bg-gradient-to-br from-green-100/70 via-emerald-50/70 to-green-100/70 dark:from-green-900/70 dark:via-emerald-900/70 dark:to-green-800/70">
           <CardHeader className="text-center pb-4">
             <div className="flex justify-center mb-4">
               <div className="text-6xl">🎉</div>
