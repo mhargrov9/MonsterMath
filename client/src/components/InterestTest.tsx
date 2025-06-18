@@ -40,43 +40,43 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    // Generate positions to ensure all cards are visible within viewport
+    // Generate positions pushed higher up and 30% bigger
     const positions = [
-      // Top row - all visible at top
-      { top: '2%', left: '1%', scale: 0.36, rotation: -8, opacity: 0.4 },
-      { top: '2%', left: '20%', scale: 0.38, rotation: 6, opacity: 0.35 },
-      { top: '2%', left: '39%', scale: 0.37, rotation: -12, opacity: 0.42 },
-      { top: '2%', left: '58%', scale: 0.39, rotation: 10, opacity: 0.38 },
-      { top: '2%', left: '77%', scale: 0.35, rotation: -5, opacity: 0.4 },
-      { top: '2%', left: '96%', scale: 0.38, rotation: 8, opacity: 0.36 },
+      // Top row - pushed to very top
+      { top: '0%', left: '1%', scale: 0.47, rotation: -8, opacity: 0.4 },
+      { top: '0%', left: '20%', scale: 0.49, rotation: 6, opacity: 0.35 },
+      { top: '0%', left: '39%', scale: 0.48, rotation: -12, opacity: 0.42 },
+      { top: '0%', left: '58%', scale: 0.51, rotation: 10, opacity: 0.38 },
+      { top: '0%', left: '77%', scale: 0.46, rotation: -5, opacity: 0.4 },
+      { top: '0%', left: '96%', scale: 0.49, rotation: 8, opacity: 0.36 },
       
       // Second row
-      { top: '21%', left: '1%', scale: 0.37, rotation: 12, opacity: 0.43 },
-      { top: '21%', left: '20%', scale: 0.35, rotation: -15, opacity: 0.37 },
-      { top: '21%', left: '39%', scale: 0.39, rotation: 9, opacity: 0.41 },
-      { top: '21%', left: '58%', scale: 0.36, rotation: -18, opacity: 0.39 },
-      { top: '21%', left: '77%', scale: 0.38, rotation: 14, opacity: 0.35 },
-      { top: '21%', left: '96%', scale: 0.37, rotation: -7, opacity: 0.42 },
+      { top: '16%', left: '1%', scale: 0.48, rotation: 12, opacity: 0.43 },
+      { top: '16%', left: '20%', scale: 0.46, rotation: -15, opacity: 0.37 },
+      { top: '16%', left: '39%', scale: 0.51, rotation: 9, opacity: 0.41 },
+      { top: '16%', left: '58%', scale: 0.47, rotation: -18, opacity: 0.39 },
+      { top: '16%', left: '77%', scale: 0.49, rotation: 14, opacity: 0.35 },
+      { top: '16%', left: '96%', scale: 0.48, rotation: -7, opacity: 0.42 },
       
       // Third row
-      { top: '40%', left: '1%', scale: 0.35, rotation: -6, opacity: 0.44 },
-      { top: '40%', left: '20%', scale: 0.39, rotation: 16, opacity: 0.38 },
-      { top: '40%', left: '39%', scale: 0.36, rotation: -11, opacity: 0.42 },
-      { top: '40%', left: '58%', scale: 0.38, rotation: 7, opacity: 0.36 },
-      { top: '40%', left: '77%', scale: 0.37, rotation: -14, opacity: 0.40 },
-      { top: '40%', left: '96%', scale: 0.35, rotation: 13, opacity: 0.43 },
+      { top: '32%', left: '1%', scale: 0.46, rotation: -6, opacity: 0.44 },
+      { top: '32%', left: '20%', scale: 0.51, rotation: 16, opacity: 0.38 },
+      { top: '32%', left: '39%', scale: 0.47, rotation: -11, opacity: 0.42 },
+      { top: '32%', left: '58%', scale: 0.49, rotation: 7, opacity: 0.36 },
+      { top: '32%', left: '77%', scale: 0.48, rotation: -14, opacity: 0.40 },
+      { top: '32%', left: '96%', scale: 0.46, rotation: 13, opacity: 0.43 },
       
-      // Fourth row - keep visible in lower area
-      { top: '59%', left: '1%', scale: 0.38, rotation: 11, opacity: 0.37 },
-      { top: '59%', left: '20%', scale: 0.36, rotation: -9, opacity: 0.43 },
-      { top: '59%', left: '39%', scale: 0.39, rotation: 5, opacity: 0.39 },
-      { top: '59%', left: '58%', scale: 0.37, rotation: -16, opacity: 0.41 },
-      { top: '59%', left: '77%', scale: 0.35, rotation: 8, opacity: 0.34 },
-      { top: '59%', left: '96%', scale: 0.38, rotation: -4, opacity: 0.38 },
+      // Fourth row
+      { top: '48%', left: '1%', scale: 0.49, rotation: 11, opacity: 0.37 },
+      { top: '48%', left: '20%', scale: 0.47, rotation: -9, opacity: 0.43 },
+      { top: '48%', left: '39%', scale: 0.51, rotation: 5, opacity: 0.39 },
+      { top: '48%', left: '58%', scale: 0.48, rotation: -16, opacity: 0.41 },
+      { top: '48%', left: '77%', scale: 0.46, rotation: 8, opacity: 0.34 },
+      { top: '48%', left: '96%', scale: 0.49, rotation: -4, opacity: 0.38 },
       
-      // Fifth row - ensure visible
-      { top: '78%', left: '1%', scale: 0.37, rotation: -10, opacity: 0.38 },
-      { top: '78%', left: '20%', scale: 0.35, rotation: 15, opacity: 0.35 }
+      // Fifth row
+      { top: '64%', left: '1%', scale: 0.48, rotation: -10, opacity: 0.38 },
+      { top: '64%', left: '20%', scale: 0.46, rotation: 15, opacity: 0.35 }
     ];
 
     // Generate 30 monster cards by cycling through available monsters
@@ -90,7 +90,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
-    console.log(`Generated ${collageMonsters.length} monster cards for collage (all visible in viewport)`);
+    console.log(`Generated ${collageMonsters.length} monster cards for collage (pushed higher, 30% bigger)`);
     return collageMonsters;
   }, [monsters]);
 
