@@ -891,14 +891,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/interest/subscription", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { intent } = req.body;
+      const { intent, source = 'story' } = req.body;
       
       if (!intent || !['monthly', 'yearly'].includes(intent)) {
         return res.status(400).json({ message: "Invalid subscription intent" });
       }
 
+      // Track different sources for analytics
+      console.log(`Subscription intent: ${intent} from ${source} by user ${userId}`);
+      
       await storage.recordSubscriptionIntent(userId, intent);
-      res.json({ message: "Subscription intent recorded", intent });
+      res.json({ message: "Subscription intent recorded", intent, source });
     } catch (error) {
       console.error("Error recording subscription intent:", error);
       res.status(500).json({ message: "Failed to record subscription intent" });

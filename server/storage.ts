@@ -271,6 +271,7 @@ export class DatabaseStorage implements IStorage {
   async upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
     const upgradeCost = 200;
     const MAX_LEVEL = 10;
+    const FREE_MAX_LEVEL = 3; // Free players can only upgrade to Level 3
 
     // Check if user owns the monster
     const [userMonster] = await db
@@ -285,6 +286,11 @@ export class DatabaseStorage implements IStorage {
     // Check if monster is already at max level
     if (userMonster.level >= MAX_LEVEL) {
       throw new Error("Monster is already at maximum level");
+    }
+
+    // Check free trial limit - block upgrades at Level 3
+    if (userMonster.level >= FREE_MAX_LEVEL) {
+      throw new Error("FREE_TRIAL_LIMIT");
     }
 
     // Check if user has enough gold

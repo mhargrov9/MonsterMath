@@ -11,6 +11,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import VeoMonster from "./VeoMonster";
 import UpgradeChoice from "./UpgradeChoice";
 import MonsterCard from "./MonsterCard";
+import LabSubscriptionGate from "./LabSubscriptionGate";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
 
@@ -20,6 +21,8 @@ export default function MonsterLab() {
   const { toast } = useToast();
   const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
   const [showUpgradeChoice, setShowUpgradeChoice] = useState(false);
+  const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
+  const [blockedMonster, setBlockedMonster] = useState<UserMonster | null>(null);
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
   const [animatingCards, setAnimatingCards] = useState<Record<number, boolean>>({});
 
@@ -98,6 +101,19 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
+      
+      // Handle free trial limit - show subscription gate
+      if (error.message === "FREE_TRIAL_LIMIT") {
+        // Find the monster that triggered the limit from the mutation context
+        const triggerMonsterId = (error as any)?.context?.userMonsterId;
+        const monster = userMonsters.find(um => um.id === triggerMonsterId);
+        if (monster) {
+          setBlockedMonster(monster);
+          setShowSubscriptionGate(true);
+        }
+        return;
+      }
+      
       toast({
         title: "Upgrade Failed",
         description: error.message || "Failed to upgrade monster",
@@ -141,8 +157,20 @@ export default function MonsterLab() {
   });
 
   const handleSpecialUpgrade = (userMonster: UserMonster) => {
+    // Check if monster is at Level 3 (free trial limit)
+    if (userMonster.level >= 3) {
+      setBlockedMonster(userMonster);
+      setShowSubscriptionGate(true);
+      return;
+    }
+    
     setSelectedMonster(userMonster);
     setShowUpgradeChoice(true);
+  };
+
+  const handleCloseSubscriptionGate = () => {
+    setShowSubscriptionGate(false);
+    setBlockedMonster(null);
   };
 
   const handleUpgradeChoice = (upgradeOption: any) => {
