@@ -259,84 +259,136 @@ export default function StoryManager() {
         </Button>
       </div>
 
-      {/* Story Content */}
-      <Card className="bg-gradient-to-br from-electric-blue/5 to-vibrant-purple/5 border-2 border-electric-blue/20">
-        <CardHeader>
-          <CardTitle className="text-xl text-gray-800">{currentStory.description}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Location Image */}
-          {currentStory.image && (
-            <div className="mb-6">
-              <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-400">
-                <div className="text-center p-4">
-                  <div className="text-2xl mb-2">🖼️</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 italic">
-                    {currentStory.image}
+      {/* Magical Story Scroll */}
+      <div className="relative">
+        {/* Enchanted Border with Mystical Glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/30 via-yellow-100/20 to-amber-300/30 dark:from-amber-900/40 dark:via-yellow-900/30 dark:to-amber-800/40 rounded-3xl blur-sm transform rotate-1"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-200/20 via-blue-100/15 to-purple-300/25 dark:from-purple-900/30 dark:via-blue-900/20 dark:to-purple-800/35 rounded-3xl blur-sm transform -rotate-1"></div>
+        
+        {/* Main Scroll Container */}
+        <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 dark:from-amber-950 dark:via-yellow-950 dark:to-amber-900 border-4 border-amber-600/60 dark:border-amber-400/60 rounded-3xl shadow-2xl">
+          {/* Decorative Corner Flourishes */}
+          <div className="absolute top-2 left-2 text-2xl text-amber-600/70 dark:text-amber-400/70">✦</div>
+          <div className="absolute top-2 right-2 text-2xl text-amber-600/70 dark:text-amber-400/70">✦</div>
+          <div className="absolute bottom-2 left-2 text-2xl text-amber-600/70 dark:text-amber-400/70">✦</div>
+          <div className="absolute bottom-2 right-2 text-2xl text-amber-600/70 dark:text-amber-400/70">✦</div>
+          
+          {/* Scroll Header with Mystical Design */}
+          <div className="border-b-4 border-amber-600/60 dark:border-amber-400/60 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 dark:from-amber-800 dark:via-yellow-800 dark:to-amber-800 p-6 rounded-t-3xl">
+            <div className="text-center">
+              <div className="text-3xl mb-2">✨</div>
+              <h2 className="text-2xl font-serif font-bold text-amber-900 dark:text-amber-100 tracking-wide">{currentStory.description}</h2>
+              <div className="flex justify-center items-center gap-2 mt-3">
+                <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
+                <div className="text-amber-700 dark:text-amber-300">⚜</div>
+                <div className="w-16 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Scroll Content */}
+          <div className="p-8">
+            {/* Mystical Location Frame */}
+            {currentStory.image && (
+              <div className="mb-8">
+                <div className="relative">
+                  {/* Ornate Frame */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-yellow-600/20 dark:from-amber-600/30 dark:to-yellow-400/30 rounded-2xl transform rotate-1"></div>
+                  <div className="relative bg-gradient-to-br from-amber-100 to-yellow-200 dark:from-amber-900 dark:to-yellow-800 border-4 border-amber-500/70 dark:border-amber-400/70 rounded-2xl p-6 shadow-inner">
+                    <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-amber-200/50 to-yellow-300/50 dark:from-amber-800/50 dark:to-yellow-700/50 rounded-xl border-2 border-amber-400/50 dark:border-amber-500/50 flex items-center justify-center relative overflow-hidden">
+                      {/* Mystical Shimmer Effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 animate-pulse"></div>
+                      <div className="text-center p-4 relative z-10">
+                        <div className="text-4xl mb-3">🌟</div>
+                        <div className="text-sm text-amber-800 dark:text-amber-200 italic font-serif leading-relaxed">
+                          {currentStory.image}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            )}
+            
+            {/* Story Text with Enchanted Styling */}
+            <div className="relative mb-8">
+              <p className="text-amber-900 dark:text-amber-100 leading-relaxed text-lg font-serif tracking-wide text-center italic relative z-10 px-4">
+                "{currentStory.content}"
+              </p>
+              {/* Subtle Text Glow */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/10 to-transparent rounded-lg"></div>
             </div>
-          )}
-          
-          <p className="text-gray-900 dark:text-gray-100 leading-relaxed mb-6 text-base font-medium">
-            {currentStory.content}
-          </p>
-          
-          <Separator className="my-6" />
-          
-          {/* Chapter Complete Handling */}
-          {currentNode === "Node_09_Cliffhanger" ? (
-            <div className="space-y-4">
-              <div className="text-center p-6 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border-2 border-purple-300">
-                <div className="text-4xl mb-4">🎭</div>
-                <h3 className="text-xl font-bold text-purple-700 dark:text-purple-300 mb-2">
-                  Chapter 1 Complete!
-                </h3>
-                <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  Your adventure has just begun. The mysteries of Vorvax and the ancient locations await...
-                </p>
-                <Button
-                  onClick={resetStory}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
-                >
-                  Play Chapter 1 Again
-                </Button>
-              </div>
+            
+            {/* Mystical Divider */}
+            <div className="flex justify-center items-center gap-4 my-8">
+              <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
+              <div className="text-2xl text-amber-700 dark:text-amber-300">⚡</div>
+              <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
             </div>
-          ) : currentStory.choices.length > 0 ? (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <i className="fas fa-compass text-electric-blue"></i>
-                What do you do next?
-              </h3>
-              
-              <div className="grid gap-3">
-                {currentStory.choices.map((choice, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handleChoice(choice.nextNode)}
-                    disabled={updateProgressMutation.isPending}
-                    variant="outline"
-                    className="justify-start text-left h-auto p-4 hover:bg-electric-blue/10 hover:border-electric-blue/50 transition-all"
+            
+            {/* Chapter Complete Handling */}
+            {currentNode === "Node_09_Cliffhanger" ? (
+              <div className="space-y-6">
+                <div className="text-center p-8 bg-gradient-to-br from-purple-200 via-blue-200 to-purple-300 dark:from-purple-900 dark:via-blue-900 dark:to-purple-800 border-4 border-purple-500/60 dark:border-purple-400/60 rounded-2xl shadow-inner relative">
+                  <div className="absolute top-2 left-2 text-purple-600/70 dark:text-purple-400/70">★</div>
+                  <div className="absolute top-2 right-2 text-purple-600/70 dark:text-purple-400/70">★</div>
+                  <div className="text-5xl mb-4">🏆</div>
+                  <h3 className="text-2xl font-serif font-bold text-purple-800 dark:text-purple-200 mb-3">
+                    Chapter 1 Complete!
+                  </h3>
+                  <p className="text-purple-700 dark:text-purple-300 mb-6 font-serif italic">
+                    Your adventure has just begun. The mysteries of Vorvax and the ancient locations await...
+                  </p>
+                  <button
+                    onClick={resetStory}
+                    className="px-8 py-3 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 hover:from-purple-700 hover:via-blue-700 hover:to-purple-700 text-white font-serif font-bold rounded-xl border-2 border-purple-400 shadow-lg transform hover:scale-105 transition-all duration-200"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-electric-blue/20 flex items-center justify-center text-electric-blue font-bold">
-                        {index + 1}
-                      </div>
-                      <span>{choice.text}</span>
-                    </div>
-                  </Button>
-                ))}
+                    ⟲ Begin Tale Anew
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="text-center p-4 text-gray-600">
-              <p>The story continues...</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            ) : currentStory.choices.length > 0 ? (
+              <div className="space-y-4">
+                <h3 className="text-center text-xl font-serif font-bold text-amber-800 dark:text-amber-200 flex items-center justify-center gap-3">
+                  <span className="text-2xl">🧭</span>
+                  Choose Your Path, Brave Adventurer
+                  <span className="text-2xl">🧭</span>
+                </h3>
+                
+                <div className="grid gap-4 mt-6">
+                  {currentStory.choices.map((choice, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleChoice(choice.nextNode)}
+                      disabled={updateProgressMutation.isPending}
+                      className="group relative p-5 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 dark:from-amber-800 dark:via-yellow-800 dark:to-amber-800 border-3 border-amber-500/60 dark:border-amber-400/60 rounded-xl hover:from-amber-200 hover:via-yellow-200 hover:to-amber-200 dark:hover:from-amber-700 dark:hover:via-yellow-700 dark:hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-102"
+                    >
+                      <div className="absolute top-1 left-1 text-amber-600/50 dark:text-amber-400/50 text-xs">✦</div>
+                      <div className="absolute top-1 right-1 text-amber-600/50 dark:text-amber-400/50 text-xs">✦</div>
+                      <div className="flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-600 to-yellow-600 dark:from-amber-500 dark:to-yellow-500 flex items-center justify-center text-white font-serif font-bold text-lg shadow-inner">
+                          {index + 1}
+                        </div>
+                        <span className="font-serif text-amber-900 dark:text-amber-100 font-medium text-lg group-hover:text-amber-800 dark:group-hover:text-amber-200 transition-colors">
+                          {choice.text}
+                        </span>
+                      </div>
+                      {/* Subtle Hover Glow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl"></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center p-6 text-amber-700 dark:text-amber-300 font-serif italic">
+                <span className="text-2xl mr-2">📜</span>
+                The tale unfolds...
+                <span className="text-2xl ml-2">📜</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Demo Information */}
       <Card className="bg-gold-yellow/10 border-gold-yellow/30">
