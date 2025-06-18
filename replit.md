@@ -326,6 +326,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Built InterestTest component with professional subscription pricing UI
   - Integrated with story system to trigger after Node_08_Great_Choice selections
   - No payment processing - purely for market research and email collection
+  - Enhanced Interest Test cards with dynamic monster collage backgrounds
+  - Random selection and positioning of 12 monster images from all levels creates unique visual appeal
 
 ## User Preferences
 
