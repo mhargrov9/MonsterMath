@@ -135,13 +135,21 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
         {/* Monster Collage Background */}
-        {collageStyle.map((style, index) => (
-          <div 
+        {monsterImages.map((imageUrl, index) => (
+          <img 
             key={index}
-            className="fixed pointer-events-none z-0 rounded-full"
+            src={imageUrl}
+            alt="Monster"
+            className="fixed pointer-events-none z-0 rounded-full object-cover"
             style={{
-              ...style,
-              position: 'fixed'
+              top: collageStyle[index]?.top || '50%',
+              left: collageStyle[index]?.left,
+              right: collageStyle[index]?.right,
+              bottom: collageStyle[index]?.bottom,
+              transform: collageStyle[index]?.transform || 'rotate(0deg) scale(1)',
+              opacity: (collageStyle[index]?.opacity || 0.3),
+              width: '120px',
+              height: '120px'
             }}
           />
         ))}
@@ -213,14 +221,21 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
   return (
     <div className="max-w-2xl mx-auto space-y-6 relative min-h-screen">
       {/* Monster Collage Background */}
-      {collageStyle.map((style, index) => (
-        <div 
+      {monsterImages.map((imageUrl, index) => (
+        <img 
           key={index}
-          className="fixed pointer-events-none z-0 rounded-full"
+          src={imageUrl}
+          alt="Monster"
+          className="fixed pointer-events-none z-0 rounded-full object-cover"
           style={{
-            ...style,
-            position: 'fixed',
-            opacity: (style.opacity as number) * 1.2
+            top: collageStyle[index]?.top || '50%',
+            left: collageStyle[index]?.left,
+            right: collageStyle[index]?.right,
+            bottom: collageStyle[index]?.bottom,
+            transform: collageStyle[index]?.transform || 'rotate(0deg) scale(1)',
+            opacity: ((collageStyle[index]?.opacity || 0.3) * 1.2),
+            width: '120px',
+            height: '120px'
           }}
         />
       ))}
