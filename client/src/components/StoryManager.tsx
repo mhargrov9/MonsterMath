@@ -42,7 +42,7 @@ const STORY_NODES: Record<string, {
       { text: "Investigate the source of the hum", nextNode: "Node_02_Discovery" }
     ],
     location: "The Whispering Glade",
-    image: "A serene forest glade with an unnaturally dark and quiet atmosphere"
+    image: "@assets/The Whispering Glade_1750207549359.png"
   },
   "Node_02_Discovery": {
     title: "The Whispering Glade",
@@ -53,7 +53,7 @@ const STORY_NODES: Record<string, {
       { text: "Call out to it with your thoughts", nextNode: "Node_03_Conversation" }
     ],
     location: "The Whispering Glade",
-    image: "The same glade, but with a soft, pulsating light visible at the base of an ancient tree"
+    image: "@assets/The Whispering Glade_1750207549359.png"
   },
   "Node_03_Conversation": {
     title: "The Whispering Glade",
@@ -63,7 +63,7 @@ const STORY_NODES: Record<string, {
       { text: "Continue listening to the Shard", nextNode: "Node_04_Crossroads" }
     ],
     location: "The Whispering Glade",
-    image: "The Shard glowing more brightly, casting ethereal light through the glade"
+    image: "@assets/The Whispering Glade_1750207549359.png"
   },
   "Node_04_Crossroads": {
     title: "Forest Crossroads",
@@ -118,42 +118,42 @@ const STORY_NODES: Record<string, {
     choices: [
       { text: "Fight to defend the village", nextNode: "Node_08_Great_Choice" }
     ],
-    location: "Monster Village",
-    image: "The village under attack by shadowy creatures with glowing eyes"
+    location: "Elderwood Village",
+    image: "@assets/Elderwood Village_1750207549399.png"
   },
 
   // PATH B - Training Yard Route  
   "Node_5B_Yard_Arrival": {
-    title: "Old Training Yard",
+    title: "The Ruined Training Yard",
     description: "Ruins of an ancient training ground",
     content: "You arrive at the crumbling remains of what was once a grand training facility. Broken statues of legendary monsters stand sentinel over overgrown combat rings. The Shard grows brighter. 'This place... I remember training here, long ago. But something stirs in the shadows...'",
     choices: [
       { text: "Explore the training rings", nextNode: "Node_6B_Confrontation" },
       { text: "Examine the broken statues", nextNode: "Node_6B_Confrontation" }
     ],
-    location: "Old Training Yard",
-    image: "Ancient ruins of a training ground with broken monster statues and overgrown combat rings"
+    location: "The Ruined Training Yard",
+    image: "@assets/The Ruined Training Yard_1750207549394.png"
   },
   "Node_6B_Confrontation": {
-    title: "Shadow Confrontation",
+    title: "The Ruined Training Yard",
     description: "An encounter with dark forces",
     content: "As you explore, shadow creatures materialize from the ruins! Their leader, a corrupted monster with glowing red eyes, speaks: 'The Shard belongs to Master Vorvax! Surrender it now!' The Shard pulses with defiant energy. 'These servants cannot be reasoned with. We must fight or flee!'",
     choices: [
       { text: "Stand and fight the shadows", nextNode: "Node_7B_Battle_Outcome" },
       { text: "Try to escape through the ruins", nextNode: "Node_7B_Battle_Outcome" }
     ],
-    location: "Old Training Yard",
-    image: "Shadow creatures with glowing red eyes emerging from ancient ruins"
+    location: "The Ruined Training Yard",
+    image: "@assets/The Ruined Training Yard_1750207549394.png"
   },
   "Node_7B_Battle_Outcome": {
-    title: "Victory and Revelation",
+    title: "The Ruined Training Yard",
     description: "The truth about your destiny unfolds",
     content: "Whether through courage or cunning, you overcome the shadow creatures. As they dissolve, the Shard glows triumphantly. 'Well done! But this was only a small taste of Vorvax's power. The real battle lies ahead. I now sense three ancient locations calling to us - each holds a piece of the puzzle we need to stop the darkness.'",
     choices: [
       { text: "Learn about these ancient locations", nextNode: "Node_08_Great_Choice" }
     ],
-    location: "Old Training Yard",
-    image: "The training yard peaceful again, with the Shard glowing brightly in victory"
+    location: "The Ruined Training Yard",
+    image: "@assets/The Ruined Training Yard_1750207549394.png"
   },
 
   // CONVERGENCE POINT
@@ -166,8 +166,8 @@ const STORY_NODES: Record<string, {
       { text: "Ascend the Sky Spire", nextNode: "Node_09_Cliffhanger" },
       { text: "Approach the Volcanic Forge", nextNode: "Node_09_Cliffhanger" }
     ],
-    location: "World Map",
-    image: "A mystical map showing three ominous locations: a sunken temple, a sky spire, and a volcanic forge"
+    location: "The World Map",
+    image: "@assets/The World Map_1750207549385.png"
   },
   "Node_09_Cliffhanger": {
     title: "End of Chapter 1",
@@ -175,7 +175,7 @@ const STORY_NODES: Record<string, {
     content: "You have completed the first chapter of your adventure! The journey to save the Monster World begins now. Subscribe to continue.",
     choices: [],
     location: "Chapter Complete",
-    image: "A dramatic vista showing your chosen destination in the distance"
+    image: "@assets/The World Map_1750207549385.png"
   }
 };
 
@@ -320,15 +320,25 @@ export default function StoryManager() {
                   {/* Ornate Frame */}
                   <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 to-yellow-600/20 dark:from-amber-600/30 dark:to-yellow-400/30 rounded-2xl transform rotate-1"></div>
                   <div className="relative bg-gradient-to-br from-amber-100 to-yellow-200 dark:from-amber-900 dark:to-yellow-800 border-4 border-amber-500/70 dark:border-amber-400/70 rounded-2xl p-6 shadow-inner">
-                    <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-amber-200/50 to-yellow-300/50 dark:from-amber-800/50 dark:to-yellow-700/50 rounded-xl border-2 border-amber-400/50 dark:border-amber-500/50 flex items-center justify-center relative overflow-hidden">
+                    <div className="w-full h-48 sm:h-64 bg-gradient-to-br from-amber-200/50 to-yellow-300/50 dark:from-amber-800/50 dark:to-yellow-700/50 rounded-xl border-2 border-amber-400/50 dark:border-amber-500/50 relative overflow-hidden">
                       {/* Mystical Shimmer Effect */}
                       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 animate-pulse"></div>
-                      <div className="text-center p-4 relative z-10">
-                        <div className="text-4xl mb-3">🌟</div>
-                        <div className="text-sm text-amber-800 dark:text-amber-200 italic font-serif leading-relaxed">
-                          {currentStory.image}
+                      {currentStory.image.startsWith('@assets/') ? (
+                        <img 
+                          src={currentStory.image.replace('@assets/', '/attached_assets/')}
+                          alt={currentStory.description}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <div className="text-center p-4 relative z-10">
+                            <div className="text-4xl mb-3">🌟</div>
+                            <div className="text-sm text-amber-800 dark:text-amber-200 italic font-serif leading-relaxed">
+                              {currentStory.image}
+                            </div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
                 </div>
