@@ -40,31 +40,43 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       };
     }> = [];
     
-    // Generate exact grid positions - placed one by one to ensure no overlaps
+    // Generate positions to ensure all cards are visible within viewport
     const positions = [
-      // Top row
-      { top: '1%', left: '1%', scale: 0.36, rotation: -8, opacity: 0.4 },
-      { top: '1%', left: '26%', scale: 0.38, rotation: 6, opacity: 0.35 },
-      { top: '1%', left: '51%', scale: 0.37, rotation: -12, opacity: 0.42 },
-      { top: '1%', left: '76%', scale: 0.39, rotation: 10, opacity: 0.38 },
+      // Top row - all visible at top
+      { top: '2%', left: '1%', scale: 0.36, rotation: -8, opacity: 0.4 },
+      { top: '2%', left: '20%', scale: 0.38, rotation: 6, opacity: 0.35 },
+      { top: '2%', left: '39%', scale: 0.37, rotation: -12, opacity: 0.42 },
+      { top: '2%', left: '58%', scale: 0.39, rotation: 10, opacity: 0.38 },
+      { top: '2%', left: '77%', scale: 0.35, rotation: -5, opacity: 0.4 },
+      { top: '2%', left: '96%', scale: 0.38, rotation: 8, opacity: 0.36 },
       
       // Second row
-      { top: '26%', left: '1%', scale: 0.35, rotation: 12, opacity: 0.43 },
-      { top: '26%', left: '26%', scale: 0.38, rotation: -15, opacity: 0.37 },
-      { top: '26%', left: '51%', scale: 0.37, rotation: 9, opacity: 0.41 },
-      { top: '26%', left: '76%', scale: 0.36, rotation: -18, opacity: 0.39 },
+      { top: '21%', left: '1%', scale: 0.37, rotation: 12, opacity: 0.43 },
+      { top: '21%', left: '20%', scale: 0.35, rotation: -15, opacity: 0.37 },
+      { top: '21%', left: '39%', scale: 0.39, rotation: 9, opacity: 0.41 },
+      { top: '21%', left: '58%', scale: 0.36, rotation: -18, opacity: 0.39 },
+      { top: '21%', left: '77%', scale: 0.38, rotation: 14, opacity: 0.35 },
+      { top: '21%', left: '96%', scale: 0.37, rotation: -7, opacity: 0.42 },
       
       // Third row
-      { top: '51%', left: '1%', scale: 0.39, rotation: -6, opacity: 0.44 },
-      { top: '51%', left: '26%', scale: 0.37, rotation: 16, opacity: 0.38 },
-      { top: '51%', left: '51%', scale: 0.35, rotation: -11, opacity: 0.42 },
-      { top: '51%', left: '76%', scale: 0.38, rotation: 7, opacity: 0.36 },
+      { top: '40%', left: '1%', scale: 0.35, rotation: -6, opacity: 0.44 },
+      { top: '40%', left: '20%', scale: 0.39, rotation: 16, opacity: 0.38 },
+      { top: '40%', left: '39%', scale: 0.36, rotation: -11, opacity: 0.42 },
+      { top: '40%', left: '58%', scale: 0.38, rotation: 7, opacity: 0.36 },
+      { top: '40%', left: '77%', scale: 0.37, rotation: -14, opacity: 0.40 },
+      { top: '40%', left: '96%', scale: 0.35, rotation: 13, opacity: 0.43 },
       
-      // Fourth row
-      { top: '76%', left: '1%', scale: 0.36, rotation: 11, opacity: 0.37 },
-      { top: '76%', left: '26%', scale: 0.38, rotation: -9, opacity: 0.43 },
-      { top: '76%', left: '51%', scale: 0.37, rotation: 5, opacity: 0.39 },
-      { top: '76%', left: '76%', scale: 0.35, rotation: -16, opacity: 0.41 }
+      // Fourth row - keep visible in lower area
+      { top: '59%', left: '1%', scale: 0.38, rotation: 11, opacity: 0.37 },
+      { top: '59%', left: '20%', scale: 0.36, rotation: -9, opacity: 0.43 },
+      { top: '59%', left: '39%', scale: 0.39, rotation: 5, opacity: 0.39 },
+      { top: '59%', left: '58%', scale: 0.37, rotation: -16, opacity: 0.41 },
+      { top: '59%', left: '77%', scale: 0.35, rotation: 8, opacity: 0.34 },
+      { top: '59%', left: '96%', scale: 0.38, rotation: -4, opacity: 0.38 },
+      
+      // Fifth row - ensure visible
+      { top: '78%', left: '1%', scale: 0.37, rotation: -10, opacity: 0.38 },
+      { top: '78%', left: '20%', scale: 0.35, rotation: 15, opacity: 0.35 }
     ];
 
     // Generate 30 monster cards by cycling through available monsters
@@ -78,7 +90,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       });
     }
 
-    console.log(`Generated ${collageMonsters.length} monster cards for collage (4x4 grid, 50% bigger, exact positions)`);
+    console.log(`Generated ${collageMonsters.length} monster cards for collage (all visible in viewport)`);
     return collageMonsters;
   }, [monsters]);
 
@@ -157,7 +169,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
         ))}
         
         {/* Content Overlay */}
-        <div className="relative max-w-2xl w-full z-20">
+        <div className="relative max-w-lg w-full z-20">
           <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
               <CardHeader className="text-center space-y-4">
                 <div className="text-6xl">⚔️</div>
@@ -251,7 +263,7 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
       ))}
       
       {/* Content Overlay */}
-      <div className="relative max-w-2xl w-full z-20">
+      <div className="relative max-w-lg w-full z-20">
         <Card className="bg-gradient-to-br from-purple-100/95 via-blue-50/95 to-purple-100/95 dark:from-purple-900/95 dark:via-blue-900/95 dark:to-purple-800/95 border-4 border-purple-500/60 dark:border-purple-400/60 shadow-2xl">
             <CardHeader className="text-center space-y-4">
               <div className="text-6xl">📧</div>
