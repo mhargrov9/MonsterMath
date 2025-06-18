@@ -327,11 +327,11 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Integrated with story system to trigger after Node_08_Great_Choice selections
   - No payment processing - purely for market research and email collection
   - Enhanced Interest Test cards with dynamic monster collage backgrounds
-  - Random selection and positioning of 12 monster images from all levels creates unique visual appeal
-  - Fixed positioning system ensures monster backgrounds are visible across all screen sizes
-  - Circular monster images with varied rotations, scales, and opacity create engaging visual backdrop
-  - Successfully implemented working monster collage using direct asset references
-  - Monster images now displaying properly as background elements for Interest Test screens
+  - Implemented clean grid layout with 28 monster images (5 rows, no overlapping)
+  - Fixed image loading by serving directly from attached_assets folder
+  - Added helper function mapping exact filenames for all monster levels
+  - Monster images now display properly as background elements with error handling
+  - Added "Skip for Now - Return to Game" buttons on both subscription screens for easy exit
 
 ## User Preferences
 

@@ -359,6 +359,16 @@ export default function InterestTest({ onComplete }: InterestTestProps) {
                 </Button>
               </div>
               
+              <div className="mt-4 text-center">
+                <Button
+                  onClick={onComplete}
+                  variant="ghost"
+                  className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-200"
+                >
+                  Skip for Now - Return to Game
+                </Button>
+              </div>
+              
               <p className="text-xs text-center text-muted-foreground">
                 We'll only email you when the game launches. No spam, we promise!
               </p>
