@@ -8,9 +8,6 @@ import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
 import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
   // Serve uploaded monster assets
   app.use('/assets', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -24,6 +21,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
   app.use('/attached_assets', express.static('attached_assets'));
+
+  // GET endpoint for monster images (unauthenticated for collage use)
+  app.get('/api/generate/monster-image', async (req, res) => {
+    try {
+      const { monster: monsterId, level } = req.query;
+      
+      if (!monsterId) {
+        return res.status(400).json({ message: "monster parameter is required" });
+      }
+
+      const monsterIdNum = parseInt(monsterId as string);
+      const levelNum = level ? parseInt(level as string) : 1;
+      
+      // For monsters with custom uploaded images, serve them directly
+      if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
+        const monsterNames = {
+          6: 'Gigalith',
+          7: 'Aetherion', 
+          8: 'Geode Tortoise',
+          9: 'Gale-Feather Griffin',
+          10: 'Cinder-Tail Salamander',
+          11: 'River-Spirit Axolotl',
+          12: 'Spark-Tail Squirrel'
+        };
+        
+        const monsterName = monsterNames[monsterIdNum as keyof typeof monsterNames];
+        
+        // Try to find the image file using fs.readdir
+        const fs = require('fs');
+        const path = require('path');
+        
+        try {
+          const files = fs.readdirSync('attached_assets');
+          const imageFile = files.find((file: string) => 
+            file.startsWith(`${monsterName}_Level_${levelNum}_`) && file.endsWith('.png')
+          );
+          
+          if (imageFile) {
+            const fullPath = path.join('attached_assets', imageFile);
+            const imageBuffer = fs.readFileSync(fullPath);
+            res.set({
+              'Content-Type': 'image/png',
+              'Content-Length': imageBuffer.length,
+              'Cache-Control': 'public, max-age=3600'
+            });
+            return res.send(imageBuffer);
+          }
+        } catch (err) {
+          console.log(`Custom image not found for ${monsterName} level ${levelNum}, falling back to VEO`);
+        }
+      }
+
+      // Fallback to VEO API for other monsters or if custom image not found
+      const upgradeChoices = level ? { level: levelNum } : {};
+      const imageData = await veoClient.generateMonsterImage(monsterIdNum, upgradeChoices);
+      
+      // Return actual image data for img tags
+      const buffer = Buffer.from(imageData, 'base64');
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': buffer.length,
+        'Cache-Control': 'public, max-age=3600'
+      });
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error generating monster image:", error);
+      res.status(500).json({ 
+        message: "Failed to generate monster image",
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Auth middleware
+  await setupAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -499,73 +571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // GET endpoint for monster images (used by img tags in collage)
-  app.get('/api/generate/monster-image', async (req, res) => {
-    try {
-      const { monster: monsterId, level } = req.query;
-      
-      if (!monsterId) {
-        return res.status(400).json({ message: "monster parameter is required" });
-      }
 
-      const monsterIdNum = parseInt(monsterId as string);
-      const levelNum = level ? parseInt(level as string) : 1;
-      
-      // For monsters with custom uploaded images, serve them directly
-      if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
-        const monsterNames = {
-          6: 'Gigalith',
-          7: 'Aetherion', 
-          8: 'Geode Tortoise',
-          9: 'Gale-Feather Griffin',
-          10: 'Cinder-Tail Salamander',
-          11: 'River-Spirit Axolotl',
-          12: 'Spark-Tail Squirrel'
-        };
-        
-        const monsterName = monsterNames[monsterIdNum as keyof typeof monsterNames];
-        const imagePath = `attached_assets/${monsterName}_Level_${levelNum}_*.png`;
-        
-        // Try to find the image file
-        const fs = require('fs');
-        const glob = require('glob');
-        
-        try {
-          const files = glob.sync(imagePath);
-          if (files.length > 0) {
-            const imageBuffer = fs.readFileSync(files[0]);
-            res.set({
-              'Content-Type': 'image/png',
-              'Content-Length': imageBuffer.length,
-              'Cache-Control': 'public, max-age=3600'
-            });
-            return res.send(imageBuffer);
-          }
-        } catch (err) {
-          console.log(`Custom image not found for ${monsterName} level ${levelNum}, falling back to VEO`);
-        }
-      }
-
-      // Fallback to VEO API for other monsters or if custom image not found
-      const upgradeChoices = level ? { level: levelNum } : {};
-      const imageData = await veoClient.generateMonsterImage(monsterIdNum, upgradeChoices);
-      
-      // Return actual image data for img tags
-      const buffer = Buffer.from(imageData, 'base64');
-      res.set({
-        'Content-Type': 'image/png',
-        'Content-Length': buffer.length,
-        'Cache-Control': 'public, max-age=3600'
-      });
-      res.send(buffer);
-    } catch (error) {
-      console.error("Error generating monster image:", error);
-      res.status(500).json({ 
-        message: "Failed to generate monster image",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
 
   // Veo API routes for photorealistic monsters (POST endpoint for authenticated users)
   app.post('/api/generate/monster-image', isAuthenticated, async (req, res) => {
