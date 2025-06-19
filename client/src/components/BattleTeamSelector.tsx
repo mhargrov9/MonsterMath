@@ -226,30 +226,30 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-bold mb-4">Available Monsters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {availableMonsters.map((userMonster: any) => {
               const isSelected = selectedMonsters.find(m => m.id === userMonster.id);
               const canSelect = selectedMonsters.length < battleSlots;
               
               return (
-                <div key={userMonster.id} className="relative">
+                <div key={userMonster.id} className="relative p-2">
                   {isSelected && (
                     <Badge 
-                      className="absolute top-2 right-2 z-10 bg-green-600 text-white"
+                      className="absolute top-4 right-4 z-10 bg-green-600 text-white"
                     >
                       Selected
                     </Badge>
                   )}
                   {!isSelected && !canSelect && (
                     <Badge 
-                      className="absolute top-2 right-2 z-10 bg-gray-500 text-white"
+                      className="absolute top-4 right-4 z-10 bg-gray-500 text-white"
                     >
                       Slots Full
                     </Badge>
                   )}
                   <div 
                     onClick={() => handleMonsterSelect(userMonster)}
-                    className={`cursor-pointer transition-all ${
+                    className={`cursor-pointer transition-all rounded-lg ${
                       isSelected 
                         ? 'ring-4 ring-green-500 bg-green-50' 
                         : canSelect
