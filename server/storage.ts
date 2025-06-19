@@ -653,7 +653,7 @@ export class DatabaseStorage implements IStorage {
     const maxTPL = Math.ceil(playerTPL * 1.1);
     
     const suitableTeams = availableTeams.filter(team => 
-      team.minTPL <= maxTPL && team.maxTPL >= minTPL
+      team.min_tpl <= maxTPL && team.max_tpl >= minTPL
     );
     
     if (suitableTeams.length === 0) {
@@ -686,24 +686,26 @@ export class DatabaseStorage implements IStorage {
       }
       
       // Validate required monster fields
-      if (!monster.baseHp || !monster.baseMp || monster.hpPerLevel === undefined || monster.mpPerLevel === undefined) {
+      if (!monster.base_hp || !monster.base_mp || monster.hp_per_level === undefined || monster.mp_per_level === undefined) {
         console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields:`, {
-          baseHp: monster.baseHp,
-          baseMp: monster.baseMp,
-          hpPerLevel: monster.hpPerLevel,
-          mpPerLevel: monster.mpPerLevel
+          base_hp: monster.base_hp,
+          base_mp: monster.base_mp,
+          hp_per_level: monster.hp_per_level,
+          mp_per_level: monster.mp_per_level
         });
         throw new Error(`Monster ${monster.name} has incomplete data - cannot generate battle stats`);
       }
       
       // Calculate HP and MP based on level
-      const baseHp = monster.baseHp;
-      const baseMp = monster.baseMp;
-      const hpPerLevel = monster.hpPerLevel;
-      const mpPerLevel = monster.mpPerLevel;
+      const baseHp = monster.base_hp;
+      const baseMp = monster.base_mp;
+      const hpPerLevel = monster.hp_per_level;
+      const mpPerLevel = monster.mp_per_level;
       
       const hp = Math.floor(baseHp + (hpPerLevel * (scaledLevel - 1)));
       const mp = Math.floor(baseMp + (mpPerLevel * (scaledLevel - 1)));
+      
+
       
       scaledMonsters.push({
         monster,
