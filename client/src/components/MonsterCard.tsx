@@ -58,7 +58,22 @@ interface MonsterCardProps {
   onAbilityClick?: (abilityName: string, manaCost: number, damage: number, description: string) => void;
 }
 
-const getMonsterData = (monsterId: number) => {
+const getMonsterData = (monsterId: number, monster: any) => {
+  // Use database description if available, otherwise fall back to default
+  const description = monster.description || "A mysterious creature with unknown abilities.";
+  
+  // Parse database resistances and weaknesses, fall back to arrays if needed
+  let resistances = [];
+  let weaknesses = [];
+  
+  try {
+    resistances = Array.isArray(monster.resistances) ? monster.resistances : JSON.parse(monster.resistances || '[]');
+    weaknesses = Array.isArray(monster.weaknesses) ? monster.weaknesses : JSON.parse(monster.weaknesses || '[]');
+  } catch (e) {
+    resistances = [];
+    weaknesses = [];
+  }
+
   switch (monsterId) {
     case 6: // Gigalith
       return {
@@ -83,9 +98,9 @@ const getMonsterData = (monsterId: number) => {
             description: "Deals 0.8x Power as Earth damage and has a 20% chance to make opponent flinch."
           }
         ],
-        flavorText: "Born in the planet's core, its fists can shatter mountains and its heart is a captive star.",
-        weakness: "Water",
-        resistance: "Fire",
+        flavorText: description,
+        weakness: weaknesses[0] || "Water",
+        resistance: resistances[0] || "Fire",
         cardStyle: "stone-textured border-amber-600 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950 dark:to-red-900"
       };
     case 7: // Aetherion
@@ -111,19 +126,69 @@ const getMonsterData = (monsterId: number) => {
             description: "A focused beam dealing 1.5x Power as Psychic damage, but has a 10% chance to fail."
           }
         ],
-        flavorText: "A living star-chart, gazing into all possible futures at once. Its silence is not empty, but full of thoughts that could shatter reality.",
-        weakness: "Physical",
-        resistance: "Psychic",
+        flavorText: description,
+        weakness: weaknesses[0] || "Physical",
+        resistance: resistances[0] || "Psychic",
         cardStyle: "crystalline border-purple-600 bg-gradient-to-br from-purple-50 to-blue-100 dark:from-purple-950 dark:to-blue-900"
+      };
+    case 8: // Geode Tortoise
+      return {
+        archetype: "Tank",
+        affinities: ["Earth", "Crystal"],
+        abilities: [],
+        flavorText: description,
+        weakness: weaknesses[0] || "Water",
+        resistance: resistances[0] || "Electric",
+        cardStyle: "border-green-600 bg-gradient-to-br from-green-50 to-brown-100 dark:from-green-950 dark:to-brown-900"
+      };
+    case 9: // Gale-Feather Griffin
+      return {
+        archetype: "Scout",
+        affinities: ["Air", "Flying"],
+        abilities: [],
+        flavorText: description,
+        weakness: weaknesses[0] || "Electric",
+        resistance: resistances[0] || "Earth",
+        cardStyle: "border-cyan-600 bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-cyan-950 dark:to-blue-900"
+      };
+    case 10: // Cinder-Tail Salamander
+      return {
+        archetype: "Attacker",
+        affinities: ["Fire"],
+        abilities: [],
+        flavorText: description,
+        weakness: weaknesses[0] || "Water",
+        resistance: resistances[0] || "Fire",
+        cardStyle: "border-red-600 bg-gradient-to-br from-red-50 to-orange-100 dark:from-red-950 dark:to-orange-900"
+      };
+    case 11: // River-Spirit Axolotl
+      return {
+        archetype: "Support",
+        affinities: ["Water", "Spirit"],
+        abilities: [],
+        flavorText: description,
+        weakness: weaknesses[0] || "Poison",
+        resistance: resistances[0] || "Water",
+        cardStyle: "border-blue-600 bg-gradient-to-br from-blue-50 to-teal-100 dark:from-blue-950 dark:to-teal-900"
+      };
+    case 12: // Spark-Tail Squirrel
+      return {
+        archetype: "Controller",
+        affinities: ["Electric"],
+        abilities: [],
+        flavorText: description,
+        weakness: weaknesses[0] || "Earth",
+        resistance: resistances[0] || "Air",
+        cardStyle: "border-yellow-600 bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-950 dark:to-amber-900"
       };
     default:
       return {
         archetype: "Unknown",
         affinities: ["Neutral"],
         abilities: [],
-        flavorText: "A mysterious creature with unknown abilities.",
-        weakness: "Unknown",
-        resistance: "Unknown",
+        flavorText: description,
+        weakness: weaknesses[0] || "Unknown",
+        resistance: resistances[0] || "Unknown",
         cardStyle: "border-gray-600 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900"
       };
   }
