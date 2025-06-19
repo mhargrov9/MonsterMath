@@ -753,9 +753,26 @@ export class DatabaseStorage implements IStorage {
         continue; // Skip missing monsters instead of failing
       }
       
-      // Validate required monster fields
-      if (!monster.base_hp || !monster.base_mp || monster.hp_per_level === undefined || monster.mp_per_level === undefined) {
-        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields`);
+      // Validate required monster fields with detailed logging
+      const missingFields = [];
+      if (!monster.base_hp) missingFields.push('base_hp');
+      if (!monster.base_mp) missingFields.push('base_mp');
+      if (monster.hp_per_level === undefined || monster.hp_per_level === null) missingFields.push('hp_per_level');
+      if (monster.mp_per_level === undefined || monster.mp_per_level === null) missingFields.push('mp_per_level');
+      if (!monster.base_power) missingFields.push('base_power');
+      if (!monster.base_speed) missingFields.push('base_speed');
+      if (!monster.base_defense) missingFields.push('base_defense');
+      
+      if (missingFields.length > 0) {
+        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields: ${missingFields.join(', ')}`, {
+          base_hp: monster.base_hp,
+          base_mp: monster.base_mp,
+          hp_per_level: monster.hp_per_level,
+          mp_per_level: monster.mp_per_level,
+          base_power: monster.base_power,
+          base_speed: monster.base_speed,
+          base_defense: monster.base_defense
+        });
         continue; // Skip incomplete monsters
       }
       
@@ -778,7 +795,13 @@ export class DatabaseStorage implements IStorage {
     
     // Final validation - ensure we have at least one valid monster
     if (scaledMonsters.length === 0) {
-      throw new Error("Could not generate any valid monsters for battle - database may be corrupted");
+      console.error("Battle generation failed - no valid monsters found:", {
+        selectedTeam: selectedTeam.name,
+        compositionLength: composition.length,
+        availableTeamsCount: availableTeams.length,
+        playerTPL
+      });
+      throw new Error(`Failed to generate battle team "${selectedTeam.name}" - all monsters failed validation. Check monster database integrity.`);
     }
     
     console.log(`Generated AI team: ${selectedTeam.name} with ${scaledMonsters.length} monsters, total TPL: ${scaledMonsters.reduce((sum, m) => sum + m.level, 0)}`);
