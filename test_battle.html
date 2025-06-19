@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle Arena Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        #opponent-display {
+            min-height: 100px;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+            font-size: 18px;
+            line-height: 1.5;
+        }
+        
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .data-display {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Battle Arena Opponent Fetch Test</h1>
+        
+        <button id="fetch-button" onclick="fetchOpponent()">Fetch Opponent</button>
+        
+        <div id="opponent-display">
+            Click "Fetch Opponent" to test the API call
+        </div>
+    </div>
+
+    <script>
+        async function fetchOpponent() {
+            console.log('=== Starting opponent fetch test ===');
+            
+            const button = document.getElementById('fetch-button');
+            const display = document.getElementById('opponent-display');
+            
+            // Step 1: Immediately set loading state
+            console.log('Step 1: Setting loading state');
+            display.innerHTML = '<div class="loading">Loading...</div>';
+            display.className = 'loading';
+            button.disabled = true;
+            
+            try {
+                // Step 2: Make API call to backend
+                console.log('Step 2: Making API call to /api/battle/generate-opponent');
+                
+                const response = await fetch('/api/battle/generate-opponent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('Step 3: Response received, status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // Step 3: Parse JSON data
+                const data = await response.json();
+                console.log('Step 4: Data parsed successfully:', data);
+                
+                // Step 4: Validate data structure
+                if (!data || !data.scaledMonsters || !Array.isArray(data.scaledMonsters) || data.scaledMonsters.length === 0) {
+                    throw new Error('Invalid data structure: no scaledMonsters array');
+                }
+                
+                const firstMonster = data.scaledMonsters[0];
+                console.log('Step 5: First monster:', firstMonster);
+                
+                if (!firstMonster || !firstMonster.monster || !firstMonster.monster.name) {
+                    throw new Error('Invalid monster structure: missing name property');
+                }
+                
+                // Step 5: Display success result
+                const monsterName = firstMonster.monster.name;
+                const teamName = data.team ? data.team.name : 'Unknown Team';
+                
+                console.log('Step 6: Success! Monster name:', monsterName);
+                
+                display.innerHTML = `
+                    <div class="success">✓ SUCCESS!</div>
+                    <strong>Team:</strong> ${teamName}<br>
+                    <strong>First Monster:</strong> ${monsterName}<br>
+                    <strong>Level:</strong> ${firstMonster.level}<br>
+                    <strong>HP:</strong> ${firstMonster.hp}/${firstMonster.hp}<br>
+                    <strong>MP:</strong> ${firstMonster.mp}/${firstMonster.mp}
+                    <div class="data-display">
+                        <strong>Full Response:</strong><br>
+                        ${JSON.stringify(data, null, 2)}
+                    </div>
+                `;
+                display.className = 'success';
+                
+            } catch (error) {
+                // Step 6: Handle any errors
+                console.error('Step 6: Error occurred:', error);
+                
+                display.innerHTML = `
+                    <div class="error">✗ ERROR</div>
+                    <strong>Error Message:</strong> ${error.message}<br>
+                    <strong>Error Type:</strong> ${error.name}<br>
+                    <div class="data-display">
+                        <strong>Full Error:</strong><br>
+                        ${error.stack || error.toString()}
+                    </div>
+                `;
+                display.className = 'error';
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+                console.log('=== Opponent fetch test completed ===');
+            }
+        }
+        
+        // Show initial ready state
+        console.log('Battle Arena Test Page Loaded - Ready to test opponent fetching');
+    </script>
+</body>
+</html>
