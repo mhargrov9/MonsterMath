@@ -62,67 +62,145 @@ export default function BattleArena() {
     queryKey: ["/api/auth/user"],
   });
 
-  const handleBattleStart = (selectedMonsters: any[], generatedOpponent: any) => {
-    console.log('handleBattleStart called with:', { selectedMonsters, generatedOpponent });
+  // This function follows the exact pseudocode logic provided
+  const setupBattleArena = async (selectedMonsters: any[]) => {
+    console.log('setupBattleArena called with:', selectedMonsters);
     
-    // Validate inputs
+    // Validate player monsters
     if (!selectedMonsters || selectedMonsters.length === 0) {
       console.error('No selected monsters provided');
       return;
     }
     
-    if (!generatedOpponent || !generatedOpponent.scaledMonsters || generatedOpponent.scaledMonsters.length === 0) {
-      console.error('Invalid opponent data:', generatedOpponent);
-      return;
-    }
-    
+    // 1. Set the opponent's display to a 'Loading' state immediately
     setSelectedTeam(selectedMonsters);
-    setAiOpponent(generatedOpponent);
     setBattleMode('combat');
+    setOpponentLoadingState('loading');
+    setAiOpponent(null);
+    setBattleState(null);
     
-    // Initialize battle with first monster from player team vs first AI monster
-    const playerMonster = selectedMonsters[0];
-    const aiMonster = generatedOpponent.scaledMonsters[0];
-    
-    // Validate AI monster structure
-    if (!aiMonster || !aiMonster.monster || !aiMonster.monster.name) {
-      console.error('Invalid AI monster structure:', aiMonster);
-      return;
+    try {
+      // 2. Fetch the opponent data from the server API
+      const opponentTeamData = await apiRequest('/api/battle/generate-opponent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('Received opponent data:', opponentTeamData);
+      
+      // 3. Check if the data is valid
+      if (opponentTeamData && opponentTeamData.scaledMonsters && opponentTeamData.scaledMonsters.length > 0) {
+        const aiMonster = opponentTeamData.scaledMonsters[0];
+        
+        // Additional validation for monster structure
+        if (aiMonster && aiMonster.monster && aiMonster.monster.name) {
+          // 4. If data is valid, display the opponent's monsters
+          console.log('Valid opponent data received, setting up battle');
+          setOpponentLoadingState('success');
+          setAiOpponent(opponentTeamData);
+          
+          // Initialize battle state
+          const playerMonster = selectedMonsters[0];
+          setBattleState({
+            playerMonster: {
+              ...playerMonster,
+              hp: playerMonster.hp,
+              maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
+              mp: playerMonster.mp,
+              maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
+            },
+            aiMonster: {
+              id: aiMonster.monster.id,
+              name: aiMonster.monster.name,
+              type: aiMonster.monster.type,
+              power: aiMonster.monster.base_power || aiMonster.monster.basePower,
+              speed: aiMonster.monster.base_speed || aiMonster.monster.baseSpeed,
+              defense: aiMonster.monster.base_defense || aiMonster.monster.baseDefense,
+              hp: aiMonster.hp,
+              maxHp: aiMonster.hp,
+              mp: aiMonster.mp,
+              maxMp: aiMonster.mp,
+              level: aiMonster.level,
+              monster: aiMonster.monster,
+              upgradeChoices: {}
+            },
+            turn: 'player' as const,
+            phase: 'select' as const,
+            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
+            winner: null,
+            currentAnimation: null,
+            lastDamage: null,
+            screenShake: false
+          });
+        } else {
+          // 5. If data structure is invalid, display an error state
+          console.error('Invalid AI monster structure:', aiMonster);
+          setOpponentLoadingState('error');
+        }
+      } else {
+        // 5. If data is invalid or empty, display an error state
+        console.error('Invalid or empty opponent team data:', opponentTeamData);
+        setOpponentLoadingState('error');
+      }
+    } catch (error) {
+      // 6. If the entire process fails, display an error state
+      console.error('Error fetching opponent data:', error);
+      setOpponentLoadingState('error');
     }
-    
-    console.log('Setting up battle between:', playerMonster.monster.name, 'vs', aiMonster.monster.name);
-    
-    setBattleState({
-      playerMonster: {
-        ...playerMonster,
-        hp: playerMonster.hp,
-        maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
-        mp: playerMonster.mp,
-        maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
-      },
-      aiMonster: {
-        id: aiMonster.monster.id,
-        name: aiMonster.monster.name,
-        type: aiMonster.monster.type,
-        power: aiMonster.monster.base_power || aiMonster.monster.basePower,
-        speed: aiMonster.monster.base_speed || aiMonster.monster.baseSpeed,
-        defense: aiMonster.monster.base_defense || aiMonster.monster.baseDefense,
-        hp: aiMonster.hp,
-        maxHp: aiMonster.hp,
-        mp: aiMonster.mp,
-        maxMp: aiMonster.mp,
-        level: aiMonster.level,
-        monster: aiMonster.monster,
-        upgradeChoices: {}
-      },
-      turn: 'player' as const,
-      phase: 'select' as const,
-      battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
-      winner: null,
-      currentAnimation: null,
-      lastDamage: null,
-      screenShake: false
-    });
+  };
+
+  // Updated handler that calls the new setup function
+  const handleBattleStart = (selectedMonsters: any[], generatedOpponent?: any) => {
+    // If opponent is already generated (from BattleTeamSelector), use the new setup
+    if (!generatedOpponent) {
+      setupBattleArena(selectedMonsters);
+    } else {
+      // Legacy path for pre-generated opponents (fallback)
+      console.log('Using pre-generated opponent (legacy path)');
+      setSelectedTeam(selectedMonsters);
+      setAiOpponent(generatedOpponent);
+      setBattleMode('combat');
+      setOpponentLoadingState('success');
+      
+      const playerMonster = selectedMonsters[0];
+      const aiMonster = generatedOpponent.scaledMonsters[0];
+      
+      if (aiMonster && aiMonster.monster && aiMonster.monster.name) {
+        setBattleState({
+          playerMonster: {
+            ...playerMonster,
+            hp: playerMonster.hp,
+            maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
+            mp: playerMonster.mp,
+            maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
+          },
+          aiMonster: {
+            id: aiMonster.monster.id,
+            name: aiMonster.monster.name,
+            type: aiMonster.monster.type,
+            power: aiMonster.monster.base_power || aiMonster.monster.basePower,
+            speed: aiMonster.monster.base_speed || aiMonster.monster.baseSpeed,
+            defense: aiMonster.monster.base_defense || aiMonster.monster.baseDefense,
+            hp: aiMonster.hp,
+            maxHp: aiMonster.hp,
+            mp: aiMonster.mp,
+            maxMp: aiMonster.mp,
+            level: aiMonster.level,
+            monster: aiMonster.monster,
+            upgradeChoices: {}
+          },
+          turn: 'player' as const,
+          phase: 'select' as const,
+          battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
+          winner: null,
+          currentAnimation: null,
+          lastDamage: null,
+          screenShake: false
+        });
+      } else {
+        setOpponentLoadingState('error');
+      }
+    }
   };
 
   const handleBackToSelection = () => {
@@ -130,10 +208,85 @@ export default function BattleArena() {
     setSelectedTeam([]);
     setAiOpponent(null);
     setBattleState(null);
+    setOpponentLoadingState('idle');
   };
 
-  // Loading state when battle is starting but opponent data isn't ready
-  if (battleMode === 'combat' && (!battleState || !battleState.aiMonster || !battleState.aiMonster.monster || !battleState.aiMonster.monster.name)) {
+  // Function that handles drawing the opponent card based on state (matches pseudocode)
+  const displayOpponentCard = () => {
+    if (opponentLoadingState === 'loading') {
+      return (
+        <Card className="h-96 flex items-center justify-center">
+          <CardContent>
+            <div className="text-center text-muted-foreground">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <h3 className="text-lg mb-2">Waiting for opponent...</h3>
+              <div className="text-sm">Generating AI team</div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    } else if (opponentLoadingState === 'error') {
+      return (
+        <Card className="h-96 flex items-center justify-center">
+          <CardContent>
+            <div className="text-center text-muted-foreground">
+              <h3 className="text-lg mb-2">Error: Could not load opponent</h3>
+              <div className="text-sm">Please try again</div>
+              <Button 
+                onClick={handleBackToSelection}
+                variant="outline"
+                className="mt-4"
+              >
+                Back to Team Selection
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    } else if (opponentLoadingState === 'success' && battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
+      // Now, and ONLY now, do we try to read the monster's name and render the full card
+      return (
+        <MonsterCard
+          monster={battleState.aiMonster.monster}
+          userMonster={{
+            id: 9999,
+            userId: 'ai',
+            monsterId: battleState.aiMonster.monster.id,
+            level: battleState.aiMonster.level || 1,
+            power: battleState.aiMonster.power,
+            speed: battleState.aiMonster.speed,
+            defense: battleState.aiMonster.defense,
+            experience: 0,
+            evolutionStage: 4,
+            upgradeChoices: battleState.aiMonster.upgradeChoices || {},
+            hp: battleState.aiMonster.hp,
+            maxHp: battleState.aiMonster.maxHp,
+            mp: battleState.aiMonster.mp,
+            maxMp: battleState.aiMonster.maxMp,
+            isShattered: false,
+            acquiredAt: new Date()
+          }}
+          battleMode={true}
+          battleMp={battleState.aiMonster.mp}
+          size="medium"
+        />
+      );
+    } else {
+      // Default state - should not happen, but provides safety
+      return (
+        <Card className="h-96 flex items-center justify-center">
+          <CardContent>
+            <div className="text-center text-muted-foreground">
+              <div className="text-lg">No opponent selected</div>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+  };
+
+  // Loading/preparation state when battle mode is active but not fully ready
+  if (battleMode === 'combat' && (opponentLoadingState === 'loading' || opponentLoadingState === 'error' || !battleState)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
         <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
@@ -150,10 +303,14 @@ export default function BattleArena() {
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back to Team Selection
                   </Button>
-                  <CardTitle className="text-lg sm:text-2xl">Preparing Battle...</CardTitle>
+                  <CardTitle className="text-lg sm:text-2xl">
+                    {opponentLoadingState === 'loading' ? 'Preparing Battle...' : 
+                     opponentLoadingState === 'error' ? 'Battle Setup Failed' : 'Setting Up Battle'}
+                  </CardTitle>
                 </div>
-                <Badge variant="secondary" className="text-xs sm:text-sm">
-                  Loading
+                <Badge variant={opponentLoadingState === 'error' ? 'destructive' : 'secondary'} className="text-xs sm:text-sm">
+                  {opponentLoadingState === 'loading' ? 'Loading' : 
+                   opponentLoadingState === 'error' ? 'Error' : 'Preparing'}
                 </Badge>
               </div>
             </CardHeader>
@@ -182,18 +339,13 @@ export default function BattleArena() {
               )}
             </div>
 
-            {/* Opponent Monster - Loading placeholder */}
+            {/* Opponent Monster - Use displayOpponentCard function */}
             <div className="space-y-3">
-              <h3 className="text-lg font-bold text-center">Opponent</h3>
-              <Card className="h-96 flex items-center justify-center">
-                <CardContent>
-                  <div className="text-center text-muted-foreground">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                    <div className="text-lg mb-2">Waiting for opponent...</div>
-                    <div className="text-sm">Generating AI team</div>
-                  </div>
-                </CardContent>
-              </Card>
+              <h3 className="text-lg font-bold text-center">
+                {opponentLoadingState === 'success' && aiOpponent?.team?.name ? 
+                  `Opponent: ${aiOpponent.team.name}` : 'Opponent'}
+              </h3>
+              {displayOpponentCard()}
             </div>
           </div>
         </div>
@@ -259,8 +411,8 @@ export default function BattleArena() {
     );
   }
 
-  // Combat mode - show the battle interface (only when fully loaded)
-  if (battleMode === 'combat' && battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
+  // Combat mode - show the battle interface (only when fully loaded and successful)
+  if (battleMode === 'combat' && opponentLoadingState === 'success' && battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
         <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
@@ -311,44 +463,33 @@ export default function BattleArena() {
               />
             </div>
 
-            {/* AI Monster */}
+            {/* AI Monster - Now safely rendered since we're in the success state */}
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-center">Opponent: {aiOpponent?.team?.name || 'Unknown'}</h3>
-              {battleState?.aiMonster?.monster?.name ? (
-                <MonsterCard
-                  monster={battleState.aiMonster.monster}
-                  userMonster={{
-                    id: 9999,
-                    userId: 'ai',
-                    monsterId: battleState.aiMonster.monster.id,
-                    level: battleState.aiMonster.level || 1,
-                    power: battleState.aiMonster.power,
-                    speed: battleState.aiMonster.speed,
-                    defense: battleState.aiMonster.defense,
-                    experience: 0,
-                    evolutionStage: 4,
-                    upgradeChoices: battleState.aiMonster.upgradeChoices || {},
-                    hp: battleState.aiMonster.hp,
-                    maxHp: battleState.aiMonster.maxHp,
-                    mp: battleState.aiMonster.mp,
-                    maxMp: battleState.aiMonster.maxMp,
-                    isShattered: false,
-                    acquiredAt: new Date()
-                  }}
-                  battleMode={true}
-                  battleMp={battleState.aiMonster.mp}
-                  size="medium"
-                />
-              ) : (
-                <Card className="h-96 flex items-center justify-center">
-                  <CardContent>
-                    <div className="text-center text-muted-foreground">
-                      <div className="text-lg">Failed to load opponent</div>
-                      <div className="text-sm mt-2">Please try again</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              <MonsterCard
+                monster={battleState.aiMonster.monster}
+                userMonster={{
+                  id: 9999,
+                  userId: 'ai',
+                  monsterId: battleState.aiMonster.monster.id,
+                  level: battleState.aiMonster.level || 1,
+                  power: battleState.aiMonster.power,
+                  speed: battleState.aiMonster.speed,
+                  defense: battleState.aiMonster.defense,
+                  experience: 0,
+                  evolutionStage: 4,
+                  upgradeChoices: battleState.aiMonster.upgradeChoices || {},
+                  hp: battleState.aiMonster.hp,
+                  maxHp: battleState.aiMonster.maxHp,
+                  mp: battleState.aiMonster.mp,
+                  maxMp: battleState.aiMonster.maxMp,
+                  isShattered: false,
+                  acquiredAt: new Date()
+                }}
+                battleMode={true}
+                battleMp={battleState.aiMonster.mp}
+                size="medium"
+              />
             </div>
           </div>
 

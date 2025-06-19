@@ -1,0 +1,52 @@
+Replit' Request: Implementing the Final Fix with Pseudocode
+"We are still blocked by the front-end error: 'Cannot read properties of undefined (reading 'name')'. The server logs confirm the backend is working. The problem is a timing issue in the front-end code.
+
+Previous attempts to fix this have failed. I am now providing a direct, code-level implementation guide. You must update the front-end JavaScript code for the Battle Arena to follow this exact logic.
+
+Here is the required logic in pseudocode:
+
+JavaScript
+
+// This is the function that runs when the Battle Arena screen loads
+
+async function setupBattleArena() {
+
+  // 1. Set the opponent's display to a 'Loading' state immediately.
+  displayOpponentCard('loading');
+
+  try {
+    // 2. Fetch the opponent data from the server API.
+    const opponentTeamData = await fetch('/api/battle/generate-opponent');
+
+    // 3. Check if the data is valid.
+    if (opponentTeamData && opponentTeamData.monsters && opponentTeamData.monsters.length > 0) {
+      
+      // 4. If data is valid, display the opponent's monsters.
+      displayOpponentCard('success', opponentTeamData);
+
+    } else {
+      // 5. If data is invalid or empty, display an error state.
+      displayOpponentCard('error');
+    }
+
+  } catch (error) {
+    // 6. If the entire process fails, display an error state.
+    displayOpponentCard('error');
+  }
+}
+
+// You will need to create a function that handles drawing the card
+function displayOpponentCard(state, data) {
+  const opponentCardComponent = getOpponentCardComponent(); // finds the UI element
+
+  if (state === 'loading') {
+    opponentCardComponent.innerHTML = '<h3>Waiting for opponent...</h3>';
+  } else if (state === 'error') {
+    opponentCardComponent.innerHTML = '<h3>Error: Could not load opponent.</h3>';
+  } else if (state === 'success') {
+    // Now, and ONLY now, do we try to read the monster's name.
+    const monsterName = data.monsters[0].name;
+    opponentCardComponent.innerHTML = `<h2>${monsterName}</h2>`; // (and so on for the rest of the card)
+  }
+}
+Please refactor the existing Battle Arena front-end code to match this 'loading state' logic precisely. This will prevent the UI from trying to render a monster before its data has been successfully received from the server.
