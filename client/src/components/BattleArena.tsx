@@ -115,8 +115,8 @@ export default function BattleArena() {
         monster: aiMonster.monster,
         upgradeChoices: {}
       },
-      turn: 'player',
-      phase: 'select',
+      turn: 'player' as const,
+      phase: 'select' as const,
       battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
       winner: null,
       currentAnimation: null,
@@ -191,7 +191,7 @@ export default function BattleArena() {
   }
 
   // Combat mode - show the battle interface
-  if (battleState) {
+  if (battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
         <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
