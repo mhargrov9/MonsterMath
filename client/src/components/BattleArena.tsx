@@ -56,6 +56,7 @@ export default function BattleArena() {
   const [aiOpponent, setAiOpponent] = useState<any>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [animationKey, setAnimationKey] = useState(0);
+  const [opponentLoadingState, setOpponentLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const { toast } = useToast();
 
   const { data: user } = useQuery<GameUser>({
