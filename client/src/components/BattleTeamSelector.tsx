@@ -75,11 +75,14 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
 
       const playerTPL = calculateTPL(selectedMonsters);
       
-      const response = await apiRequest("POST", "/api/battle/generate-opponent", {
-        playerTPL
+      const response = await apiRequest("/api/battle/generate-opponent", {
+        method: "POST",
+        data: { tpl: playerTPL }
       });
       
-      return response;
+      const responseData = await response.json();
+      
+      return responseData;
     },
     onSuccess: (aiOpponent: any) => {
       if (aiOpponent && aiOpponent.team) {
