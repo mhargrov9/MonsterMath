@@ -226,7 +226,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       <Card>
         <CardContent className="p-6">
           <h3 className="text-lg font-bold mb-4">Available Monsters</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {availableMonsters.map((userMonster: any) => {
               const isSelected = selectedMonsters.find(m => m.id === userMonster.id);
               const canSelect = selectedMonsters.length < battleSlots;
