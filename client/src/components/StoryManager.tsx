@@ -283,17 +283,17 @@ export default function StoryManager() {
     
     try {
       const response = await apiRequest('/api/battle/generate-opponent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST'
       });
       
-      console.log('Test response:', response);
+      const responseData = await response.json();
+      console.log('Test response:', responseData);
       
-      if (response && response.scaledMonsters && response.scaledMonsters.length > 0) {
-        const firstMonster = response.scaledMonsters[0];
+      if (responseData && responseData.scaledMonsters && responseData.scaledMonsters.length > 0) {
+        const firstMonster = responseData.scaledMonsters[0];
         if (firstMonster && firstMonster.monster && firstMonster.monster.name) {
           const monsterName = firstMonster.monster.name;
-          const teamName = response.team ? response.team.name : 'Unknown Team';
+          const teamName = responseData.team ? responseData.team.name : 'Unknown Team';
           setTestResult(`SUCCESS! Team: ${teamName}, First Monster: ${monsterName} (Level ${firstMonster.level})`);
           console.log('Test SUCCESS:', monsterName);
         } else {
