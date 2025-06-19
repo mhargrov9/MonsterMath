@@ -132,6 +132,75 @@ export default function BattleArena() {
     setBattleState(null);
   };
 
+  // Loading state when battle is starting but opponent data isn't ready
+  if (battleMode === 'combat' && (!battleState || !battleState.aiMonster || !battleState.aiMonster.monster || !battleState.aiMonster.monster.name)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
+        <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBackToSelection}
+                    className="touch-manipulation min-h-[44px]"
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Team Selection
+                  </Button>
+                  <CardTitle className="text-lg sm:text-2xl">Preparing Battle...</CardTitle>
+                </div>
+                <Badge variant="secondary" className="text-xs sm:text-sm">
+                  Loading
+                </Badge>
+              </div>
+            </CardHeader>
+          </Card>
+
+          {/* Battle Preparation Area */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+            {/* Player Monster - Show selected if available */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-center">Your Monster</h3>
+              {selectedTeam && selectedTeam.length > 0 ? (
+                <MonsterCard
+                  monster={selectedTeam[0].monster}
+                  userMonster={selectedTeam[0]}
+                  battleMode={false}
+                  size="medium"
+                />
+              ) : (
+                <Card className="h-96 flex items-center justify-center">
+                  <CardContent>
+                    <div className="text-center text-muted-foreground">
+                      <div className="animate-pulse">Preparing your monster...</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Opponent Monster - Loading placeholder */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-center">Opponent</h3>
+              <Card className="h-96 flex items-center justify-center">
+                <CardContent>
+                  <div className="text-center text-muted-foreground">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                    <div className="text-lg mb-2">Waiting for opponent...</div>
+                    <div className="text-sm">Generating AI team</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Save monster stats mutation
   const saveMonsterStatsMutation = useMutation({
     mutationFn: async ({ monsterId, hp, mp }: { monsterId: number; hp: number; mp: number }) => {
@@ -190,8 +259,8 @@ export default function BattleArena() {
     );
   }
 
-  // Combat mode - show the battle interface
-  if (battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
+  // Combat mode - show the battle interface (only when fully loaded)
+  if (battleMode === 'combat' && battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
         <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
@@ -244,8 +313,8 @@ export default function BattleArena() {
 
             {/* AI Monster */}
             <div className="space-y-3">
-              <h3 className="text-lg font-bold text-center">Opponent: {aiOpponent?.team?.name}</h3>
-              {battleState.aiMonster && battleState.aiMonster.monster ? (
+              <h3 className="text-lg font-bold text-center">Opponent: {aiOpponent?.team?.name || 'Unknown'}</h3>
+              {battleState?.aiMonster?.monster?.name ? (
                 <MonsterCard
                   monster={battleState.aiMonster.monster}
                   userMonster={{
@@ -271,7 +340,14 @@ export default function BattleArena() {
                   size="medium"
                 />
               ) : (
-                <div className="text-center text-muted-foreground">Loading AI opponent...</div>
+                <Card className="h-96 flex items-center justify-center">
+                  <CardContent>
+                    <div className="text-center text-muted-foreground">
+                      <div className="text-lg">Failed to load opponent</div>
+                      <div className="text-sm mt-2">Please try again</div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
