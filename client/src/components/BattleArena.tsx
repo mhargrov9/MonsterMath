@@ -63,6 +63,19 @@ export default function BattleArena() {
   });
 
   const handleBattleStart = (selectedMonsters: any[], generatedOpponent: any) => {
+    console.log('handleBattleStart called with:', { selectedMonsters, generatedOpponent });
+    
+    // Validate inputs
+    if (!selectedMonsters || selectedMonsters.length === 0) {
+      console.error('No selected monsters provided');
+      return;
+    }
+    
+    if (!generatedOpponent || !generatedOpponent.scaledMonsters || generatedOpponent.scaledMonsters.length === 0) {
+      console.error('Invalid opponent data:', generatedOpponent);
+      return;
+    }
+    
     setSelectedTeam(selectedMonsters);
     setAiOpponent(generatedOpponent);
     setBattleMode('combat');
@@ -70,6 +83,14 @@ export default function BattleArena() {
     // Initialize battle with first monster from player team vs first AI monster
     const playerMonster = selectedMonsters[0];
     const aiMonster = generatedOpponent.scaledMonsters[0];
+    
+    // Validate AI monster structure
+    if (!aiMonster || !aiMonster.monster || !aiMonster.monster.name) {
+      console.error('Invalid AI monster structure:', aiMonster);
+      return;
+    }
+    
+    console.log('Setting up battle between:', playerMonster.monster.name, 'vs', aiMonster.monster.name);
     
     setBattleState({
       playerMonster: {
@@ -83,14 +104,16 @@ export default function BattleArena() {
         id: aiMonster.monster.id,
         name: aiMonster.monster.name,
         type: aiMonster.monster.type,
-        power: aiMonster.monster.basePower,
-        speed: aiMonster.monster.baseSpeed,
-        defense: aiMonster.monster.baseDefense,
+        power: aiMonster.monster.base_power || aiMonster.monster.basePower,
+        speed: aiMonster.monster.base_speed || aiMonster.monster.baseSpeed,
+        defense: aiMonster.monster.base_defense || aiMonster.monster.baseDefense,
         hp: aiMonster.hp,
         maxHp: aiMonster.hp,
         mp: aiMonster.mp,
         maxMp: aiMonster.mp,
-        monster: aiMonster.monster
+        level: aiMonster.level,
+        monster: aiMonster.monster,
+        upgradeChoices: {}
       },
       turn: 'player',
       phase: 'select',
@@ -222,26 +245,34 @@ export default function BattleArena() {
             {/* AI Monster */}
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-center">Opponent: {aiOpponent?.team?.name}</h3>
-              <MonsterCard
-                monster={battleState.aiMonster.monster}
-                userMonster={{
-                  id: 9999,
-                  level: battleState.aiMonster.level || 1,
-                  power: battleState.aiMonster.power,
-                  speed: battleState.aiMonster.speed,
-                  defense: battleState.aiMonster.defense,
-                  experience: 0,
-                  evolutionStage: 4,
-                  upgradeChoices: battleState.aiMonster.upgradeChoices || {},
-                  hp: battleState.aiMonster.hp,
-                  maxHp: battleState.aiMonster.maxHp,
-                  mp: battleState.aiMonster.mp,
-                  maxMp: battleState.aiMonster.maxMp
-                }}
-                battleMode={true}
-                battleMp={battleState.aiMonster.mp}
-                size="medium"
-              />
+              {battleState.aiMonster && battleState.aiMonster.monster ? (
+                <MonsterCard
+                  monster={battleState.aiMonster.monster}
+                  userMonster={{
+                    id: 9999,
+                    userId: 'ai',
+                    monsterId: battleState.aiMonster.monster.id,
+                    level: battleState.aiMonster.level || 1,
+                    power: battleState.aiMonster.power,
+                    speed: battleState.aiMonster.speed,
+                    defense: battleState.aiMonster.defense,
+                    experience: 0,
+                    evolutionStage: 4,
+                    upgradeChoices: battleState.aiMonster.upgradeChoices || {},
+                    hp: battleState.aiMonster.hp,
+                    maxHp: battleState.aiMonster.maxHp,
+                    mp: battleState.aiMonster.mp,
+                    maxMp: battleState.aiMonster.maxMp,
+                    isShattered: false,
+                    acquiredAt: new Date()
+                  }}
+                  battleMode={true}
+                  battleMp={battleState.aiMonster.mp}
+                  size="medium"
+                />
+              ) : (
+                <div className="text-center text-muted-foreground">Loading AI opponent...</div>
+              )}
             </div>
           </div>
 
