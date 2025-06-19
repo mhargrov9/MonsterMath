@@ -12,6 +12,7 @@ import VeoMonster from "./VeoMonster";
 import UpgradeChoice from "./UpgradeChoice";
 import MonsterCard from "./MonsterCard";
 import LabSubscriptionGate from "./LabSubscriptionGate";
+import BattleSlotUpgrade from "./BattleSlotUpgrade";
 import { Monster, UserMonster, GameUser } from "@/types/game";
 import { useState } from "react";
 

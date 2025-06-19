@@ -992,6 +992,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Battle slot purchasing
+  app.post('/api/battle/purchase-slot', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await storage.purchaseBattleSlot(userId);
+      res.json({ 
+        message: `Battle slot purchased for ${result.cost} diamonds`,
+        user: result.user,
+        cost: result.cost
+      });
+    } catch (error) {
+      console.error('Error purchasing battle slot:', error);
+      res.status(400).json({ message: error instanceof Error ? error.message : 'Failed to purchase battle slot' });
+    }
+  });
+
+  // Rank points system
+  app.post('/api/battle/update-rank', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { playerTPL, opponentTPL, won } = req.body;
+      
+      let totalRP = 0;
+      
+      if (won) {
+        totalRP += 20; // Base win reward
+        if (opponentTPL > playerTPL) {
+          totalRP += 5; // Bonus for defeating stronger opponent
+        }
+      } else {
+        totalRP -= 10; // Loss penalty
+      }
+      
+      const user = await storage.updateUserRankPoints(userId, totalRP);
+      res.json({ 
+        message: `Rank points updated: ${totalRP > 0 ? '+' : ''}${totalRP}`,
+        user,
+        rpChange: totalRP
+      });
+    } catch (error) {
+      console.error('Error updating rank points:', error);
+      res.status(500).json({ message: 'Failed to update rank points' });
+    }
+  });
+
+  // AI Trainers management
+  app.get('/api/ai-trainers', isAuthenticated, async (req, res) => {
+    try {
+      const trainers = await storage.getAllAiTrainers();
+      res.json(trainers);
+    } catch (error) {
+      console.error('Error fetching AI trainers:', error);
+      res.status(500).json({ message: 'Failed to fetch AI trainers' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
