@@ -46,7 +46,10 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   // Spend battle token mutation
   const spendTokenMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/battle/spend-token", {});
+      const response = await apiRequest("/api/battle/spend-token", {
+        method: "POST"
+      });
+      return await response.json();
     },
     onSuccess: () => {
       // After successfully spending token, generate opponent
@@ -54,6 +57,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     },
     onError: (error: Error) => {
+      setIsGeneratingOpponent(false);
       if (error.message.includes("NO_BATTLE_TOKENS")) {
         setShowSubscriptionGate(true);
       } else {
