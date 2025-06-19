@@ -289,20 +289,20 @@ export default function StoryManager() {
       const responseData = await response.json();
       console.log('Test response:', responseData);
       
-      if (responseData && responseData.scaledMonsters && responseData.scaledMonsters.length > 0) {
-        const firstMonster = responseData.scaledMonsters[0];
-        if (firstMonster && firstMonster.monster && firstMonster.monster.name) {
-          const monsterName = firstMonster.monster.name;
-          const teamName = responseData.team ? responseData.team.name : 'Unknown Team';
-          setTestResult(`SUCCESS! Team: ${teamName}, First Monster: ${monsterName} (Level ${firstMonster.level})`);
+      if (responseData && responseData.team && responseData.team.monsters && responseData.team.monsters.length > 0) {
+        const firstMonster = responseData.team.monsters[0];
+        if (firstMonster && firstMonster.name) {
+          const monsterName = firstMonster.name;
+          const teamName = responseData.team.name || 'Unknown Team';
+          setTestResult(`SUCCESS! Team: ${teamName}, First Monster: ${monsterName}`);
           console.log('Test SUCCESS:', monsterName);
         } else {
           setTestResult("ERROR: Invalid monster structure in response");
           console.error('Test FAILED: Invalid monster structure');
         }
       } else {
-        setTestResult("ERROR: No monsters in response");
-        console.error('Test FAILED: No monsters in response');
+        setTestResult("ERROR: No monsters found in response.team.monsters");
+        console.error('Test FAILED: No monsters in response.team.monsters');
       }
     } catch (error) {
       setTestResult(`ERROR: ${error.message}`);
