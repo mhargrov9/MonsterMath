@@ -645,8 +645,11 @@ export class DatabaseStorage implements IStorage {
       mp: number;
     }>;
   }> {
+    console.log(`Log 1: Player TPL calculated as: ${playerTPL}`);
+    
     // Get all available AI teams
     const availableTeams = await this.getAllAiTeams();
+    console.log(`Available AI teams count: ${availableTeams.length}`);
     
     // Try flexible matching first - use wider TPL range (up to 50% variance)
     let selectedTeam: AiTeam | null = null;
@@ -665,6 +668,7 @@ export class DatabaseStorage implements IStorage {
       if (requiredScaling >= minScaling && requiredScaling <= maxScaling) {
         selectedTeam = team;
         composition = teamComposition;
+        console.log(`Log 2: AI Archetype selected: ${selectedTeam.name} (flexible scaling, factor: ${requiredScaling.toFixed(2)})`);
         break;
       }
     }
@@ -673,6 +677,7 @@ export class DatabaseStorage implements IStorage {
     if (!selectedTeam && availableTeams.length > 0) {
       selectedTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
       composition = selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>;
+      console.log(`Log 2: AI Archetype selected: ${selectedTeam.name} (manual level redistribution)`);
       
       // Redistribute levels to match target TPL exactly
       const targetTPL = playerTPL;
@@ -691,6 +696,8 @@ export class DatabaseStorage implements IStorage {
         ...member,
         baseLevel: Math.min(10, member.baseLevel)
       }));
+      
+      console.log(`Redistributed levels for ${monstersCount} monsters to match TPL ${targetTPL}`);
     }
     
     // Attempt 3: Fallback - generate random team if all else fails
@@ -739,12 +746,15 @@ export class DatabaseStorage implements IStorage {
       } as AiTeam;
       
       composition = randomMonsters;
+      console.log(`Log 2: AI Archetype selected: ${selectedTeam.name} (fallback random generation)`);
+      console.log(`Generated ${randomMonsters.length} random monsters for TPL ${playerTPL}`);
     }
     
     // Generate scaled monsters from final composition
     const scaledMonsters = [];
     for (const member of composition) {
       const finalLevel = Math.max(1, Math.min(10, member.baseLevel));
+      console.log(`Log 3: Attempting to build and validate monster with ID ${member.monsterId} at level ${finalLevel}`);
       
       // Get monster data with all required fields using correct schema field names
       const [monster] = await db.select({
@@ -766,9 +776,11 @@ export class DatabaseStorage implements IStorage {
         gradient: monsters.gradient
       }).from(monsters).where(eq(monsters.id, member.monsterId));
       if (!monster) {
-        console.error(`Monster with ID ${member.monsterId} not found in database`);
+        console.error(`Log 4: Validation for monster ID ${member.monsterId} FAILED - not found in database`);
         continue; // Skip missing monsters instead of failing
       }
+      
+      console.log(`Log 3: Attempting to build and validate monster: ${monster.name}`);
       
       // Validate required monster fields with detailed logging
       const missingFields = [];
@@ -781,7 +793,7 @@ export class DatabaseStorage implements IStorage {
       if (!monster.base_defense) missingFields.push('base_defense');
       
       if (missingFields.length > 0) {
-        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields: ${missingFields.join(', ')}`, {
+        console.error(`Log 4: Validation for ${monster.name} FAILED - missing required fields: ${missingFields.join(', ')}`, {
           base_hp: monster.base_hp,
           base_mp: monster.base_mp,
           hp_per_level: monster.hp_per_level,
@@ -792,6 +804,8 @@ export class DatabaseStorage implements IStorage {
         });
         continue; // Skip incomplete monsters
       }
+      
+      console.log(`Log 4: Validation for ${monster.name} was SUCCESSFUL`);
       
       // Calculate HP and MP based on level
       const baseHp = monster.base_hp;
@@ -809,6 +823,7 @@ export class DatabaseStorage implements IStorage {
         mp
       });
     }
+
     
     // Final validation - ensure we have at least one valid monster
     if (scaledMonsters.length === 0) {
@@ -821,6 +836,8 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to generate battle team "${selectedTeam.name}" - all monsters failed validation. Check monster database integrity.`);
     }
     
+    const monsterNames = scaledMonsters.map(m => `${m.monster.name} (Lv.${m.level})`);
+    console.log(`Log 5: Final AI team generated with monsters: [${monsterNames.join(', ')}]`);
     console.log(`Generated AI team: ${selectedTeam.name} with ${scaledMonsters.length} monsters, total TPL: ${scaledMonsters.reduce((sum, m) => sum + m.level, 0)}`);
     
     return {
