@@ -194,6 +194,7 @@ export default function StoryManager() {
   const [currentNode, setCurrentNode] = useState<string>("Node_01_Awakening");
   const [previousChoice, setPreviousChoice] = useState<string | null>(null);
   const [showInterestTest, setShowInterestTest] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -474,6 +475,20 @@ export default function StoryManager() {
               </div>
             )}
             
+            {/* Test Result Display */}
+            {testResult && (
+              <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Opponent Fetch Test Result:</h4>
+                <p className="text-blue-700 dark:text-blue-300">{testResult}</p>
+                <button 
+                  onClick={() => setTestResult(null)}
+                  className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
             {/* Mystical Divider */}
             <div className="flex justify-center items-center gap-4 my-8">
               <div className="w-20 h-0.5 bg-gradient-to-r from-transparent via-amber-600 to-transparent"></div>
