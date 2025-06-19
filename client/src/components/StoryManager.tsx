@@ -282,8 +282,12 @@ export default function StoryManager() {
     setTestResult("Loading opponent data...");
     
     try {
+      // For testing purposes, use a default TPL of 5 (assuming player has some monsters)
+      const playerTPL = 5;
+      
       const response = await apiRequest('/api/battle/generate-opponent', {
-        method: 'POST'
+        method: 'POST',
+        data: { tpl: playerTPL }
       });
       
       const responseData = await response.json();
