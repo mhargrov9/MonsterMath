@@ -429,20 +429,7 @@ export default function StoryManager() {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/10 to-transparent rounded-lg"></div>
             </div>
 
-            {/* TEMPORARY TEST RESULT DISPLAY */}
-            {testResult && (
-              <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
-                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Opponent Fetch Test Result:</h4>
-                <p className="text-blue-700 dark:text-blue-300">{testResult}</p>
-                <button 
-                  onClick={() => setTestResult("")}
-                  className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
-            
+
 
 
             {/* Mystical Divider */}
