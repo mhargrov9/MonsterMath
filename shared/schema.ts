@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   battleTokens: integer("battle_tokens").default(5).notNull(),
   battleTokensLastRefresh: timestamp("battle_tokens_last_refresh").defaultNow().notNull(), // Last token refresh time
   battleSlots: integer("battle_slots").default(2).notNull(), // Number of monsters allowed in battle
+  rankPoints: integer("rank_points").default(0).notNull(), // RP system for battle rankings
   storyProgress: varchar("story_progress").default("Node_Start_01"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

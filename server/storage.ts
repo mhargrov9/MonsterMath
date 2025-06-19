@@ -90,6 +90,7 @@ export interface IStorage {
   // Battle slot operations
   getUserBattleSlots(userId: string): Promise<number>;
   updateUserBattleSlots(userId: string, slots: number): Promise<User>;
+  purchaseBattleSlot(userId: string): Promise<{ user: User; cost: number }>;
   
   // Interest Test operations
   recordSubscriptionIntent(userId: string, intent: 'monthly' | 'yearly'): Promise<User>;
@@ -98,6 +99,13 @@ export interface IStorage {
   // Battle Token operations
   refreshBattleTokens(userId: string): Promise<User>;
   spendBattleToken(userId: string): Promise<User>;
+  
+  // Rank Point operations
+  updateUserRankPoints(userId: string, rpDelta: number): Promise<User>;
+  
+  // AI Trainer operations
+  getAllAiTrainers(): Promise<AiTeam[]>;
+  createAiTrainer(trainer: InsertAiTeam): Promise<AiTeam>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -773,6 +781,62 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedUser;
+  }
+
+  async purchaseBattleSlot(userId: string): Promise<{ user: User; cost: number }> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Calculate cost based on current slots: slot 3=50, slot 4=150, slot 5=400
+    const slotCosts = [0, 0, 50, 150, 400]; // Index matches slot number
+    const nextSlot = user.battleSlots + 1;
+    const cost = slotCosts[nextSlot] || 1000; // Max slots reached
+    
+    if (nextSlot > 5) throw new Error("Maximum battle slots reached");
+    if (user.diamonds < cost) throw new Error("Insufficient diamonds");
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        battleSlots: nextSlot,
+        diamonds: user.diamonds - cost,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return { user: updatedUser, cost };
+  }
+
+  async updateUserRankPoints(userId: string, rpDelta: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const newRP = Math.max(0, user.rankPoints + rpDelta); // Don't go below 0
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        rankPoints: newRP,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    
+    return updatedUser;
+  }
+
+  async getAllAiTrainers(): Promise<AiTeam[]> {
+    return await db.select().from(aiTeams);
+  }
+
+  async createAiTrainer(trainerData: InsertAiTeam): Promise<AiTeam> {
+    const [trainer] = await db
+      .insert(aiTeams)
+      .values(trainerData)
+      .returning();
+      
+    return trainer;
   }
 }
 
