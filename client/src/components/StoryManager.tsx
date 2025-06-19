@@ -275,6 +275,40 @@ export default function StoryManager() {
     updateProgressMutation.mutate("Node_01_Awakening");
   };
 
+  // TEMPORARY TEST FUNCTION - Will be removed after testing
+  const testOpponentFetch = async () => {
+    console.log('=== TEMPORARY TEST: Starting opponent fetch ===');
+    setTestResult("Loading opponent data...");
+    
+    try {
+      const response = await apiRequest('/api/battle/generate-opponent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('Test response:', response);
+      
+      if (response && response.scaledMonsters && response.scaledMonsters.length > 0) {
+        const firstMonster = response.scaledMonsters[0];
+        if (firstMonster && firstMonster.monster && firstMonster.monster.name) {
+          const monsterName = firstMonster.monster.name;
+          const teamName = response.team ? response.team.name : 'Unknown Team';
+          setTestResult(`SUCCESS! Team: ${teamName}, First Monster: ${monsterName} (Level ${firstMonster.level})`);
+          console.log('Test SUCCESS:', monsterName);
+        } else {
+          setTestResult("ERROR: Invalid monster structure in response");
+          console.error('Test FAILED: Invalid monster structure');
+        }
+      } else {
+        setTestResult("ERROR: No monsters in response");
+        console.error('Test FAILED: No monsters in response');
+      }
+    } catch (error) {
+      setTestResult(`ERROR: ${error.message}`);
+      console.error('Test FAILED with error:', error);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -425,6 +459,20 @@ export default function StoryManager() {
               {/* Subtle Text Glow */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/10 to-transparent rounded-lg"></div>
             </div>
+
+            {/* TEMPORARY TEST RESULT DISPLAY */}
+            {testResult && (
+              <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Opponent Fetch Test Result:</h4>
+                <p className="text-blue-700 dark:text-blue-300">{testResult}</p>
+                <button 
+                  onClick={() => setTestResult("")}
+                  className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
             
             {/* Mystical Divider */}
             <div className="flex justify-center items-center gap-4 my-8">
@@ -484,7 +532,14 @@ export default function StoryManager() {
                   {currentStory.choices?.map((choice, index) => (
                     <button
                       key={index}
-                      onClick={() => handleChoice(choice.nextNode, choice.text)}
+                      onClick={() => {
+                        // TEMPORARY TEST: If this is the first choice in Node_01_Awakening, test opponent fetch
+                        if (currentNode === "Node_01_Awakening" && choice.text === "Look for the other monsters") {
+                          testOpponentFetch();
+                        } else {
+                          handleChoice(choice.nextNode, choice.text);
+                        }
+                      }}
                       disabled={updateProgressMutation.isPending}
                       className="group relative p-5 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 dark:from-amber-800 dark:via-yellow-800 dark:to-amber-800 border-3 border-amber-500/60 dark:border-amber-400/60 rounded-xl hover:from-amber-200 hover:via-yellow-200 hover:to-amber-200 dark:hover:from-amber-700 dark:hover:via-yellow-700 dark:hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-102"
                     >
@@ -496,6 +551,7 @@ export default function StoryManager() {
                         </div>
                         <span className="font-serif text-amber-900 dark:text-amber-100 font-medium text-lg group-hover:text-amber-800 dark:group-hover:text-amber-200 transition-colors">
                           {choice.text}
+                          {currentNode === "Node_01_Awakening" && choice.text === "Look for the other monsters" ? " [TEST MODE]" : ""}
                         </span>
                       </div>
                       {/* Subtle Hover Glow */}
