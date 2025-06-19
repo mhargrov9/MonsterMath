@@ -136,6 +136,9 @@ const getWeaknessIcon = (weakness: string) => {
     case 'ice': return <Snowflake className="w-4 h-4 text-cyan-500" />;
     case 'physical': return <Zap className="w-4 h-4 text-yellow-500" />;
     case 'psychic': return <Eye className="w-4 h-4 text-purple-500" />;
+    case 'electric': return <Zap className="w-4 h-4 text-yellow-500" />;
+    case 'earth': return <Mountain className="w-4 h-4 text-brown-500" />;
+    case 'poison': return <Droplets className="w-4 h-4 text-green-500" />;
     default: return <div className="w-4 h-4 bg-gray-400 rounded-full" />;
   }
 };
@@ -147,6 +150,9 @@ const getResistanceIcon = (resistance: string) => {
     case 'ice': return <Snowflake className="w-4 h-4 text-cyan-500" />;
     case 'physical': return <Shield className="w-4 h-4 text-gray-500" />;
     case 'psychic': return <Eye className="w-4 h-4 text-purple-500" />;
+    case 'electric': return <Zap className="w-4 h-4 text-yellow-500" />;
+    case 'earth': return <Mountain className="w-4 h-4 text-brown-500" />;
+    case 'air': return <Sparkles className="w-4 h-4 text-cyan-500" />;
     default: return <div className="w-4 h-4 bg-gray-400 rounded-full" />;
   }
 };
@@ -177,7 +183,7 @@ export default function MonsterCard({
   const [isHovered, setIsHovered] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const monsterData = getMonsterData(monster.id);
+  const monsterData = getMonsterData(monster.id, monster);
   const level = userMonster?.level || 1;
   
   // Parse abilities data - handle both JSON string and object formats
