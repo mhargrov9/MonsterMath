@@ -82,18 +82,31 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       return response;
     },
     onSuccess: (aiOpponent: any) => {
-      toast({
-        title: "Opponent Found!",
-        description: `Facing ${aiOpponent.team.name} (TPL: ${calculateTPL(aiOpponent.scaledMonsters.map((m: any) => ({ level: m.level })))})`,
-        variant: "default",
-      });
-      
-      onBattleStart(selectedMonsters, aiOpponent);
+      if (aiOpponent && aiOpponent.team) {
+        const opponentTPL = aiOpponent.scaledMonsters ? 
+          calculateTPL(aiOpponent.scaledMonsters.map((m: any) => ({ level: m.level }))) : 0;
+        
+        toast({
+          title: "Opponent Found!",
+          description: `Facing ${aiOpponent.team.name} (TPL: ${opponentTPL})`,
+          variant: "default",
+        });
+        
+        onBattleStart(selectedMonsters, aiOpponent);
+      } else {
+        toast({
+          title: "Battle Generation Failed", 
+          description: "Invalid opponent data received",
+          variant: "destructive",
+        });
+      }
+      setIsGeneratingOpponent(false);
     },
     onError: (error: Error) => {
+      setIsGeneratingOpponent(false);
       toast({
-        title: "Battle Generation Failed",
-        description: error.message,
+        title: "Error: Could not find a suitable opponent at this time",
+        description: error.message || "Please try adjusting your team composition",
         variant: "destructive",
       });
     },

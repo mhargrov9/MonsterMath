@@ -194,7 +194,7 @@ export default function StoryManager() {
   const [currentNode, setCurrentNode] = useState<string>("Node_01_Awakening");
   const [previousChoice, setPreviousChoice] = useState<string | null>(null);
   const [showInterestTest, setShowInterestTest] = useState<boolean>(false);
-  const [testResult, setTestResult] = useState<string | null>(null);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -276,43 +276,7 @@ export default function StoryManager() {
     updateProgressMutation.mutate("Node_01_Awakening");
   };
 
-  // TEMPORARY TEST FUNCTION - Will be removed after testing
-  const testOpponentFetch = async () => {
-    console.log('=== TEMPORARY TEST: Starting opponent fetch ===');
-    setTestResult("Loading opponent data...");
-    
-    try {
-      // For testing purposes, use a default TPL of 5 (assuming player has some monsters)
-      const playerTPL = 5;
-      
-      const response = await apiRequest('/api/battle/generate-opponent', {
-        method: 'POST',
-        data: { tpl: playerTPL }
-      });
-      
-      const responseData = await response.json();
-      console.log('Test response:', responseData);
-      
-      if (responseData && responseData.team && responseData.team.monsters && responseData.team.monsters.length > 0) {
-        const firstMonster = responseData.team.monsters[0];
-        if (firstMonster && firstMonster.name) {
-          const monsterName = firstMonster.name;
-          const teamName = responseData.team.name || 'Unknown Team';
-          setTestResult(`SUCCESS! Team: ${teamName}, First Monster: ${monsterName}`);
-          console.log('Test SUCCESS:', monsterName);
-        } else {
-          setTestResult("ERROR: Invalid monster structure in response");
-          console.error('Test FAILED: Invalid monster structure');
-        }
-      } else {
-        setTestResult("ERROR: No monsters found in response.team.monsters");
-        console.error('Test FAILED: No monsters in response.team.monsters');
-      }
-    } catch (error) {
-      setTestResult(`ERROR: ${error.message}`);
-      console.error('Test FAILED with error:', error);
-    }
-  };
+
 
   if (isLoading) {
     return (
@@ -479,19 +443,7 @@ export default function StoryManager() {
               </div>
             )}
             
-            {/* Test Result Display */}
-            {testResult && (
-              <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
-                <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Opponent Fetch Test Result:</h4>
-                <p className="text-blue-700 dark:text-blue-300">{testResult}</p>
-                <button 
-                  onClick={() => setTestResult(null)}
-                  className="mt-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
+
 
             {/* Mystical Divider */}
             <div className="flex justify-center items-center gap-4 my-8">
@@ -551,14 +503,7 @@ export default function StoryManager() {
                   {currentStory.choices?.map((choice, index) => (
                     <button
                       key={index}
-                      onClick={() => {
-                        // TEMPORARY TEST: If this is the first choice in Node_01_Awakening, test opponent fetch
-                        if (currentNode === "Node_01_Awakening" && choice.text === "Look for the other monsters") {
-                          testOpponentFetch();
-                        } else {
-                          handleChoice(choice.nextNode, choice.text);
-                        }
-                      }}
+                      onClick={() => handleChoice(choice.nextNode, choice.text)}
                       disabled={updateProgressMutation.isPending}
                       className="group relative p-5 bg-gradient-to-r from-amber-100 via-yellow-100 to-amber-100 dark:from-amber-800 dark:via-yellow-800 dark:to-amber-800 border-3 border-amber-500/60 dark:border-amber-400/60 rounded-xl hover:from-amber-200 hover:via-yellow-200 hover:to-amber-200 dark:hover:from-amber-700 dark:hover:via-yellow-700 dark:hover:to-amber-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-102"
                     >
@@ -570,7 +515,6 @@ export default function StoryManager() {
                         </div>
                         <span className="font-serif text-amber-900 dark:text-amber-100 font-medium text-lg group-hover:text-amber-800 dark:group-hover:text-amber-200 transition-colors">
                           {choice.text}
-                          {currentNode === "Node_01_Awakening" && choice.text === "Look for the other monsters" ? " [TEST MODE]" : ""}
                         </span>
                       </div>
                       {/* Subtle Hover Glow */}
