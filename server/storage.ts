@@ -648,52 +648,115 @@ export class DatabaseStorage implements IStorage {
     // Get all available AI teams
     const availableTeams = await this.getAllAiTeams();
     
-    // Filter teams that can work with the player's TPL (+/- 10% range)
-    const minTPL = Math.max(2, Math.floor(playerTPL * 0.9));
-    const maxTPL = Math.ceil(playerTPL * 1.1);
+    // Try flexible matching first - use wider TPL range (up to 50% variance)
+    let selectedTeam: AiTeam | null = null;
+    let composition: Array<{monsterId: number, baseLevel: number}> = [];
     
-    const suitableTeams = availableTeams.filter(team => 
-      team.min_tpl <= maxTPL && team.max_tpl >= minTPL
-    );
-    
-    if (suitableTeams.length === 0) {
-      throw new Error("No suitable AI teams found for this power level");
+    // Attempt 1: Try to find suitable teams with flexible scaling
+    for (const team of availableTeams) {
+      const teamComposition = team.composition as Array<{monsterId: number, baseLevel: number}>;
+      const baseTeamTPL = teamComposition.reduce((sum, member) => sum + member.baseLevel, 0);
+      
+      // Check if this team can be scaled to match player TPL (allow 2x scaling factor range)
+      const minScaling = 0.5; // Can scale down to 50%
+      const maxScaling = 2.0; // Can scale up to 200%
+      const requiredScaling = playerTPL / baseTeamTPL;
+      
+      if (requiredScaling >= minScaling && requiredScaling <= maxScaling) {
+        selectedTeam = team;
+        composition = teamComposition;
+        break;
+      }
     }
     
-    // Randomly select a team
-    const selectedTeam = suitableTeams[Math.floor(Math.random() * suitableTeams.length)];
+    // Attempt 2: If no team found, use manual level distribution
+    if (!selectedTeam && availableTeams.length > 0) {
+      selectedTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
+      composition = selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>;
+      
+      // Redistribute levels to match target TPL exactly
+      const targetTPL = playerTPL;
+      const monstersCount = composition.length;
+      
+      // Start with level 1 for all monsters, then distribute remaining levels
+      let remainingTPL = targetTPL - monstersCount; // Subtract base level 1 for each monster
+      
+      composition = composition.map((member, index) => ({
+        monsterId: member.monsterId,
+        baseLevel: 1 + Math.floor(remainingTPL / monstersCount) + (index < (remainingTPL % monstersCount) ? 1 : 0)
+      }));
+      
+      // Ensure no monster exceeds level 10
+      composition = composition.map(member => ({
+        ...member,
+        baseLevel: Math.min(10, member.baseLevel)
+      }));
+    }
     
-    // Parse the team composition
-    const composition = selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>;
+    // Attempt 3: Fallback - generate random team if all else fails
+    if (!selectedTeam) {
+      const allMonsters = await this.getAllMonsters();
+      if (allMonsters.length === 0) {
+        throw new Error("No monsters available in database for battle generation");
+      }
+      
+      // Create a fallback team with 2-3 random monsters
+      const teamSize = Math.min(3, Math.max(2, Math.floor(playerTPL / 3)));
+      const randomMonsters = [];
+      
+      for (let i = 0; i < teamSize; i++) {
+        const randomMonster = allMonsters[Math.floor(Math.random() * allMonsters.length)];
+        randomMonsters.push({
+          monsterId: randomMonster.id,
+          baseLevel: 1
+        });
+      }
+      
+      // Distribute levels to match target TPL
+      let remainingTPL = playerTPL - teamSize; // Base level 1 for each
+      for (let i = 0; i < randomMonsters.length && remainingTPL > 0; i++) {
+        const additionalLevels = Math.min(9, Math.floor(remainingTPL / randomMonsters.length));
+        randomMonsters[i].baseLevel += additionalLevels;
+        remainingTPL -= additionalLevels;
+      }
+      
+      // Distribute any remaining TPL
+      for (let i = 0; i < randomMonsters.length && remainingTPL > 0; i++) {
+        if (randomMonsters[i].baseLevel < 10) {
+          randomMonsters[i].baseLevel++;
+          remainingTPL--;
+        }
+      }
+      
+      selectedTeam = {
+        id: 999,
+        name: "Random Encounter",
+        description: "A spontaneous challenge appears!",
+        composition: randomMonsters,
+        archetype: "balanced",
+        min_tpl: 2,
+        max_tpl: 50
+      } as AiTeam;
+      
+      composition = randomMonsters;
+    }
     
-    // Calculate base TPL for this team
-    const baseTeamTPL = composition.reduce((sum, member) => sum + member.baseLevel, 0);
-    
-    // Calculate scaling factor to match target TPL
-    const targetTPL = playerTPL; // Exact match for fairness
-    const scalingFactor = targetTPL / baseTeamTPL;
-    
-    // Scale monster levels and get monster data
+    // Generate scaled monsters from final composition
     const scaledMonsters = [];
     for (const member of composition) {
-      const scaledLevel = Math.max(1, Math.min(10, Math.round(member.baseLevel * scalingFactor)));
+      const finalLevel = Math.max(1, Math.min(10, member.baseLevel));
       
       // Get monster data
       const [monster] = await db.select().from(monsters).where(eq(monsters.id, member.monsterId));
       if (!monster) {
-        console.error(`Monster with ID ${member.monsterId} not found in database for AI team ${selectedTeam.name}`);
-        throw new Error(`Monster with ID ${member.monsterId} not found - please check AI team configuration`);
+        console.error(`Monster with ID ${member.monsterId} not found in database`);
+        continue; // Skip missing monsters instead of failing
       }
       
       // Validate required monster fields
       if (!monster.base_hp || !monster.base_mp || monster.hp_per_level === undefined || monster.mp_per_level === undefined) {
-        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields:`, {
-          base_hp: monster.base_hp,
-          base_mp: monster.base_mp,
-          hp_per_level: monster.hp_per_level,
-          mp_per_level: monster.mp_per_level
-        });
-        throw new Error(`Monster ${monster.name} has incomplete data - cannot generate battle stats`);
+        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields`);
+        continue; // Skip incomplete monsters
       }
       
       // Calculate HP and MP based on level
@@ -702,23 +765,23 @@ export class DatabaseStorage implements IStorage {
       const hpPerLevel = monster.hp_per_level;
       const mpPerLevel = monster.mp_per_level;
       
-      const hp = Math.floor(baseHp + (hpPerLevel * (scaledLevel - 1)));
-      const mp = Math.floor(baseMp + (mpPerLevel * (scaledLevel - 1)));
-      
-
+      const hp = Math.floor(baseHp + (hpPerLevel * (finalLevel - 1)));
+      const mp = Math.floor(baseMp + (mpPerLevel * (finalLevel - 1)));
       
       scaledMonsters.push({
         monster,
-        level: scaledLevel,
+        level: finalLevel,
         hp,
         mp
       });
     }
     
-    // Ensure we have at least one monster
+    // Final validation - ensure we have at least one valid monster
     if (scaledMonsters.length === 0) {
-      throw new Error(`No valid monsters found for AI team ${selectedTeam.name} - team composition may be corrupted`);
+      throw new Error("Could not generate any valid monsters for battle - database may be corrupted");
     }
+    
+    console.log(`Generated AI team: ${selectedTeam.name} with ${scaledMonsters.length} monsters, total TPL: ${scaledMonsters.reduce((sum, m) => sum + m.level, 0)}`);
     
     return {
       team: selectedTeam,
