@@ -680,7 +680,21 @@ export class DatabaseStorage implements IStorage {
       
       // Get monster data
       const [monster] = await db.select().from(monsters).where(eq(monsters.id, member.monsterId));
-      if (!monster) continue;
+      if (!monster) {
+        console.error(`Monster with ID ${member.monsterId} not found in database for AI team ${selectedTeam.name}`);
+        throw new Error(`Monster with ID ${member.monsterId} not found - please check AI team configuration`);
+      }
+      
+      // Validate required monster fields
+      if (!monster.baseHp || !monster.baseMp || monster.hpPerLevel === undefined || monster.mpPerLevel === undefined) {
+        console.error(`Monster ${monster.name} (ID: ${monster.id}) missing required fields:`, {
+          baseHp: monster.baseHp,
+          baseMp: monster.baseMp,
+          hpPerLevel: monster.hpPerLevel,
+          mpPerLevel: monster.mpPerLevel
+        });
+        throw new Error(`Monster ${monster.name} has incomplete data - cannot generate battle stats`);
+      }
       
       // Calculate HP and MP based on level
       const baseHp = monster.baseHp;
@@ -697,6 +711,11 @@ export class DatabaseStorage implements IStorage {
         hp,
         mp
       });
+    }
+    
+    // Ensure we have at least one monster
+    if (scaledMonsters.length === 0) {
+      throw new Error(`No valid monsters found for AI team ${selectedTeam.name} - team composition may be corrupted`);
     }
     
     return {
