@@ -746,8 +746,25 @@ export class DatabaseStorage implements IStorage {
     for (const member of composition) {
       const finalLevel = Math.max(1, Math.min(10, member.baseLevel));
       
-      // Get monster data
-      const [monster] = await db.select().from(monsters).where(eq(monsters.id, member.monsterId));
+      // Get monster data with all required fields using correct schema field names
+      const [monster] = await db.select({
+        id: monsters.id,
+        name: monsters.name,
+        type: monsters.type,
+        base_hp: monsters.baseHp,
+        base_mp: monsters.baseMp,
+        hp_per_level: monsters.hpPerLevel,
+        mp_per_level: monsters.mpPerLevel,
+        base_power: monsters.basePower,
+        base_speed: monsters.baseSpeed,
+        base_defense: monsters.baseDefense,
+        abilities: monsters.abilities,
+        resistances: monsters.resistances,
+        weaknesses: monsters.weaknesses,
+        description: monsters.description,
+        icon_class: monsters.iconClass,
+        gradient: monsters.gradient
+      }).from(monsters).where(eq(monsters.id, member.monsterId));
       if (!monster) {
         console.error(`Monster with ID ${member.monsterId} not found in database`);
         continue; // Skip missing monsters instead of failing

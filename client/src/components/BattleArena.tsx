@@ -75,17 +75,17 @@ export default function BattleArena() {
       playerMonster: {
         ...playerMonster,
         hp: playerMonster.hp,
-        maxHp: playerMonster.monster.base_hp + ((playerMonster.monster.hp_per_level || 50) * (playerMonster.level - 1)),
+        maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
         mp: playerMonster.mp,
-        maxMp: playerMonster.monster.base_mp + ((playerMonster.monster.mp_per_level || 20) * (playerMonster.level - 1))
+        maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
       },
       aiMonster: {
         id: aiMonster.monster.id,
         name: aiMonster.monster.name,
         type: aiMonster.monster.type,
-        power: aiMonster.monster.base_power,
-        speed: aiMonster.monster.base_speed,
-        defense: aiMonster.monster.base_defense,
+        power: aiMonster.monster.basePower,
+        speed: aiMonster.monster.baseSpeed,
+        defense: aiMonster.monster.baseDefense,
         hp: aiMonster.hp,
         maxHp: aiMonster.hp,
         mp: aiMonster.mp,
