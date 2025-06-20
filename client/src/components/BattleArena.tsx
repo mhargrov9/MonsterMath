@@ -455,8 +455,42 @@ export default function BattleArena() {
                 isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
                 onAttack={(ability: any) => {
                   if (battleState.turn === 'player' && battleState.phase === 'select') {
-                    // Handle attack logic here
-                    console.log('Player attacking with:', ability);
+                    // Calculate damage
+                    const baseDamage = ability.damage || Math.floor(battleState.playerMonster.power * 0.8);
+                    const finalDamage = Math.max(1, baseDamage - Math.floor(battleState.aiMonster.defense * 0.3));
+                    
+                    // Deduct MP if ability has mana cost
+                    const newPlayerMp = Math.max(0, battleState.playerMonster.mp - (ability.manaCost || 0));
+                    const newAiHp = Math.max(0, battleState.aiMonster.hp - finalDamage);
+                    
+                    // Update battle state
+                    setBattleState(prev => ({
+                      ...prev!,
+                      playerMonster: { ...prev!.playerMonster, mp: newPlayerMp },
+                      aiMonster: { ...prev!.aiMonster, hp: newAiHp },
+                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${ability.name} for ${finalDamage} damage!`],
+                      turn: newAiHp <= 0 ? 'player' : 'ai',
+                      winner: newAiHp <= 0 ? 'player' : null,
+                      phase: newAiHp <= 0 ? 'end' : 'select'
+                    }));
+                    
+                    // Simple AI counter-attack after short delay
+                    if (newAiHp > 0) {
+                      setTimeout(() => {
+                        const aiDamage = Math.floor(battleState.aiMonster.power * 0.7);
+                        const finalAiDamage = Math.max(1, aiDamage - Math.floor(battleState.playerMonster.defense * 0.3));
+                        const newPlayerHp = Math.max(0, battleState.playerMonster.hp - finalAiDamage);
+                        
+                        setBattleState(prev => ({
+                          ...prev!,
+                          playerMonster: { ...prev!.playerMonster, hp: newPlayerHp },
+                          battleLog: [...prev!.battleLog, `${battleState.aiMonster.name} attacks for ${finalAiDamage} damage!`],
+                          turn: 'player',
+                          winner: newPlayerHp <= 0 ? 'ai' : null,
+                          phase: newPlayerHp <= 0 ? 'end' : 'select'
+                        }));
+                      }, 2000);
+                    }
                   }
                 }}
                 size="medium"
