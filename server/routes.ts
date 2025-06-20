@@ -783,21 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
-    try {
-      const { playerTPL } = req.body;
-      
-      if (!playerTPL || playerTPL < 1) {
-        return res.status(400).json({ message: "Valid player TPL is required" });
-      }
-      
-      const encounter = await storage.generateAiOpponent(playerTPL);
-      res.json(encounter);
-    } catch (error) {
-      console.error("Error generating AI opponent:", error);
-      res.status(500).json({ message: (error as Error).message || "Failed to generate AI opponent" });
-    }
-  });
+
 
   app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
     try {
@@ -997,24 +983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Battle Token - Spend token for battle
-  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      
-      const user = await storage.spendBattleToken(userId);
-      res.json({ message: "Battle token spent", user, battleTokens: user.battleTokens });
-    } catch (error) {
-      if (error instanceof Error && error.message === "NO_BATTLE_TOKENS") {
-        res.status(402).json({ 
-          message: "No battle tokens available", 
-          error: "NO_BATTLE_TOKENS" 
-        });
-        return;
-      }
-      console.error("Error spending battle token:", error);
-      res.status(500).json({ message: "Failed to spend battle token" });
-    }
-  });
+
 
   // Battle Token - Check refresh status
   app.get('/api/battle/tokens', isAuthenticated, async (req: any, res) => {
