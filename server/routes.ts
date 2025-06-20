@@ -575,25 +575,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Battle Opponent Generation endpoint
+  // --- PASTE THIS FINAL, CORRECTED VERSION ---
+
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
+      // Get the TPL from the request and validate it.
       const { tpl } = req.body;
-      
       if (!tpl || typeof tpl !== 'number' || tpl <= 0) {
         return res.status(400).json({ message: 'Valid player TPL is required' });
       }
 
-      const aiOpponent = await storage.generateAiOpponent(tpl);
-      res.json(aiOpponent);
+      // This is now inside the 'storage' object, which has the database connection.
+      const opponentTeam = await new DatabaseStorage().generateAiOpponent(tpl);
+
+      // Check if a valid team was returned from the storage function.
+      if (!opponentTeam || !opponentTeam.team || !opponentTeam.team.monsters || opponentTeam.team.monsters.length === 0) {
+        // This is the error you are seeing. It means the generateAiOpponent function failed.
+        return res.status(500).json({ message: 'Opponent response did not contain a valid monster team.' });
+      }
+
+      // If successful, send the generated team back to the game.
+      res.status(200).json(opponentTeam);
+
     } catch (error) {
       console.error('Error in /api/battle/generate-opponent:', error);
-      res.status(500).json({ 
-        message: 'Failed to generate opponent', 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      res.status(500).json({ message: 'Failed to generate opponent due to a critical server error.' });
     }
   });
+
+  // --- END OF THE BLOCK TO PASTE ---
 
   // Battle token spending endpoint
   app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
@@ -783,21 +793,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // --- PASTE THIS NEW, SIMPLIFIED VERSION ---
+
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
-      const { playerTPL } = req.body;
-      
-      if (!playerTPL || playerTPL < 1) {
-        return res.status(400).json({ message: "Valid player TPL is required" });
+      console.log("ENTERING SIMPLIFIED DEBUGGING ENDPOINT...");
+
+      // Find the master template for Gigalith (monsterId 6)
+      const gigalithTemplate = await storage.getMonsterById(6);
+
+      if (!gigalithTemplate) {
+        throw new Error("DEBUG ERROR: Could not find monster template for Gigalith (ID 6) in the database.");
       }
-      
-      const encounter = await storage.generateAiOpponent(playerTPL);
-      res.json(encounter);
+
+      // Manually create a Level 10 Gigalith object for the AI team
+      const aiGigalith = {
+          ...gigalithTemplate,
+          level: 10,
+          hp: gigalithTemplate.baseHp,
+          mp: gigalithTemplate.baseMp,
+          maxHp: gigalithTemplate.baseHp,
+          maxMp: gigalithTemplate.baseMp
+      };
+
+      // Create the team structure the front-end expects
+      const opponentTeam = {
+          team: {
+              id: 999,
+              name: "Gigalith Prime",
+              monsters: [aiGigalith] // The team is an array with just this one monster
+          }
+      };
+
+      console.log("Successfully generated hard-coded Gigalith opponent.");
+      res.status(200).json(opponentTeam);
+
     } catch (error) {
-      console.error("Error generating AI opponent:", error);
-      res.status(500).json({ message: (error as Error).message || "Failed to generate AI opponent" });
+      console.error('Error in simplified /api/battle/generate-opponent:', error);
+      res.status(500).json({ message: 'Failed to generate the hard-coded opponent.' });
     }
   });
+
+  // --- END OF THE BLOCK TO PASTE ---
 
   app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
     try {
@@ -1088,7 +1125,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch AI trainers' });
     }
   });
+  // --- PASTE THIS ENTIRE NEW ROUTE BLOCK ---
 
+  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
+    // This is the code for our missing API endpoint.
+    try {
+      // Step 1: Get the TPL from the request and validate it.
+      const { tpl } = req.body;
+      if (!tpl || typeof tpl !== 'number' || tpl <= 0) {
+        return res.status(400).json({ message: 'Valid player TPL is required' });
+      }
+
+      // Step 2: Call the storage function to generate an opponent.
+      // This uses the logic we designed: TPL range, random archetype, level scaling.
+      const opponentTeam = await storage.generateAiOpponent(tpl);
+
+      // Step 3: Check if a valid team was generated.
+      if (!opponentTeam || !opponentTeam.team || !opponentTeam.team.monsters || opponentTeam.team.monsters.length === 0) {
+        return res.status(500).json({ message: 'Failed to generate a valid opponent team from the available archetypes.' });
+      }
+
+      // Step 4: Send the successfully generated team back to the game.
+      res.status(200).json(opponentTeam);
+
+    } catch (error) {
+      console.error('Error in /api/battle/generate-opponent:', error);
+      res.status(500).json({ message: 'Failed to generate opponent due to a server error.' });
+    }
+  });
+
+  // --- START of temporary test route ---
+  app.get('/api/battle/test-route', (req, res) => {
+    console.log("SUCCESS: The /api/battle/test-route was called!");
+    res.status(200).json({ message: "Hello from the test route!" });
+  });
+  // --- END of temporary test route ---
+  
+  // --- END OF THE BLOCK TO PASTE ---
   const httpServer = createServer(app);
   return httpServer;
 }
