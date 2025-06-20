@@ -575,7 +575,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Battle Opponent Generation endpoint
+  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
+    try {
+      const { tpl } = req.body;
+      
+      if (!tpl || typeof tpl !== 'number' || tpl <= 0) {
+        return res.status(400).json({ message: 'Valid player TPL is required' });
+      }
 
+      const aiOpponent = await storage.generateAiOpponent(tpl);
+      res.json(aiOpponent);
+    } catch (error) {
+      console.error('Error in /api/battle/generate-opponent:', error);
+      res.status(500).json({ 
+        message: 'Failed to generate opponent', 
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Battle token spending endpoint
+  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.spendBattleToken(userId);
+      res.json({ 
+        message: 'Battle token spent', 
+        user,
+        battleTokens: user.battleTokens 
+      });
+    } catch (error) {
+      console.error('Error spending battle token:', error);
+      if (error instanceof Error && error.message.includes('NO_BATTLE_TOKENS')) {
+        res.status(400).json({ message: 'NO_BATTLE_TOKENS' });
+      } else {
+        res.status(500).json({ 
+          message: 'Failed to spend battle token',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+  });
 
   // Veo API routes for photorealistic monsters (POST endpoint for authenticated users)
   app.post('/api/generate/monster-image', isAuthenticated, async (req, res) => {
