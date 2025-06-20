@@ -18,6 +18,31 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
   });
 };
 
+// Input validation helpers
+const validateMonsterId = (id: any): number => {
+  const parsed = parseInt(id);
+  if (isNaN(parsed) || parsed < 1) {
+    throw new Error("Invalid monster ID");
+  }
+  return parsed;
+};
+
+const validateLevel = (level: any): number => {
+  const parsed = parseInt(level);
+  if (isNaN(parsed) || parsed < 1 || parsed > 10) {
+    throw new Error("Invalid level (must be 1-10)");
+  }
+  return parsed;
+};
+
+const validateTPL = (tpl: any): number => {
+  const parsed = parseInt(tpl);
+  if (isNaN(parsed) || parsed < 1) {
+    throw new Error("Invalid TPL (must be positive number)");
+  }
+  return parsed;
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded monster assets
   app.use('/assets', (req, res, next) => {
@@ -42,10 +67,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "monster parameter is required" });
       }
 
-      const monsterIdNum = parseInt(monsterId as string);
-      const levelNum = level ? parseInt(level as string) : 1;
-      
-      // For monsters with custom uploaded images, serve them directly
+        try {
+          const monsterIdNum = validateMonsterId(monsterId);
+          const levelNum = level ? validateLevel(level) : 1;
+        
+        // For monsters with custom uploaded images, serve them directly
       if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
         const monsterNames = {
           6: 'Gigalith',
@@ -97,14 +123,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Content-Length': buffer.length,
         'Cache-Control': 'public, max-age=3600'
       });
-      res.send(buffer);
-    } catch (error) {
-      console.error("Error generating monster image:", error);
-      res.status(500).json({ 
-        message: "Failed to generate monster image",
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
+        res.send(buffer);
+        } catch (validationError) {
+          return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid parameters" });
+        }
+      } catch (error) {
+        handleError(error, res, "Failed to generate monster image");
+      }
   });
 
   // Auth middleware
@@ -201,12 +226,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { monsterId } = req.body;
       
-      if (!monsterId) {
-        return res.status(400).json({ message: "Monster ID is required" });
+      try {
+        const validatedMonsterId = validateMonsterId(monsterId);
+        const userMonster = await storage.purchaseMonster(userId, validatedMonsterId);
+        res.json(userMonster);
+      } catch (validationError) {
+        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid monster ID" });
       }
-
-      const userMonster = await storage.purchaseMonster(userId, monsterId);
-      res.json(userMonster);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to purchase monster" });
     }
@@ -580,18 +606,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { tpl } = req.body;
       
-      if (!tpl || typeof tpl !== 'number' || tpl <= 0) {
-        return res.status(400).json({ message: 'Valid player TPL is required' });
+      try {
+        const validatedTPL = validateTPL(tpl);
+        const aiOpponent = await storage.generateAiOpponent(validatedTPL);
+        res.json(aiOpponent);
+      } catch (validationError) {
+        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid TPL" });
       }
-
-      const aiOpponent = await storage.generateAiOpponent(tpl);
-      res.json(aiOpponent);
     } catch (error) {
-      console.error('Error in /api/battle/generate-opponent:', error);
-      res.status(500).json({ 
-        message: 'Failed to generate opponent', 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      handleError(error, res, "Failed to generate opponent");
     }
   });
 
