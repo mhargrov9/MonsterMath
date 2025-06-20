@@ -454,6 +454,7 @@ export default function BattleArena() {
                 battleMp={battleState.playerMonster.mp}
                 isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
                 onAttack={(ability: any) => {
+                  alert('Attack button clicked!');
                   if (battleState.turn === 'player' && battleState.phase === 'select') {
                     // Calculate damage
                     const baseDamage = ability.damage || Math.floor(battleState.playerMonster.power * 0.8);
