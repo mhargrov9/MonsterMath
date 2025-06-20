@@ -40,7 +40,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false, // Set to false for development
+      secure: true,
       maxAge: sessionTtl,
     },
   });
