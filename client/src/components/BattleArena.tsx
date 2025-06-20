@@ -304,6 +304,9 @@ export default function BattleArena() {
           console.log('Valid opponent data received, setting up battle');
           setOpponentLoadingState('success');
 
+          // Get AI monster data from the scaled monsters array
+          const aiMonsterData = opponentTeamData.scaledMonsters[0];
+
           // Create opponent object with proper structure for battle state
           const opponentForState = {
             id: aiMonster.id,
@@ -328,8 +331,25 @@ export default function BattleArena() {
             maxMp: monster.monster.baseMp + ((monster.monster.mpPerLevel || 20) * (monster.level - 1))
           }));
 
-          // Prepare AI team (for now, just use the first monster)
-          const aiTeam = [opponentForState];
+          // Prepare AI team - map all monsters from the scaled monsters array
+          const aiTeam = opponentTeamData.scaledMonsters.map((scaledMonster: any, index: number) => {
+            const baseMonster = opponentTeamData.team.monsters[index];
+            return {
+              id: baseMonster.id,
+              name: baseMonster.name,
+              type: baseMonster.type,
+              power: baseMonster.base_power || baseMonster.basePower,
+              speed: baseMonster.base_speed || baseMonster.baseSpeed,
+              defense: baseMonster.base_defense || baseMonster.baseDefense,
+              hp: scaledMonster.hp,
+              maxHp: scaledMonster.hp,
+              mp: scaledMonster.mp,
+              maxMp: scaledMonster.mp,
+              level: scaledMonster.level,
+              monster: baseMonster,
+              upgradeChoices: {}
+            };
+          });
 
           setBattleState({
             playerTeam,
