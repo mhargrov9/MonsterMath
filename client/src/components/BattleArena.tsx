@@ -72,8 +72,6 @@ export default function BattleArena() {
         data: { tpl: playerTPL }
       });
 
-      // This is the corrected logic. The server sends back a 'team' object
-      // and a 'scaledMonsters' array. We will use BOTH correctly.
       if (!opponentData || !opponentData.team || !opponentData.scaledMonsters || opponentData.scaledMonsters.length === 0) {
         throw new Error('Opponent response did not contain a valid monster team.');
       }
@@ -87,12 +85,13 @@ export default function BattleArena() {
 
       // Initialize AI team using the scaledMonsters array
       const aiTeamForBattle = opponentData.scaledMonsters.map((aiMonsterData: any) => ({
-        ...aiMonsterData.monster, // The base monster template (name, type, etc.)
+        ...aiMonsterData.monster, // The base monster template
         level: aiMonsterData.level,
         hp: aiMonsterData.hp,
         mp: aiMonsterData.mp,
         maxHp: aiMonsterData.hp,
-        maxMp: aiMonsterData.mp
+        maxMp: aiMonsterData.mp,
+        monster: aiMonsterData.monster // Nest the template inside
       }));
 
       setBattleState({
@@ -104,14 +103,17 @@ export default function BattleArena() {
         phase: 'select' as const,
         battleLog: [`Battle begins! ${playerTeamForBattle[0].monster.name} vs ${aiTeamForBattle[0].name}!`],
         winner: null,
-        actionToasts: []
+        actionToasts: [],
+        currentAnimation: null,
+        lastDamage: null,
+        screenShake: false
       });
 
       setOpponentLoadingState('success');
 
     } catch (error) {
       console.error('Error setting up battle:', error);
-      toast({ title: "Battle Generation Failed", description: error.message || "Could not fetch a valid opponent.", variant: "destructive" });
+      toast({ title: "Battle Generation Failed", description: (error as Error).message || "Could not fetch a valid opponent.", variant: "destructive" });
       setOpponentLoadingState('error');
     }
   };

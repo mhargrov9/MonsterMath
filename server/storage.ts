@@ -636,62 +636,58 @@ export class DatabaseStorage implements IStorage {
     return team;
   }
 
-  async generateAiOpponent(playerTPL: number): Promise<{
-    team: AiTeam;
-    scaledMonsters: Array<{
-      monster: Monster;
-      level: number;
-      hp: number;
-      mp: number;
-    }>;
-  }> {
-    console.log("--- RUNNING NEW, SIMPLIFIED generateAiOpponent ---");
+  // --- PASTE THIS NEW FUNCTION INTO storage.ts ---
 
-    try {
-      // For this test, we will NOT be dynamic. We will always try to build the 'Early Challenge' team.
+    async generateAiOpponent(playerTPL: number): Promise<{
+      team: AiTeam;
+      scaledMonsters: Array<any>;
+    }> {
+      console.log(`--- Running generateAiOpponent for TPL: ${playerTPL} ---`);
+
+      // Get all AI team archetypes
       const allAiTeams = await this.getAllAiTeams();
-      const targetTeam = allAiTeams.find(t => t.name === 'Early Challenge');
-
-      if (!targetTeam) {
-        throw new Error("DEBUG ERROR: Could not find the 'Early Challenge' AI team archetype in the database.");
+      if (!allAiTeams || allAiTeams.length === 0) {
+        throw new Error("No AI archetypes found in database.");
       }
-      console.log("Found 'Early Challenge' archetype.");
 
-      // Get the monster templates for that team
-      const monsterTemplates = await db.select().from(monsters).where(inArray(monsters.id, targetTeam.monsterIds));
+      // Find a suitable team (simplified logic for now)
+      // In the future, we can make this smarter
+      const suitableTeam = allAiTeams[Math.floor(Math.random() * allAiTeams.length)];
+      console.log(`Selected AI Archetype: ${suitableTeam.name}`);
 
-      if (monsterTemplates.length !== targetTeam.monsterIds.length) {
-        throw new Error("DEBUG ERROR: Could not find all monster templates for the 'Early Challenge' team.");
+      // Get the monster templates for the chosen team
+      const monsterIds = suitableTeam.composition.map((m: any) => m.monsterId);
+      const monsterTemplates = await db.select().from(monsters).where(inArray(monsters.id, monsterIds));
+
+      if (monsterTemplates.length !== monsterIds.length) {
+        throw new Error("Could not find all monster templates for the selected AI team.");
       }
-      console.log("Found all monster templates for the team.");
 
-      // Manually create the scaled monsters for a TPL 4 team (Lvl 2 + Lvl 2)
-      const scaledMonsters = monsterTemplates.map(template => {
-        // Basic validation to ensure stats exist before calculation
-        if (template.baseHp == null || template.baseMp == null || template.hpPerLevel == null || template.mpPerLevel == null) {
-          throw new Error(`Monster template ${template.name} is missing required base stat data.`);
-        }
-        return {
-          monster: template,
-          level: 2,
-          hp: template.baseHp + template.hpPerLevel,
-          mp: template.baseMp + template.mpPerLevel
-        };
-      });
-      
-      console.log(`SUCCESSFULLY BUILT 'Early Challenge' team with: ${scaledMonsters.map(m=>m.monster.name).join(', ')}`);
+      // Scale the monsters to match the player's TPL
+      const scaledMonsters = [];
+      const baseLevel = Math.max(1, Math.floor(playerTPL / monsterTemplates.length));
 
-      // Return the successfully generated team in the correct format
+      for (const template of monsterTemplates) {
+          scaledMonsters.push({
+              ...template, // Includes name, type, all base stats, etc.
+              level: baseLevel,
+              hp: template.baseHp + (template.hpPerLevel * (baseLevel - 1)),
+              mp: template.baseMp + (template.mpPerLevel * (baseLevel - 1)),
+              maxHp: template.baseHp + (template.hpPerLevel * (baseLevel - 1)),
+              maxMp: template.baseMp + (template.mpPerLevel * (baseLevel - 1)),
+              monster: template, // Nest the template for front-end compatibility
+          });
+      }
+
+      console.log(`Successfully generated AI team with ${scaledMonsters.length} monsters.`);
+
       return {
-        team: targetTeam,
+        team: suitableTeam,
         scaledMonsters: scaledMonsters
       };
-
-    } catch (error) {
-       console.error("CRITICAL ERROR in generateAiOpponent:", error);
-       throw error; // Re-throw the error so we see it clearly
     }
-  }
+
+  // --- END OF CODE FOR storage.ts ---
 
   // Battle slot operations
   async getUserBattleSlots(userId: string): Promise<number> {
