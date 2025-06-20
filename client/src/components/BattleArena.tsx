@@ -454,23 +454,9 @@ export default function BattleArena() {
                 battleMp={battleState.playerMonster.mp}
                 isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
                 onAttack={(ability: any) => {
-                  console.log('Attack button clicked!', ability);
-                  console.log('Current battle state:', battleState.turn, battleState.phase);
-                  
-                  if (battleState.turn === 'player' && battleState.phase === 'select') {
-                    console.log('Attack conditions met, executing attack...');
-                    // Simple attack implementation
-                    const damage = 50;
-                    const newAiHp = Math.max(0, battleState.aiMonster.hp - damage);
-
-                    setBattleState(prev => ({
-                      ...prev!,
-                      aiMonster: { ...prev!.aiMonster, hp: newAiHp },
-                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} attacks for ${damage} damage!`],
-                      winner: newAiHp <= 0 ? 'player' : null
-                    }));
-                  } else {
-                    console.log('Attack blocked - wrong turn or phase');
+                  console.log('Attack clicked!');
+                  if (battleState.turn === 'player') {
+                    console.log('Player can attack');
                   }
                 }}
                 size="medium"
