@@ -103,12 +103,21 @@ export default function BattleArena() {
           console.log('Valid opponent data received, setting up battle');
           setOpponentLoadingState('success');
 
-          // NOTE: A simplified opponent object is created here for the battle state.
-          // This assumes the API returns the necessary base stats and calculated HP/MP.
+          // Create opponent object with proper structure for battle state
           const opponentForState = {
-              ...aiMonster,
-              maxHp: aiMonster.hp,
-              maxMp: aiMonster.mp,
+            id: aiMonster.id,
+            name: aiMonster.name,
+            type: aiMonster.type,
+            power: aiMonster.base_power || aiMonster.basePower,
+            speed: aiMonster.base_speed || aiMonster.baseSpeed,
+            defense: aiMonster.base_defense || aiMonster.baseDefense,
+            hp: aiMonsterData.hp,
+            maxHp: aiMonsterData.hp,
+            mp: aiMonsterData.mp,
+            maxMp: aiMonsterData.mp,
+            level: aiMonsterData.level,
+            monster: aiMonster,
+            upgradeChoices: {}
           };
 
           const playerMonster = selectedMonsters[0];
@@ -121,7 +130,7 @@ export default function BattleArena() {
             aiMonster: opponentForState,
             turn: 'player' as const,
             phase: 'select' as const,
-            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.name}!`],
+            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${opponentForState.name}!`],
             winner: null,
             currentAnimation: null,
             lastDamage: null,
