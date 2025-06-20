@@ -9,6 +9,7 @@ import { AI_OPPONENTS, MONSTER_NAMES } from "../config/gameData";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
+import { AI_OPPONENTS, MONSTER_NAMES } from "./gameData";
 
 // Standardized error handler
 const handleError = (error: unknown, res: express.Response, message: string) => {
