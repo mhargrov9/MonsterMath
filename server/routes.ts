@@ -9,6 +9,15 @@ import passport from "passport";
 import fs from "fs";
 import path from "path";
 
+// Standardized error handler
+const handleError = (error: unknown, res: express.Response, message: string) => {
+  console.error(message, error);
+  res.status(500).json({ 
+    message, 
+    error: error instanceof Error ? error.message : 'Unknown error' 
+  });
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded monster assets
   app.use('/assets', (req, res, next) => {
@@ -108,8 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      handleError(error, res, "Failed to fetch user");
     }
   });
 
@@ -145,8 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json({ message: "Account created successfully", userId: user.id });
     } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to create account" });
+      handleError(error, res, "Failed to create account");
     }
   });
 
@@ -175,8 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const monsters = await storage.getAllMonsters();
       res.json(monsters);
     } catch (error) {
-      console.error("Error fetching monsters:", error);
-      res.status(500).json({ message: "Failed to fetch monsters" });
+      handleError(error, res, "Failed to fetch monsters");
     }
   });
 
@@ -186,8 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userMonsters = await storage.getUserMonsters(userId);
       res.json(userMonsters);
     } catch (error) {
-      console.error("Error fetching user monsters:", error);
-      res.status(500).json({ message: "Failed to fetch user monsters" });
+      handleError(error, res, "Failed to fetch user monsters");
     }
   });
 
@@ -203,7 +208,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userMonster = await storage.purchaseMonster(userId, monsterId);
       res.json(userMonster);
     } catch (error) {
-      console.error("Error purchasing monster:", error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to purchase monster" });
     }
   });
@@ -220,7 +224,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const upgradedMonster = await storage.upgradeMonster(userId, userMonsterId);
       res.json(upgradedMonster);
     } catch (error) {
-      console.error("Error upgrading monster:", error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to upgrade monster" });
     }
   });
@@ -252,7 +255,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json(upgradedMonster);
     } catch (error) {
-      console.error("Error applying monster upgrade:", error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to apply upgrade" });
     }
   });
@@ -273,8 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(question);
     } catch (error) {
-      console.error("Error fetching question:", error);
-      res.status(500).json({ message: "Failed to fetch question" });
+      handleError(error, res, "Failed to fetch question");
     }
   });
 
@@ -309,8 +310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         nextQuestion
       });
     } catch (error) {
-      console.error("Error processing answer:", error);
-      res.status(500).json({ message: "Failed to process answer" });
+      handleError(error, res, "Failed to process answer");
     }
   });
 
