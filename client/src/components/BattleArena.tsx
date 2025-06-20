@@ -885,7 +885,8 @@ export default function BattleArena() {
                   </p>
                 </div>
               </div>
-            </CardContent>
+            </div>
+          </CardContent>
           </Card>
 
           {/* Team Selection Component */}
@@ -893,39 +894,4 @@ export default function BattleArena() {
         </div>
       </div>
     );
-}
-
-          {/* Retreat Button */}
-          {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
-            <div className="text-center mb-3 sm:mb-4">
-              <Button 
-                variant="destructive" 
-                onClick={retreatFromBattle}
-                disabled={saveMonsterStatsMutation.isPending}
-                className="bg-red-600 hover:bg-red-700 touch-manipulation min-h-[44px] px-4 sm:px-6"
-              >
-                {saveMonsterStatsMutation.isPending ? 'Retreating...' : 'Retreat from Battle'}
-              </Button>
-            </div>
-          )}
-
-          {/* Battle Log */}
-          <Card>
-            <CardContent className="p-3 sm:p-6">
-              <h3 className="text-lg font-bold mb-3">Battle Log</h3>
-              <div className="border rounded p-2 sm:p-3 h-24 sm:h-32 overflow-y-auto bg-muted/50">
-                <div className="text-xs sm:text-sm space-y-1">
-                  {battleState.battleLog.map((log, index) => (
-                    <div key={index}>{log}</div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  return <div>Loading battle...</div>;
 }
