@@ -64,92 +64,82 @@ export default function BattleArena() {
   });
 
   // This function follows the exact pseudocode logic provided
+ 
+  // This is the new, corrected function
   const setupBattleArena = async (selectedMonsters: any[]) => {
     console.log('setupBattleArena called with:', selectedMonsters);
-    
+
     // Validate player monsters
     if (!selectedMonsters || selectedMonsters.length === 0) {
       console.error('No selected monsters provided');
       return;
     }
-    
-    // 1. Set the opponent's display to a 'Loading' state immediately
+
+    // Set loading state immediately
     setSelectedTeam(selectedMonsters);
     setBattleMode('combat');
     setOpponentLoadingState('loading');
     setAiOpponent(null);
     setBattleState(null);
-    
+
     try {
-      // 2. Fetch the opponent data from the server API
+      // **THE FIX IS HERE:** Calculate TPL and include it in the request body
+      const playerTPL = selectedMonsters.reduce((acc, monster) => acc + monster.level, 0);
+      console.log(`Calculated Player TPL: ${playerTPL}`);
+
       const opponentTeamData = await apiRequest('/api/battle/generate-opponent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        data: { tpl: playerTPL } // Sending the TPL to the server
       });
-      
+
       console.log('Received opponent data:', opponentTeamData);
-      
-      // 3. Check if the data is valid
-      if (opponentTeamData && opponentTeamData.scaledMonsters && opponentTeamData.scaledMonsters.length > 0) {
-        const aiMonster = opponentTeamData.scaledMonsters[0];
-        
-        // Additional validation for monster structure
-        if (aiMonster && aiMonster.monster && aiMonster.monster.name) {
-          // 4. If data is valid, display the opponent's monsters
+
+      // Check if the data structure is valid
+      if (opponentTeamData && opponentTeamData.team && opponentTeamData.team.monsters && opponentTeamData.team.monsters.length > 0) {
+        const aiMonster = opponentTeamData.team.monsters[0];
+
+        // Additional validation
+        if (aiMonster && aiMonster.name) {
           console.log('Valid opponent data received, setting up battle');
           setOpponentLoadingState('success');
-          setAiOpponent(opponentTeamData);
-          
-          // Initialize battle state
+
+          // NOTE: A simplified opponent object is created here for the battle state.
+          // This assumes the API returns the necessary base stats and calculated HP/MP.
+          const opponentForState = {
+              ...aiMonster,
+              maxHp: aiMonster.hp,
+              maxMp: aiMonster.mp,
+          };
+
           const playerMonster = selectedMonsters[0];
           setBattleState({
             playerMonster: {
               ...playerMonster,
-              hp: playerMonster.hp,
               maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
-              mp: playerMonster.mp,
               maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
             },
-            aiMonster: {
-              id: aiMonster.monster.id,
-              name: aiMonster.monster.name,
-              type: aiMonster.monster.type,
-              power: aiMonster.monster.base_power || aiMonster.monster.basePower,
-              speed: aiMonster.monster.base_speed || aiMonster.monster.baseSpeed,
-              defense: aiMonster.monster.base_defense || aiMonster.monster.baseDefense,
-              hp: aiMonster.hp,
-              maxHp: aiMonster.hp,
-              mp: aiMonster.mp,
-              maxMp: aiMonster.mp,
-              level: aiMonster.level,
-              monster: aiMonster.monster,
-              upgradeChoices: {}
-            },
+            aiMonster: opponentForState,
             turn: 'player' as const,
             phase: 'select' as const,
-            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
+            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.name}!`],
             winner: null,
             currentAnimation: null,
             lastDamage: null,
             screenShake: false
           });
         } else {
-          // 5. If data structure is invalid, display an error state
-          console.error('Invalid AI monster structure:', aiMonster);
-          setOpponentLoadingState('error');
+           console.error('Invalid AI monster structure:', aiMonster);
+           setOpponentLoadingState('error');
         }
       } else {
-        // 5. If data is invalid or empty, display an error state
         console.error('Invalid or empty opponent team data:', opponentTeamData);
         setOpponentLoadingState('error');
       }
     } catch (error) {
-      // 6. If the entire process fails, display an error state
       console.error('Error fetching opponent data:', error);
       setOpponentLoadingState('error');
     }
   };
-
   // Updated handler that calls the new setup function
   const handleBattleStart = (selectedMonsters: any[], generatedOpponent?: any) => {
     // If opponent is already generated (from BattleTeamSelector), use the new setup

@@ -1,0 +1,71 @@
+We have discovered that the API endpoint for /api/battle/generate-opponent is completely missing from the routes.ts file.
+
+Please open the routes.ts file and add the following new route definition and its complete logic. This new code should be placed inside the main exported function, alongside the other existing routes.
+
+TypeScript
+
+// --- Add this entire new route to routes.ts ---
+
+app.post('/api/battle/generate-opponent', async (req, res) => {
+  // Step 1: Get the TPL from the request and validate it.
+  const { tpl } = req.body;
+  if (!tpl || typeof tpl !== 'number' || tpl <= 0) {
+    // This is the error we were seeing!
+    return res.status(400).json({ message: 'Valid player TPL is required' });
+  }
+
+  try {
+    // Step 2: Get all possible AI teams from the database.
+    const allAiTeams = await db.select().from(aiTrainerArchetypes);
+    if (!allAiTeams || allAiTeams.length === 0) {
+      throw new Error('No AI archetypes found in the database.');
+    }
+
+    // Step 3: Calculate the target TPL range for a fair match.
+    const minTPL = tpl * 0.9;
+    const maxTPL = tpl * 1.1;
+
+    // Step 4: Filter for AI teams that can be scaled to the player's power level.
+    const suitableTeams = allAiTeams.filter(team => {
+      const minTeamTPL = team.monsterIds.length * 1; // Minimum power is 1 per monster
+      return minTeamTPL <= maxTPL;
+    });
+
+    if (suitableTeams.length === 0) {
+      return res.status(500).json({ message: 'No suitable AI teams found for this power level' });
+    }
+
+    // Step 5: Randomly select one suitable team archetype.
+    const selectedArchetype = suitableTeams[Math.floor(Math.random() * suitableTeams.length)];
+
+    // Step 6: Scale the levels of the monsters on the AI team to match the player's TPL.
+    const finalTeam = [];
+    let currentTPL = 0;
+    const monsterTemplates = await db.select().from(monsters).where(inArray(monsters.id, selectedArchetype.monsterIds));
+    
+    for (const monsterId of selectedArchetype.monsterIds) {
+        const template = monsterTemplates.find(m => m.id === monsterId);
+        if (template) {
+            // This is a simplified scaling logic. A more complex one could be added later.
+            const level = Math.max(1, Math.round(tpl / selectedArchetype.monsterIds.length));
+            const scaledMonster = { ...template, level: level, hp: template.baseHp, mp: template.baseMp }; // Simplified HP/MP for now
+            finalTeam.push(scaledMonster);
+            currentTPL += level;
+        }
+    }
+
+    // Step 7: Send the successfully generated team back to the game.
+    res.status(200).json({
+      team: {
+        id: selectedArchetype.id,
+        name: selectedArchetype.name,
+        monsters: finalTeam,
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in /api/battle/generate-opponent:', error);
+    res.status(500).json({ message: 'Failed to generate opponent due to a server error.' });
+  }
+});
+"
