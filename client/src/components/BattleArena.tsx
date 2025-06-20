@@ -39,8 +39,10 @@ interface AIMonster {
 }
 
 interface BattleState {
-  playerMonster: UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number };
-  aiMonster: AIMonster;
+  playerTeam: Array<UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number }>;
+  aiTeam: Array<AIMonster>;
+  activePlayerIndex: number;
+  activeAiIndex: number;
   turn: 'player' | 'ai';
   phase: 'select' | 'animate' | 'result' | 'end';
   battleLog: string[];
@@ -48,6 +50,7 @@ interface BattleState {
   currentAnimation: string | null;
   lastDamage: number | null;
   screenShake: boolean;
+  actionToasts: Array<{ id: string; text: string; target: 'player' | 'ai'; timestamp: number }>;
 }
 
 export default function BattleArena() {
@@ -55,6 +58,7 @@ export default function BattleArena() {
   const [selectedTeam, setSelectedTeam] = useState<any[]>([]);
   const [aiOpponent, setAiOpponent] = useState<any>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
+  const [hoveredMonster, setHoveredMonster] = useState<{ team: 'player' | 'ai'; index: number } | null>(null);
   const [animationKey, setAnimationKey] = useState(0);
   const [opponentLoadingState, setOpponentLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const { toast } = useToast();
@@ -62,6 +66,203 @@ export default function BattleArena() {
   const { data: user } = useQuery<GameUser>({
     queryKey: ["/api/auth/user"],
   });
+
+  // Battle mechanics functions
+  const addActionToast = (text: string, target: 'player' | 'ai') => {
+    if (!battleState) return;
+    
+    const toastId = `toast-${Date.now()}-${Math.random()}`;
+    const newToast = { id: toastId, text, target, timestamp: Date.now() };
+    
+    setBattleState(prev => ({
+      ...prev!,
+      actionToasts: [...prev!.actionToasts, newToast],
+      battleLog: [...prev!.battleLog, text]
+    }));
+
+    // Remove toast after 3 seconds
+    setTimeout(() => {
+      setBattleState(prev => prev ? ({
+        ...prev,
+        actionToasts: prev.actionToasts.filter(toast => toast.id !== toastId)
+      }) : null);
+    }, 3000);
+  };
+
+  const calculateDamage = (attacker: any, defender: any, ability: any) => {
+    const baseDamage = ability.manaCost === 0 ? 
+      Math.floor(attacker.power * 0.6) : // Basic attack
+      Math.floor(attacker.power * (ability.manaCost / 40)); // Ability damage scales with mana cost
+    
+    // Type effectiveness (simplified)
+    const typeChart: Record<string, Record<string, number>> = {
+      fire: { earth: 1.5, water: 0.5, fire: 1, air: 1, psychic: 1, electric: 1 },
+      water: { fire: 1.5, earth: 0.5, water: 1, air: 1, psychic: 1, electric: 1 },
+      earth: { air: 1.5, fire: 0.5, water: 1, earth: 1, psychic: 1, electric: 1 },
+      air: { water: 1.5, earth: 0.5, fire: 1, air: 1, psychic: 1, electric: 1 },
+      psychic: { fire: 1, water: 1, earth: 1, air: 1, psychic: 0.5, electric: 1.5 },
+      electric: { water: 1.5, earth: 1, fire: 1, air: 1, psychic: 0.5, electric: 1 }
+    };
+    
+    const attackerType = attacker.type || attacker.monster?.type || 'fire';
+    const defenderType = defender.type || defender.monster?.type || 'fire';
+    const effectiveness = typeChart[attackerType]?.[defenderType] || 1;
+    
+    // Defense reduces damage
+    const defense = defender.defense || defender.monster?.base_defense || defender.monster?.baseDefense || 50;
+    const damageReduction = Math.max(0.1, 1 - (defense / 200));
+    
+    const finalDamage = Math.floor(baseDamage * effectiveness * damageReduction);
+    return Math.max(1, finalDamage); // Minimum 1 damage
+  };
+
+  const executePlayerAttack = (ability: any) => {
+    if (!battleState || battleState.turn !== 'player' || battleState.phase !== 'select') return;
+    
+    const activePlayer = battleState.playerTeam[battleState.activePlayerIndex];
+    const activeAi = battleState.aiTeam[battleState.activeAiIndex];
+    
+    // Check mana cost
+    if (activePlayer.mp < (ability.manaCost || 0)) {
+      addActionToast(`${activePlayer.monster.name} doesn't have enough MP!`, 'player');
+      return;
+    }
+    
+    setBattleState(prev => ({ ...prev!, phase: 'animate' }));
+    
+    // Calculate damage
+    const damage = calculateDamage(activePlayer, activeAi, ability);
+    
+    setTimeout(() => {
+      setBattleState(prev => {
+        if (!prev) return null;
+        
+        const updatedPlayerTeam = [...prev.playerTeam];
+        updatedPlayerTeam[prev.activePlayerIndex] = {
+          ...updatedPlayerTeam[prev.activePlayerIndex],
+          mp: updatedPlayerTeam[prev.activePlayerIndex].mp - (ability.manaCost || 0)
+        };
+        
+        const updatedAiTeam = [...prev.aiTeam];
+        updatedAiTeam[prev.activeAiIndex] = {
+          ...updatedAiTeam[prev.activeAiIndex],
+          hp: Math.max(0, updatedAiTeam[prev.activeAiIndex].hp - damage)
+        };
+        
+        const newState = {
+          ...prev,
+          playerTeam: updatedPlayerTeam,
+          aiTeam: updatedAiTeam,
+          turn: 'ai' as const,
+          phase: 'select' as const
+        };
+        
+        // Check for AI defeat
+        if (updatedAiTeam[prev.activeAiIndex].hp <= 0) {
+          newState.winner = 'player';
+          newState.phase = 'end';
+        }
+        
+        return newState;
+      });
+      
+      addActionToast(`${activeAi.name} takes ${damage} damage!`, 'ai');
+      if (ability.manaCost > 0) {
+        addActionToast(`${activePlayer.monster.name} uses ${ability.name}!`, 'player');
+      }
+      
+      // Start AI turn after delay if battle continues
+      if (!battleState.winner) {
+        setTimeout(executeAiTurn, 2000);
+      }
+    }, 500);
+  };
+
+  const executeAiTurn = () => {
+    if (!battleState || battleState.turn !== 'ai' || battleState.phase !== 'select') return;
+    
+    const activeAi = battleState.aiTeam[battleState.activeAiIndex];
+    const activePlayer = battleState.playerTeam[battleState.activePlayerIndex];
+    
+    // Get AI abilities
+    const abilities = [];
+    if (activeAi.mp >= 0) {
+      abilities.push({ name: 'Basic Attack', manaCost: 0 });
+    }
+    
+    // Parse AI abilities from monster data
+    try {
+      const monsterAbilities = activeAi.monster?.abilities;
+      if (monsterAbilities) {
+        Object.entries(monsterAbilities).forEach(([key, value]) => {
+          if (key.startsWith('active') && value) {
+            const abilityString = value as string;
+            const match = abilityString.match(/^([^(]+)\((\d+) MP\)/);
+            if (match) {
+              const [, name, mpCost] = match;
+              const cost = parseInt(mpCost);
+              if (activeAi.mp >= cost) {
+                abilities.push({ name: name.trim(), manaCost: cost });
+              }
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error parsing AI abilities:', error);
+    }
+    
+    if (abilities.length === 0) {
+      addActionToast(`${activeAi.name} has no available moves!`, 'ai');
+      setBattleState(prev => prev ? ({ ...prev, turn: 'player', phase: 'select' }) : null);
+      return;
+    }
+    
+    // Select random ability
+    const selectedAbility = abilities[Math.floor(Math.random() * abilities.length)];
+    
+    setBattleState(prev => ({ ...prev!, phase: 'animate' }));
+    
+    // Calculate damage
+    const damage = calculateDamage(activeAi, activePlayer, selectedAbility);
+    
+    setTimeout(() => {
+      setBattleState(prev => {
+        if (!prev) return null;
+        
+        const updatedAiTeam = [...prev.aiTeam];
+        updatedAiTeam[prev.activeAiIndex] = {
+          ...updatedAiTeam[prev.activeAiIndex],
+          mp: updatedAiTeam[prev.activeAiIndex].mp - selectedAbility.manaCost
+        };
+        
+        const updatedPlayerTeam = [...prev.playerTeam];
+        updatedPlayerTeam[prev.activePlayerIndex] = {
+          ...updatedPlayerTeam[prev.activePlayerIndex],
+          hp: Math.max(0, updatedPlayerTeam[prev.activePlayerIndex].hp - damage)
+        };
+        
+        const newState = {
+          ...prev,
+          playerTeam: updatedPlayerTeam,
+          aiTeam: updatedAiTeam,
+          turn: 'player' as const,
+          phase: 'select' as const
+        };
+        
+        // Check for player defeat
+        if (updatedPlayerTeam[prev.activePlayerIndex].hp <= 0) {
+          newState.winner = 'ai';
+          newState.phase = 'end';
+        }
+        
+        return newState;
+      });
+      
+      addActionToast(`${activePlayer.monster.name} takes ${damage} damage!`, 'player');
+      addActionToast(`${activeAi.name} uses ${selectedAbility.name}!`, 'ai');
+    }, 1000);
+  };
 
   // This function follows the exact pseudocode logic provided
  
@@ -120,21 +321,29 @@ export default function BattleArena() {
             upgradeChoices: {}
           };
 
-          const playerMonster = selectedMonsters[0];
+          // Prepare player team with proper HP/MP
+          const playerTeam = selectedMonsters.map(monster => ({
+            ...monster,
+            maxHp: monster.monster.baseHp + ((monster.monster.hpPerLevel || 50) * (monster.level - 1)),
+            maxMp: monster.monster.baseMp + ((monster.monster.mpPerLevel || 20) * (monster.level - 1))
+          }));
+
+          // Prepare AI team (for now, just use the first monster)
+          const aiTeam = [opponentForState];
+
           setBattleState({
-            playerMonster: {
-              ...playerMonster,
-              maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
-              maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
-            },
-            aiMonster: opponentForState,
+            playerTeam,
+            aiTeam,
+            activePlayerIndex: 0,
+            activeAiIndex: 0,
             turn: 'player' as const,
             phase: 'select' as const,
-            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${opponentForState.name}!`],
+            battleLog: [`Battle begins! ${playerTeam[0].monster.name} vs ${aiTeam[0].name}!`],
             winner: null,
             currentAnimation: null,
             lastDamage: null,
-            screenShake: false
+            screenShake: false,
+            actionToasts: []
           });
         } else {
            console.error('Invalid AI monster structure:', aiMonster);
@@ -412,7 +621,9 @@ export default function BattleArena() {
   }
 
   // Combat mode - show the battle interface (only when fully loaded and successful)
-  if (battleMode === 'combat' && opponentLoadingState === 'success' && battleState && battleState.aiMonster && battleState.aiMonster.monster && battleState.aiMonster.monster.name) {
+  if (battleMode === 'combat' && opponentLoadingState === 'success' && battleState && battleState.aiTeam.length > 0) {
+    const activePlayer = battleState.playerTeam[battleState.activePlayerIndex];
+    const activeAi = battleState.aiTeam[battleState.activeAiIndex];
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
         <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
@@ -442,54 +653,160 @@ export default function BattleArena() {
             </CardHeader>
           </Card>
 
-          {/* Battle Area */}
+          {/* Battle Area with Active Slots and Bench */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-            {/* Player Monster */}
-            <div className="space-y-3">
-              <h3 className="text-lg font-bold text-center">Your Monster</h3>
-              <MonsterCard
-                monster={battleState.playerMonster.monster}
-                userMonster={battleState.playerMonster}
-                battleMode={true}
-                battleMp={battleState.playerMonster.mp}
-                isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
-                onAttack={(ability: any) => {
-                  if (battleState.turn === 'player' && battleState.phase === 'select') {
-                    // Handle attack logic here
-                    console.log('Player attacking with:', ability);
-                  }
-                }}
-                size="medium"
-              />
+            {/* Player Team */}
+            <div className="space-y-3 relative">
+              <h3 className="text-lg font-bold text-center">Your Team</h3>
+              
+              {/* Active Player Monster */}
+              <div className="relative">
+                <MonsterCard
+                  monster={activePlayer.monster}
+                  userMonster={activePlayer}
+                  battleMode={true}
+                  battleMp={activePlayer.mp}
+                  isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
+                  onAttack={executePlayerAttack}
+                  size="medium"
+                />
+                
+                {/* Action Toasts for Player */}
+                {battleState.actionToasts
+                  .filter(toast => toast.target === 'player')
+                  .map(toast => (
+                    <div
+                      key={toast.id}
+                      className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce z-20 shadow-lg"
+                    >
+                      {toast.text}
+                    </div>
+                  ))
+                }
+              </div>
+              
+              {/* Player Bench */}
+              {battleState.playerTeam.length > 1 && (
+                <div className="flex gap-2 justify-center">
+                  {battleState.playerTeam.map((monster, index) => {
+                    if (index === battleState.activePlayerIndex) return null;
+                    
+                    const isHovered = hoveredMonster?.team === 'player' && hoveredMonster?.index === index;
+                    
+                    return (
+                      <div
+                        key={`player-bench-${index}`}
+                        className={`transition-all duration-300 cursor-pointer ${
+                          isHovered ? 'scale-110 z-10' : 'scale-75 opacity-60'
+                        }`}
+                        onMouseEnter={() => setHoveredMonster({ team: 'player', index })}
+                        onMouseLeave={() => setHoveredMonster(null)}
+                      >
+                        <MonsterCard
+                          monster={monster.monster}
+                          userMonster={monster}
+                          battleMode={true}
+                          battleMp={monster.mp}
+                          size="small"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* AI Monster - Now safely rendered since we're in the success state */}
-            <div className="space-y-3">
+            {/* AI Team */}
+            <div className="space-y-3 relative">
               <h3 className="text-lg font-bold text-center">Opponent: {aiOpponent?.team?.name || 'Unknown'}</h3>
-              <MonsterCard
-                monster={battleState.aiMonster.monster}
-                userMonster={{
-                  id: 9999,
-                  userId: 'ai',
-                  monsterId: battleState.aiMonster.monster.id,
-                  level: battleState.aiMonster.level || 1,
-                  power: battleState.aiMonster.power,
-                  speed: battleState.aiMonster.speed,
-                  defense: battleState.aiMonster.defense,
-                  experience: 0,
-                  evolutionStage: 4,
-                  upgradeChoices: battleState.aiMonster.upgradeChoices || {},
-                  hp: battleState.aiMonster.hp,
-                  maxHp: battleState.aiMonster.maxHp,
-                  mp: battleState.aiMonster.mp,
-                  maxMp: battleState.aiMonster.maxMp,
-                  isShattered: false,
-                  acquiredAt: new Date()
-                }}
-                battleMode={true}
-                battleMp={battleState.aiMonster.mp}
-                size="medium"
-              />
+              
+              {/* Active AI Monster */}
+              <div className="relative">
+                <MonsterCard
+                  monster={activeAi.monster}
+                  userMonster={{
+                    id: 9999,
+                    userId: 'ai',
+                    monsterId: activeAi.monster.id,
+                    level: activeAi.level || 1,
+                    power: activeAi.power,
+                    speed: activeAi.speed,
+                    defense: activeAi.defense,
+                    experience: 0,
+                    evolutionStage: 4,
+                    upgradeChoices: activeAi.upgradeChoices || {},
+                    hp: activeAi.hp,
+                    maxHp: activeAi.maxHp,
+                    mp: activeAi.mp,
+                    maxMp: activeAi.maxMp,
+                    isShattered: false,
+                    acquiredAt: new Date()
+                  }}
+                  battleMode={true}
+                  battleMp={activeAi.mp}
+                  size="medium"
+                />
+                
+                {/* Action Toasts for AI */}
+                {battleState.actionToasts
+                  .filter(toast => toast.target === 'ai')
+                  .map(toast => (
+                    <div
+                      key={toast.id}
+                      className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold animate-bounce z-20 shadow-lg"
+                    >
+                      {toast.text}
+                    </div>
+                  ))
+                }
+              </div>
+              
+              {/* AI Bench */}
+              {battleState.aiTeam.length > 1 && (
+                <div className="flex gap-2 justify-center">
+                  {battleState.aiTeam.map((monster, index) => {
+                    if (index === battleState.activeAiIndex) return null;
+                    
+                    const isHovered = hoveredMonster?.team === 'ai' && hoveredMonster?.index === index;
+                    
+                    return (
+                      <div
+                        key={`ai-bench-${index}`}
+                        className={`transition-all duration-300 cursor-pointer ${
+                          isHovered ? 'scale-110 z-10' : 'scale-75 opacity-60'
+                        }`}
+                        onMouseEnter={() => setHoveredMonster({ team: 'ai', index })}
+                        onMouseLeave={() => setHoveredMonster(null)}
+                      >
+                        <MonsterCard
+                          monster={monster.monster}
+                          userMonster={{
+                            id: 9998 - index,
+                            userId: 'ai',
+                            monsterId: monster.monster.id,
+                            level: monster.level || 1,
+                            power: monster.power,
+                            speed: monster.speed,
+                            defense: monster.defense,
+                            experience: 0,
+                            evolutionStage: 4,
+                            upgradeChoices: monster.upgradeChoices || {},
+                            hp: monster.hp,
+                            maxHp: monster.maxHp,
+                            mp: monster.mp,
+                            maxMp: monster.maxMp,
+                            isShattered: false,
+                            acquiredAt: new Date()
+                          }}
+                          battleMode={true}
+                          battleMp={monster.mp}
+                          size="small"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -497,10 +814,86 @@ export default function BattleArena() {
           <div className="text-center mb-3 sm:mb-4">
             <Badge variant={battleState.turn === 'player' ? 'default' : 'secondary'} className="text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-2">
               {battleState.phase === 'animate' ? 'Attacking...' : 
-               battleState.phase === 'end' ? 'Battle Complete!' :
-               battleState.turn === 'player' ? 'Your Turn' : 'Opponent Turn'}
+               battleState.phase === 'end' ? 
+                 (battleState.winner === 'player' ? 'Victory!' : 'Defeat!') :
+               battleState.turn === 'player' ? 'Your Turn - Select an Attack' : 'AI Turn - Thinking...'}
             </Badge>
           </div>
+
+          {/* Battle Log */}
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle className="text-lg">Battle Log</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-32 overflow-y-auto space-y-1 bg-gray-50 dark:bg-gray-800 p-3 rounded">
+                {battleState.battleLog.map((entry, index) => (
+                  <div key={index} className="text-sm text-gray-700 dark:text-gray-300">
+                    {entry}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Battle End Actions */}
+          {battleState.phase === 'end' && (
+            <div className="text-center space-y-4">
+              <Card className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900 dark:to-yellow-900">
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold mb-2">
+                    {battleState.winner === 'player' ? '🎉 Victory!' : '💥 Defeat!'}
+                  </h2>
+                  <p className="text-lg mb-4">
+                    {battleState.winner === 'player' 
+                      ? 'You earned 10 Diamonds!' 
+                      : 'Better luck next time!'}
+                  </p>
+                  <Button onClick={handleBackToSelection} size="lg">
+                    Return to Team Selection
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Selection mode - show team selection interface
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-2 sm:p-4">
+      <div className="max-w-6xl mx-auto space-y-3 sm:space-y-6">
+        {/* Header */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl sm:text-3xl text-center">Battle Arena</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center">
+              <p className="text-base sm:text-lg text-muted-foreground mb-4">
+                Select your monster team and challenge AI opponents in strategic turn-based battles!
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs sm:text-sm">
+                    ⚔️ Battle Tokens
+                  </Badge>
+                  <p className="text-lg sm:text-xl font-bold text-primary">
+                    {user?.battleTokens || 0}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Team Selection Component */}
+          <BattleTeamSelector onBattleStart={handleBattleStart} />
+        </div>
+      </div>
+    );
+}
 
           {/* Retreat Button */}
           {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
