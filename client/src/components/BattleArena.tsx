@@ -13,24 +13,71 @@ import MonsterCard from "./MonsterCard";
 import { BattleTeamSelector } from "./BattleTeamSelector";
 import { ArrowLeft } from "lucide-react";
 
+// Add this around line 20-30, after imports but before the main BattleArena function
+const calculateDamage = (
+  attackingMonster: any,
+  defendingMonster: any,
+  ability: any,
+  isBasicAttack: boolean = false
+) => {
+  console.log('calculateDamage called:', { attackingMonster: attackingMonster.name, ability: ability.name, isBasicAttack });
+
+  // Get base damage calculation
+  let baseDamage;
+  if (isBasicAttack) {
+    baseDamage = attackingMonster.attack * 0.6; // Basic attack multiplier
+  } else if (ability.uses_defense) {
+    baseDamage = attackingMonster.defense * ability.multiplier;
+  } else {
+    baseDamage = attackingMonster.attack * ability.multiplier;
+  }
+
+  // Apply affinity multiplier
+  const affinityMultiplier = getAffinityMultiplier(
+    ability.affinity, 
+    defendingMonster.resistances || [], 
+    defendingMonster.weaknesses || []
+  );
+
+  // Calculate final damage with variability
+  const damageWithAffinity = baseDamage * affinityMultiplier;
+  const variability = 0.8 + Math.random() * 0.4; // ±20% variability
+  const finalDamage = Math.round(damageWithAffinity * variability);
+
+  // Generate effectiveness message
+  let effectivenessMessage = "";
+  if (affinityMultiplier > 1.0) {
+    effectivenessMessage = "It's super effective!";
+  } else if (affinityMultiplier < 1.0) {
+    effectivenessMessage = "It's not very effective...";
+  }
+
+  console.log('Damage calculation:', { baseDamage, affinityMultiplier, finalDamage, effectivenessMessage });
+
+  return {
+    damage: finalDamage,
+    effectivenessMessage: effectivenessMessage
+  };
+};
+
 // Add this function after imports, around line 20-30
 const getAffinityMultiplier = (
   attackAffinity: string,
-  defenderWeaknesses: string[],
-  defenderResistances: string[]
+  defenderResistances: string[],
+  defenderWeaknesses: string[]
 ) => {
   // Check for weakness (2x damage)
   if (defenderWeaknesses?.includes(attackAffinity)) {
-    return { multiplier: 2.0, effectiveness: 'super_effective' };
+    return 2.0;
   }
 
   // Check for resistance (0.5x damage)
   if (defenderResistances?.includes(attackAffinity)) {
-    return { multiplier: 0.5, effectiveness: 'not_very_effective' };
+    return 0.5;
   }
 
   // Normal effectiveness (1x damage)
-  return { multiplier: 1.0, effectiveness: 'normal' };
+  return 1.0;
 };
 
 interface AttackOption {
@@ -137,93 +184,7 @@ export default function BattleArena() {
     queryKey: ["/api/auth/user"],
   });
 
-  // This is the new, corrected function
-  const setupBattleArena = async (selectedMonsters: any[]) => {
-    console.log('setupBattleArena called with:', selectedMonsters);
-
-    // Validate player monsters
-    if (!selectedMonsters || selectedMonsters.length === 0) {
-      console.error('No selected monsters provided');
-      return;
-    }
-
-    // Set loading state immediately
-    setSelectedTeam(selectedMonsters);
-    setBattleMode('combat');
-    setOpponentLoadingState('loading');
-    setAiOpponent(null);
-    setBattleState(null);
-
-    try {
-      // **THE FIX IS HERE:** Calculate TPL and include it in the request body
-      const playerTPL = selectedMonsters.reduce((acc, monster) => acc + monster.level, 0);
-      console.log(`Calculated Player TPL: ${playerTPL}`);
-
-      const opponentTeamData = await apiRequest('/api/battle/generate-opponent', {
-        method: 'POST',
-        data: { tpl: playerTPL } // Sending the TPL to the server
-      });
-
-      console.log('Received opponent data:', opponentTeamData);
-
-      // Check if the data structure is valid
-      if (opponentTeamData && opponentTeamData.team && opponentTeamData.team.monsters && opponentTeamData.team.monsters.length > 0) {
-        const aiMonster = opponentTeamData.team.monsters[0];
-
-        // Additional validation
-        if (aiMonster && aiMonster.name) {
-          console.log('Valid opponent data received, setting up battle');
-          setOpponentLoadingState('success');
-
-          console.log("MAIN PATH: Creating AI monster", aiMonster.name);
-          // Create opponent object with proper structure for battle state
-          const opponentForState = {
-            id: aiMonster.id,
-            name: aiMonster.name,
-            type: aiMonster.type,
-            power: aiMonster.base_power || aiMonster.basePower,
-            speed: aiMonster.base_speed || aiMonster.baseSpeed,
-            defense: aiMonster.base_defense || aiMonster.baseDefense,
-            hp: aiMonster.hp,
-            maxHp: aiMonster.hp,
-            mp: aiMonster.mp,
-            maxMp: aiMonster.mp,
-            level: aiMonster.level,
-            resistances: aiMonster.resistances,  // ✅ ADD THIS LINE
-            weaknesses: aiMonster.weaknesses,    // ✅ ADD THIS LINE
-            monster: aiMonster,
-            upgradeChoices: {}
-          };
-
-          const playerMonster = selectedMonsters[0];
-          setBattleState({
-            playerMonster: {
-              ...playerMonster,
-              maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
-              maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
-            },
-            aiMonster: opponentForState,
-            turn: 'player' as const,
-            phase: 'select' as const,
-            battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${opponentForState.name}!`],
-            winner: null,
-            currentAnimation: null,
-            lastDamage: null,
-            screenShake: false
-          });
-        } else {
-           console.error('Invalid AI monster structure:', aiMonster);
-           setOpponentLoadingState('error');
-        }
-      } else {
-        console.error('Invalid or empty opponent team data:', opponentTeamData);
-        setOpponentLoadingState('error');
-      }
-    } catch (error) {
-      console.error('Error fetching opponent data:', error);
-      setOpponentLoadingState('error');
-    }
-  };
+ 
   // Updated handler that calls the new setup function
   const handleBattleStart = (selectedMonsters: any[], generatedOpponent?: any) => {
     // If opponent is already generated (from BattleTeamSelector), use the new setup
@@ -536,89 +497,76 @@ export default function BattleArena() {
                   if (battleState.turn === 'player' && battleState.phase === 'select') {
                     // Calculate damage
                     // Calculate damage with ±20% variability
-                    console.log("=== ABILITY CLICK DEBUG ===");
-                    console.log("Ability Name:", abilityName);
-                    console.log("Damage Parameter:", damage);
-                    console.log("Mana Cost:", manaCost);
-                    console.log("Player Power:", battleState.playerMonster.power);
-                    console.log("========================");
-                    
-                    // Temporary fix - calculate damage properly based on ability
-                    let baseDamage;
-                    if (abilityName === "Ember Spit") {
-                      baseDamage = Math.floor(battleState.playerMonster.power * 1.0); // 1.0 multiplier for Ember Spit
-                    } else if (abilityName === "Basic Attack") {
-                      baseDamage = Math.floor(battleState.playerMonster.power * 0.6); // 0.6 multiplier for Basic Attack
-                    } else {
-                      baseDamage = damage || Math.floor(battleState.playerMonster.power * 0.8); // Fallback
+                    // Calculate damage using reusable function
+                    // Calculate damage using reusable function
+                    const isBasicAttack = abilityName === 'Basic Attack';
+
+                    // Get ability affinity from database - look it up properly
+                    let abilityAffinity = "Normal"; // Default fallback only
+
+                    if (!isBasicAttack) {
+                      // Look up the ability data from the monster's abilities in the database
+                      try {
+                        const playerAbilities = battleState.playerMonster.monster.abilities;
+                        let abilities = [];
+
+                        if (typeof playerAbilities === 'string') {
+                          abilities = JSON.parse(playerAbilities);
+                        } else if (Array.isArray(playerAbilities)) {
+                          abilities = playerAbilities;
+                        }
+
+                        // Find the matching ability by name
+                        const matchingAbility = abilities.find((ab: any) => ab.name === abilityName);
+                        if (matchingAbility && matchingAbility.affinity) {
+                          abilityAffinity = matchingAbility.affinity;
+                        }
+                      } catch (error) {
+                        console.log("Could not parse ability affinity, using Normal");
+                      }
                     }
 
-                    // Add this after line 548, before the defense calculation
-                    // Get affinity multiplier for player attack
-                    // Get affinity multiplier for player attack
-                    // First, we need to find the ability data from the monster's abilities
-                    let abilityAffinity = "Normal"; // Default affinity
-                    try {
-                      const playerAbilities = battleState.playerMonster.monster.abilities;
-                      let abilities = [];
+                    // Get multiplier from database too - look it up properly  
+                    let abilityMultiplier = 0.6; // Basic Attack default
+                    if (!isBasicAttack) {
+                      try {
+                        const playerAbilities = battleState.playerMonster.monster.abilities;
+                        let abilities = [];
 
-                      if (typeof playerAbilities === 'string') {
-                        abilities = JSON.parse(playerAbilities);
-                      } else if (Array.isArray(playerAbilities)) {
-                        abilities = playerAbilities;
-                      }
+                        if (typeof playerAbilities === 'string') {
+                          abilities = JSON.parse(playerAbilities);
+                        } else if (Array.isArray(playerAbilities)) {
+                          abilities = playerAbilities;
+                        }
 
-                      // Find the matching ability by name
-                      const matchingAbility = abilities.find((ab: any) => ab.name === abilityName);
-                      if (matchingAbility && matchingAbility.affinity) {
-                        abilityAffinity = matchingAbility.affinity;
-                        console.log("ABILITY DEBUG:", {
-                          matchingAbility: matchingAbility,
-                          affinityFromDB: matchingAbility.affinity,
-                          fullAbilityData: matchingAbility
-                        });
+                        const matchingAbility = abilities.find((ab: any) => ab.name === abilityName);
+                        if (matchingAbility && matchingAbility.multiplier !== undefined) {
+                          abilityMultiplier = matchingAbility.multiplier;
+                        }
+                      } catch (error) {
+                        console.log("Could not parse ability multiplier, using default");
                       }
-                    } catch (error) {
-                      console.log("Could not parse ability affinity, using Normal");
                     }
 
-                    console.log("RESISTANCE DEBUG:", {
-                      aiMonsterResistances: battleState.aiMonster.resistances,
-                      aiMonsterWeaknesses: battleState.aiMonster.weaknesses,
-                      attackAffinity: abilityAffinity
-                    });
-                    
-                    const affinityResult = getAffinityMultiplier(
-                      abilityAffinity,
-                      battleState.aiMonster.weaknesses || [],
-                      battleState.aiMonster.resistances || []
+                    // Create ability object for calculateDamage function
+                    const abilityForCalculation = {
+                      name: abilityName,
+                      multiplier: abilityMultiplier,
+                      affinity: abilityAffinity,
+                      uses_defense: false // Look this up too if needed
+                    };
+
+                    const damageResult = calculateDamage(
+                      battleState.playerMonster.monster,
+                      battleState.aiMonster.monster,
+                      abilityForCalculation,
+                      isBasicAttack
                     );
 
-                    // Apply affinity multiplier to base damage
-                    baseDamage = Math.floor(baseDamage * affinityResult.multiplier);
+                    const finalDamage = damageResult.damage;
+                    const effectivenessMessage = damageResult.effectivenessMessage;
 
-                    // Log affinity debug info
-                    console.log("Player Affinity Debug:", {
-                      abilityName: abilityName,
-                      attackAffinity: abilityAffinity,
-                      effectiveness: affinityResult.effectiveness,
-                      multiplier: affinityResult.multiplier,
-                      damageBeforeAffinity: Math.floor(baseDamage / affinityResult.multiplier),
-                      damageAfterAffinity: baseDamage
-                    });
                     
-                    const damageAfterDefense = Math.max(1, baseDamage - Math.floor(battleState.aiMonster.defense * 0.3));
-                    const variability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
-                    const finalDamage = Math.floor(damageAfterDefense * variability);
-
-                    // For player attacks - CORRECTED VARIABLES
-                    console.log("=== PLAYER ATTACK DEBUG ===");
-                    console.log("Attacker Stats:", { power: battleState.playerMonster.power, name: battleState.playerMonster.monster.name });
-                    console.log("Defender Stats:", { defense: battleState.aiMonster.defense, name: battleState.aiMonster.name });
-                    console.log("Base Damage (before defense):", baseDamage);
-                    console.log("Defense Reduction:", battleState.aiMonster.defense * 0.3);
-                    console.log("Final Damage:", finalDamage);
-                    console.log("========================");
                     
                     // Deduct MP if ability has mana cost
                     const newPlayerMp = Math.max(0, battleState.playerMonster.mp - manaCost);
@@ -629,7 +577,7 @@ export default function BattleArena() {
                       ...prev!,
                       playerMonster: { ...prev!.playerMonster, mp: newPlayerMp },
                       aiMonster: { ...prev!.aiMonster, hp: newAiHp },
-                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${abilityName} for ${finalDamage} damage!`],
+                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${abilityName} for ${finalDamage} damage!${effectivenessMessage}`],
                       turn: newAiHp <= 0 ? 'player' : 'ai',
                       winner: newAiHp <= 0 ? 'player' : null,
                       phase: newAiHp <= 0 ? 'end' : 'select'
