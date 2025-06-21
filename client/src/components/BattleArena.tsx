@@ -131,16 +131,7 @@ export default function BattleArena() {
   const { toast } = useToast();
 
   // TEMPORARY TEST - add this after the useToast line
-  useEffect(() => {
-    // Test the affinity function
-    const testResult1 = getAffinityMultiplier("Fire", ["Fire"], []);
-    const testResult2 = getAffinityMultiplier("Fire", [], ["Fire"]);
-    const testResult3 = getAffinityMultiplier("Fire", ["Water"], ["Earth"]);
-
-    console.log("Affinity Test 1 (weakness):", testResult1);
-    console.log("Affinity Test 2 (resistance):", testResult2);
-    console.log("Affinity Test 3 (normal):", testResult3);
-  }, []);
+ 
   
   const { data: user } = useQuery<GameUser>({
     queryKey: ["/api/auth/user"],
@@ -555,6 +546,49 @@ export default function BattleArena() {
                     } else {
                       baseDamage = damage || Math.floor(battleState.playerMonster.power * 0.8); // Fallback
                     }
+
+                    // Add this after line 548, before the defense calculation
+                    // Get affinity multiplier for player attack
+                    // Get affinity multiplier for player attack
+                    // First, we need to find the ability data from the monster's abilities
+                    let abilityAffinity = "Normal"; // Default affinity
+                    try {
+                      const playerAbilities = battleState.playerMonster.monster.abilities;
+                      let abilities = [];
+
+                      if (typeof playerAbilities === 'string') {
+                        abilities = JSON.parse(playerAbilities);
+                      } else if (Array.isArray(playerAbilities)) {
+                        abilities = playerAbilities;
+                      }
+
+                      // Find the matching ability by name
+                      const matchingAbility = abilities.find((ab: any) => ab.name === abilityName);
+                      if (matchingAbility && matchingAbility.affinity) {
+                        abilityAffinity = matchingAbility.affinity;
+                      }
+                    } catch (error) {
+                      console.log("Could not parse ability affinity, using Normal");
+                    }
+
+                    const affinityResult = getAffinityMultiplier(
+                      abilityAffinity,
+                      battleState.aiMonster.weaknesses || [],
+                      battleState.aiMonster.resistances || []
+                    );
+
+                    // Apply affinity multiplier to base damage
+                    baseDamage = Math.floor(baseDamage * affinityResult.multiplier);
+
+                    // Log affinity debug info
+                    console.log("Player Affinity Debug:", {
+                      abilityName: abilityName,
+                      attackAffinity: abilityAffinity,
+                      effectiveness: affinityResult.effectiveness,
+                      multiplier: affinityResult.multiplier,
+                      damageBeforeAffinity: Math.floor(baseDamage / affinityResult.multiplier),
+                      damageAfterAffinity: baseDamage
+                    });
                     
                     const damageAfterDefense = Math.max(1, baseDamage - Math.floor(battleState.aiMonster.defense * 0.3));
                     const variability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
