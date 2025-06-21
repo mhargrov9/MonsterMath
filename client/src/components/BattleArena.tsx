@@ -609,23 +609,26 @@ export default function BattleArena() {
 
 
 
-                        
-                        const aiDamage = chosenAbility.damage || Math.floor(battleState.aiMonster.power * 0.7);
-                        // Get AI ability affinity
-                        const aiAbilityAffinity = chosenAbility.affinity || battleState.aiMonster.type || "Normal";
-                        console.log("Player monster data for AI attack:", battleState.playerMonster);
-                        // Get player resistances and weaknesses  
-                        const playerResistances = battleState.playerMonster.monster.resistances || [];
-                        const playerWeaknesses = battleState.playerMonster.monster.weaknesses || [];
+                        // Calculate AI damage using reusable function
+                        const isAiBasicAttack = chosenAbility.name === 'Basic Attack';
 
-                        // Calculate affinity multiplier for AI attack
-                        const aiAffinityResult = getAffinityMultiplier(aiAbilityAffinity, playerWeaknesses, playerResistances);
+                        // Create ability object for AI calculateDamage function
+                        const aiAbilityForCalculation = {
+                          name: chosenAbility.name,
+                          multiplier: chosenAbility.multiplier || 0.6,
+                          affinity: chosenAbility.affinity || "Normal",
+                          uses_defense: chosenAbility.uses_defense || false
+                        };
 
-                        // Apply affinity multiplier to AI damage
-                        const aiDamageWithAffinity = Math.floor(aiDamage * aiAffinityResult.multiplier);
-                        const aiDamageAfterDefense = Math.max(1, aiDamageWithAffinity - Math.floor(battleState.playerMonster.defense * 0.3));
-                        const aiVariability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
-                        const finalAiDamage = Math.floor(aiDamageAfterDefense * aiVariability);
+                        const aiDamageResult = calculateDamage(
+                          battleState.aiMonster.monster,
+                          battleState.playerMonster.monster,
+                          aiAbilityForCalculation,
+                          isAiBasicAttack
+                        );
+
+                        const finalAiDamage = aiDamageResult.damage;
+                        const aiEffectivenessMessage = aiDamageResult.effectivenessMessage;
                         const newPlayerHp = Math.max(0, battleState.playerMonster.hp - finalAiDamage);
                         const newAiMp = Math.max(0, battleState.aiMonster.mp - abilityManaCost);
 
@@ -646,7 +649,7 @@ export default function BattleArena() {
                           ...prev!,
                           playerMonster: { ...prev!.playerMonster, hp: newPlayerHp },
                           aiMonster: { ...prev!.aiMonster, mp: newAiMp },
-                          battleLog: [...prev.battleLog, `${battleState.aiMonster.name} used ${chosenAbility.name} for ${finalAiDamage} damage!${aiAffinityResult.effectiveness === 'super_effective' ? ' It\'s super effective!' : aiAffinityResult.effectiveness === 'not_very_effective' ? ' It\'s not very effective...' : ''}`],
+                          battleLog: [...prev.battleLog, `${battleState.aiMonster.name} used ${chosenAbility.name} for ${finalAiDamage} damage!${aiEffectivenessMessage ? ` ${aiEffectivenessMessage}` : ''}`],
                           
                           turn: 'player',
                           winner: newPlayerHp <= 0 ? 'ai' : null,
