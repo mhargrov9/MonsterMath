@@ -13,6 +13,26 @@ import MonsterCard from "./MonsterCard";
 import { BattleTeamSelector } from "./BattleTeamSelector";
 import { ArrowLeft } from "lucide-react";
 
+// Add this function after imports, around line 20-30
+const getAffinityMultiplier = (
+  attackAffinity: string,
+  defenderWeaknesses: string[],
+  defenderResistances: string[]
+) => {
+  // Check for weakness (2x damage)
+  if (defenderWeaknesses?.includes(attackAffinity)) {
+    return { multiplier: 2.0, effectiveness: 'super_effective' };
+  }
+
+  // Check for resistance (0.5x damage)
+  if (defenderResistances?.includes(attackAffinity)) {
+    return { multiplier: 0.5, effectiveness: 'not_very_effective' };
+  }
+
+  // Normal effectiveness (1x damage)
+  return { multiplier: 1.0, effectiveness: 'normal' };
+};
+
 interface AttackOption {
   id: string;
   name: string;
@@ -50,7 +70,58 @@ interface BattleState {
   screenShake: boolean;
 }
 
+// Helper function to get AI monster abilities with proper damage calculation
+const getAiMonsterAbilities = (monster: any) => {
+  // Parse abilities from the monster data
+  let abilities = [];
+  try {
+    if (monster.abilities) {
+      if (typeof monster.abilities === 'string') {
+        abilities = JSON.parse(monster.abilities);
+      } else if (Array.isArray(monster.abilities)) {
+        abilities = monster.abilities;
+      }
+    }
+  } catch (error) {
+    abilities = [];
+  }
+
+  // Filter to only ACTIVE abilities (AI can use) and calculate damage using multipliers
+  const activeAbilities = abilities.filter((ability: any) => ability.type === 'ACTIVE').map((ability: any) => {
+    // Calculate damage based on multiplier and appropriate stat
+    let baseDamage = 0;
+    const multiplier = ability.multiplier || 0.6; // Default to Basic Attack multiplier if missing
+
+    // Special case: Shell Slam uses Defense stat instead of Power
+    if (ability.name === 'Shell Slam') {
+      baseDamage = Math.floor((monster.base_defense || monster.baseDefense || monster.defense) * multiplier);
+    } else {
+      // All other abilities use Power stat
+      baseDamage = Math.floor((monster.base_power || monster.basePower || monster.power) * multiplier);
+    }
+
+    return {
+      ...ability,
+      damage: baseDamage
+    };
+  });
+
+  // Always include Basic Attack as option with 0.6 multiplier
+  const basicAttack = {
+    name: 'Basic Attack',
+    cost: '0 MP',
+    description: 'A basic physical attack',
+    damage: Math.floor((monster.base_power || monster.basePower || monster.power) * 0.6),
+    multiplier: 0.6
+  };
+
+  return [basicAttack, ...activeAbilities];
+};
+
+  // This function follows the exact pseudocode logic provided
+
 export default function BattleArena() {
+  
   const [battleMode, setBattleMode] = useState<'selection' | 'combat'>('selection');
   const [selectedTeam, setSelectedTeam] = useState<any[]>([]);
   const [aiOpponent, setAiOpponent] = useState<any>(null);
@@ -59,12 +130,22 @@ export default function BattleArena() {
   const [opponentLoadingState, setOpponentLoadingState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const { toast } = useToast();
 
+  // TEMPORARY TEST - add this after the useToast line
+  useEffect(() => {
+    // Test the affinity function
+    const testResult1 = getAffinityMultiplier("Fire", ["Fire"], []);
+    const testResult2 = getAffinityMultiplier("Fire", [], ["Fire"]);
+    const testResult3 = getAffinityMultiplier("Fire", ["Water"], ["Earth"]);
+
+    console.log("Affinity Test 1 (weakness):", testResult1);
+    console.log("Affinity Test 2 (resistance):", testResult2);
+    console.log("Affinity Test 3 (normal):", testResult3);
+  }, []);
+  
   const { data: user } = useQuery<GameUser>({
     queryKey: ["/api/auth/user"],
   });
 
-  // This function follows the exact pseudocode logic provided
- 
   // This is the new, corrected function
   const setupBattleArena = async (selectedMonsters: any[]) => {
     console.log('setupBattleArena called with:', selectedMonsters);
@@ -104,6 +185,7 @@ export default function BattleArena() {
           setOpponentLoadingState('success');
 
           // Create opponent object with proper structure for battle state
+          // Create opponent object with proper structure for battle state
           const opponentForState = {
             id: aiMonster.id,
             name: aiMonster.name,
@@ -111,11 +193,11 @@ export default function BattleArena() {
             power: aiMonster.base_power || aiMonster.basePower,
             speed: aiMonster.base_speed || aiMonster.baseSpeed,
             defense: aiMonster.base_defense || aiMonster.baseDefense,
-            hp: aiMonsterData.hp,
-            maxHp: aiMonsterData.hp,
-            mp: aiMonsterData.mp,
-            maxMp: aiMonsterData.mp,
-            level: aiMonsterData.level,
+            hp: aiMonster.hp,        // ✅ FIXED
+            maxHp: aiMonster.hp,     // ✅ FIXED
+            mp: aiMonster.mp,        // ✅ FIXED
+            maxMp: aiMonster.mp,     // ✅ FIXED
+            level: aiMonster.level,  // ✅ FIXED
             monster: aiMonster,
             upgradeChoices: {}
           };
@@ -453,15 +535,42 @@ export default function BattleArena() {
                 battleMode={true}
                 battleMp={battleState.playerMonster.mp}
                 isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
-                onAttack={(ability: any) => {
-                  alert('Attack button clicked!');
+                onAbilityClick={(abilityName: string, manaCost: number, damage: number, description: string) => {
                   if (battleState.turn === 'player' && battleState.phase === 'select') {
                     // Calculate damage
-                    const baseDamage = ability.damage || Math.floor(battleState.playerMonster.power * 0.8);
-                    const finalDamage = Math.max(1, baseDamage - Math.floor(battleState.aiMonster.defense * 0.3));
+                    // Calculate damage with ±20% variability
+                    console.log("=== ABILITY CLICK DEBUG ===");
+                    console.log("Ability Name:", abilityName);
+                    console.log("Damage Parameter:", damage);
+                    console.log("Mana Cost:", manaCost);
+                    console.log("Player Power:", battleState.playerMonster.power);
+                    console.log("========================");
+                    
+                    // Temporary fix - calculate damage properly based on ability
+                    let baseDamage;
+                    if (abilityName === "Ember Spit") {
+                      baseDamage = Math.floor(battleState.playerMonster.power * 1.0); // 1.0 multiplier for Ember Spit
+                    } else if (abilityName === "Basic Attack") {
+                      baseDamage = Math.floor(battleState.playerMonster.power * 0.6); // 0.6 multiplier for Basic Attack
+                    } else {
+                      baseDamage = damage || Math.floor(battleState.playerMonster.power * 0.8); // Fallback
+                    }
+                    
+                    const damageAfterDefense = Math.max(1, baseDamage - Math.floor(battleState.aiMonster.defense * 0.3));
+                    const variability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
+                    const finalDamage = Math.floor(damageAfterDefense * variability);
+
+                    // For player attacks - CORRECTED VARIABLES
+                    console.log("=== PLAYER ATTACK DEBUG ===");
+                    console.log("Attacker Stats:", { power: battleState.playerMonster.power, name: battleState.playerMonster.monster.name });
+                    console.log("Defender Stats:", { defense: battleState.aiMonster.defense, name: battleState.aiMonster.name });
+                    console.log("Base Damage (before defense):", baseDamage);
+                    console.log("Defense Reduction:", battleState.aiMonster.defense * 0.3);
+                    console.log("Final Damage:", finalDamage);
+                    console.log("========================");
                     
                     // Deduct MP if ability has mana cost
-                    const newPlayerMp = Math.max(0, battleState.playerMonster.mp - (ability.manaCost || 0));
+                    const newPlayerMp = Math.max(0, battleState.playerMonster.mp - manaCost);
                     const newAiHp = Math.max(0, battleState.aiMonster.hp - finalDamage);
                     
                     // Update battle state
@@ -469,7 +578,7 @@ export default function BattleArena() {
                       ...prev!,
                       playerMonster: { ...prev!.playerMonster, mp: newPlayerMp },
                       aiMonster: { ...prev!.aiMonster, hp: newAiHp },
-                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${ability.name} for ${finalDamage} damage!`],
+                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${abilityName} for ${finalDamage} damage!`],
                       turn: newAiHp <= 0 ? 'player' : 'ai',
                       winner: newAiHp <= 0 ? 'player' : null,
                       phase: newAiHp <= 0 ? 'end' : 'select'
@@ -478,14 +587,53 @@ export default function BattleArena() {
                     // Simple AI counter-attack after short delay
                     if (newAiHp > 0) {
                       setTimeout(() => {
-                        const aiDamage = Math.floor(battleState.aiMonster.power * 0.7);
-                        const finalAiDamage = Math.max(1, aiDamage - Math.floor(battleState.playerMonster.defense * 0.3));
+                        // AI chooses an ability to use
+                        const aiAbilities = getAiMonsterAbilities(battleState.aiMonster.monster);
+                        // Get all abilities AI can afford (including Basic Attack which costs 0 MP)
+                        const availableAbilities = aiAbilities.filter((ability: any) => {
+                          const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
+                          return battleState.aiMonster.mp >= manaCost;
+                        });
+
+                        // Ensure Basic Attack is always available as fallback
+                        if (availableAbilities.length === 0) {
+                          availableAbilities.push({
+                            name: 'Basic Attack',
+                            cost: '0 MP',
+                            damage: Math.floor(battleState.aiMonster.power * 0.6)
+                          });
+                        }
+
+                        // Pick a random available ability
+                        const chosenAbility = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
+                        const abilityManaCost = chosenAbility.cost ? parseInt(chosenAbility.cost.replace(/\D/g, '')) : 0;
+
+
+
+                        
+                        const aiDamage = chosenAbility.damage || Math.floor(battleState.aiMonster.power * 0.7);
+                        const aiDamageAfterDefense = Math.max(1, aiDamage - Math.floor(battleState.playerMonster.defense * 0.3));
+                        const aiVariability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
+                        const finalAiDamage = Math.floor(aiDamageAfterDefense * aiVariability);
                         const newPlayerHp = Math.max(0, battleState.playerMonster.hp - finalAiDamage);
+                        const newAiMp = Math.max(0, battleState.aiMonster.mp - abilityManaCost);
+
+
+                        // For AI attacks - CORRECTED VARIABLES
+                        console.log("=== AI ATTACK DEBUG ===");
+                        console.log("Attacker Stats:", { power: battleState.aiMonster.power, name: battleState.aiMonster.name });
+                        console.log("Defender Stats:", { defense: battleState.playerMonster.defense, name: battleState.playerMonster.name });
+                        console.log("Base Damage (before defense):", aiDamage);
+                        console.log("Defense Reduction:", battleState.playerMonster.defense * 0.3);
+                        console.log("Final Damage:", finalAiDamage);
+                        console.log("===================");
+
                         
                         setBattleState(prev => ({
                           ...prev!,
                           playerMonster: { ...prev!.playerMonster, hp: newPlayerHp },
-                          battleLog: [...prev!.battleLog, `${battleState.aiMonster.name} attacks for ${finalAiDamage} damage!`],
+                          aiMonster: { ...prev!.aiMonster, mp: newAiMp },
+                          battleLog: [...prev!.battleLog, `${battleState.aiMonster.name} used ${chosenAbility.name} for ${finalAiDamage} damage!`],
                           turn: 'player',
                           winner: newPlayerHp <= 0 ? 'ai' : null,
                           phase: newPlayerHp <= 0 ? 'end' : 'select'

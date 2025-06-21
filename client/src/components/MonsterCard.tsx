@@ -603,7 +603,24 @@ export default function MonsterCard({
                       }`}
                       onClick={() => {
                         if (canAfford && onAbilityClick) {
-                          const damage = ability.type === 'ACTIVE' ? 40 : 0;
+                          // Calculate damage based on ability multiplier and monster stats
+                          const power = userMonster?.power || monster.basePower;
+                          let damage = 0;
+
+                          if (ability.type === 'ACTIVE') {
+                            // Use ability multiplier if available, otherwise use default
+                            const multiplier = ability.multiplier || 0.8; // Default multiplier
+
+                            // Special case: Shell Slam uses Defense stat
+                            if (ability.name === 'Shell Slam') {
+                              const defense = userMonster?.defense || monster.baseDefense;
+                              damage = Math.floor(defense * multiplier);
+                            } else {
+                              // All other abilities use Power stat
+                              damage = Math.floor(power * multiplier);
+                            }
+                          }
+
                           onAbilityClick(ability.name, manaCost, damage, ability.description);
                         }
                       }}
