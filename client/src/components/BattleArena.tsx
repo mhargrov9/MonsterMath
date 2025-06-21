@@ -20,16 +20,25 @@ const calculateDamage = (
   ability: any,
   isBasicAttack: boolean = false
 ) => {
-  console.log('calculateDamage called:', { attackingMonster: attackingMonster.name, ability: ability.name, isBasicAttack });
+  console.log('=== CALCULATE DAMAGE DEBUG ===');
+  console.log('attackingMonster object:', attackingMonster);
+  console.log('attackingMonster.power:', attackingMonster.power);
+  console.log('attackingMonster.attack:', attackingMonster.attack);
+  console.log('attackingMonster.base_power:', attackingMonster.base_power);
+  console.log('ability object:', ability);
+  console.log('ability.multiplier:', ability.multiplier);
+  console.log('isBasicAttack:', isBasicAttack);
+  console.log('===============================');
 
+  // Get base damage calculation
   // Get base damage calculation
   let baseDamage;
   if (isBasicAttack) {
-    baseDamage = attackingMonster.attack * 0.6; // Basic attack multiplier
+    baseDamage = (attackingMonster.base_power || attackingMonster.basePower || attackingMonster.power || attackingMonster.attack || 0) * 0.6;
   } else if (ability.uses_defense) {
-    baseDamage = attackingMonster.defense * ability.multiplier;
+    baseDamage = (attackingMonster.base_defense || attackingMonster.baseDefense || attackingMonster.defense || 0) * ability.multiplier;
   } else {
-    baseDamage = attackingMonster.attack * ability.multiplier;
+    baseDamage = (attackingMonster.base_power || attackingMonster.basePower || attackingMonster.power || attackingMonster.attack || 0) * ability.multiplier;
   }
 
   // Apply affinity multiplier
@@ -577,7 +586,7 @@ export default function BattleArena() {
                       ...prev!,
                       playerMonster: { ...prev!.playerMonster, mp: newPlayerMp },
                       aiMonster: { ...prev!.aiMonster, hp: newAiHp },
-                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${abilityName} for ${finalDamage} damage!${effectivenessMessage}`],
+                      battleLog: [...prev!.battleLog, `${battleState.playerMonster.monster.name} used ${abilityName} for ${finalDamage} damage!${effectivenessMessage ? ` ${effectivenessMessage}` : ''}`],
                       turn: newAiHp <= 0 ? 'player' : 'ai',
                       winner: newAiHp <= 0 ? 'player' : null,
                       phase: newAiHp <= 0 ? 'end' : 'select'
@@ -633,16 +642,7 @@ export default function BattleArena() {
                         const newAiMp = Math.max(0, battleState.aiMonster.mp - abilityManaCost);
 
 
-                        // For AI attacks - CORRECTED VARIABLES
-                        console.log("=== AI ATTACK DEBUG ===");
-                        console.log("AI Affinity:", aiAbilityAffinity, "Multiplier:", aiAffinityResult.multiplier, "Effectiveness:", aiAffinityResult.effectiveness);
-                        console.log("Player resistances for AI attack:", playerResistances, "Player weaknesses:", playerWeaknesses);
-                        console.log("Attacker Stats:", { power: battleState.aiMonster.power, name: battleState.aiMonster.name });
-                        console.log("Defender Stats:", { defense: battleState.playerMonster.defense, name: battleState.playerMonster.name });
-                        console.log("Base Damage (before defense):", aiDamage);
-                        console.log("Defense Reduction:", battleState.playerMonster.defense * 0.3);
-                        console.log("Final Damage:", finalAiDamage);
-                        console.log("===================");
+                        
 
                         
                         setBattleState(prev => ({
