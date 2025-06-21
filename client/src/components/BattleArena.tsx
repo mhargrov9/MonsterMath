@@ -667,8 +667,8 @@ export default function BattleArena() {
                         const aiAbilityAffinity = chosenAbility.affinity || battleState.aiMonster.type || "Normal";
                         console.log("Player monster data for AI attack:", battleState.playerMonster);
                         // Get player resistances and weaknesses  
-                        const playerResistances = battleState.playerMonster.resistances || [];
-                        const playerWeaknesses = battleState.playerMonster.weaknesses || [];
+                        const playerResistances = battleState.playerMonster.monster.resistances || [];
+                        const playerWeaknesses = battleState.playerMonster.monster.weaknesses || [];
 
                         // Calculate affinity multiplier for AI attack
                         const aiAffinityResult = getAffinityMultiplier(aiAbilityAffinity, playerWeaknesses, playerResistances);
