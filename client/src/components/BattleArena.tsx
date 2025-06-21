@@ -175,7 +175,7 @@ export default function BattleArena() {
           console.log('Valid opponent data received, setting up battle');
           setOpponentLoadingState('success');
 
-          // Create opponent object with proper structure for battle state
+          console.log("MAIN PATH: Creating AI monster", aiMonster.name);
           // Create opponent object with proper structure for battle state
           const opponentForState = {
             id: aiMonster.id,
@@ -184,11 +184,13 @@ export default function BattleArena() {
             power: aiMonster.base_power || aiMonster.basePower,
             speed: aiMonster.base_speed || aiMonster.baseSpeed,
             defense: aiMonster.base_defense || aiMonster.baseDefense,
-            hp: aiMonster.hp,        // ✅ FIXED
-            maxHp: aiMonster.hp,     // ✅ FIXED
-            mp: aiMonster.mp,        // ✅ FIXED
-            maxMp: aiMonster.mp,     // ✅ FIXED
-            level: aiMonster.level,  // ✅ FIXED
+            hp: aiMonster.hp,
+            maxHp: aiMonster.hp,
+            mp: aiMonster.mp,
+            maxMp: aiMonster.mp,
+            level: aiMonster.level,
+            resistances: aiMonster.resistances,  // ✅ ADD THIS LINE
+            weaknesses: aiMonster.weaknesses,    // ✅ ADD THIS LINE
             monster: aiMonster,
             upgradeChoices: {}
           };
@@ -239,6 +241,7 @@ export default function BattleArena() {
       const aiMonster = generatedOpponent.scaledMonsters[0];
       
       if (aiMonster && aiMonster.monster && aiMonster.monster.name) {
+        console.log("LEGACY PATH: Creating AI monster", aiMonster.monster.name);
         setBattleState({
           playerMonster: {
             ...playerMonster,
@@ -247,6 +250,7 @@ export default function BattleArena() {
             mp: playerMonster.mp,
             maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
           },
+          
           aiMonster: {
             id: aiMonster.monster.id,
             name: aiMonster.monster.name,
@@ -260,6 +264,8 @@ export default function BattleArena() {
             maxMp: aiMonster.mp,
             level: aiMonster.level,
             monster: aiMonster.monster,
+            resistances: aiMonster.monster.resistances,
+            weaknesses: aiMonster.monster.weaknesses,
             upgradeChoices: {}
           },
           turn: 'player' as const,
@@ -566,11 +572,22 @@ export default function BattleArena() {
                       const matchingAbility = abilities.find((ab: any) => ab.name === abilityName);
                       if (matchingAbility && matchingAbility.affinity) {
                         abilityAffinity = matchingAbility.affinity;
+                        console.log("ABILITY DEBUG:", {
+                          matchingAbility: matchingAbility,
+                          affinityFromDB: matchingAbility.affinity,
+                          fullAbilityData: matchingAbility
+                        });
                       }
                     } catch (error) {
                       console.log("Could not parse ability affinity, using Normal");
                     }
 
+                    console.log("RESISTANCE DEBUG:", {
+                      aiMonsterResistances: battleState.aiMonster.resistances,
+                      aiMonsterWeaknesses: battleState.aiMonster.weaknesses,
+                      attackAffinity: abilityAffinity
+                    });
+                    
                     const affinityResult = getAffinityMultiplier(
                       abilityAffinity,
                       battleState.aiMonster.weaknesses || [],
@@ -646,7 +663,19 @@ export default function BattleArena() {
 
                         
                         const aiDamage = chosenAbility.damage || Math.floor(battleState.aiMonster.power * 0.7);
-                        const aiDamageAfterDefense = Math.max(1, aiDamage - Math.floor(battleState.playerMonster.defense * 0.3));
+                        // Get AI ability affinity
+                        const aiAbilityAffinity = chosenAbility.affinity || battleState.aiMonster.type || "Normal";
+                        console.log("Player monster data for AI attack:", battleState.playerMonster);
+                        // Get player resistances and weaknesses  
+                        const playerResistances = battleState.playerMonster.resistances || [];
+                        const playerWeaknesses = battleState.playerMonster.weaknesses || [];
+
+                        // Calculate affinity multiplier for AI attack
+                        const aiAffinityResult = getAffinityMultiplier(aiAbilityAffinity, playerWeaknesses, playerResistances);
+
+                        // Apply affinity multiplier to AI damage
+                        const aiDamageWithAffinity = Math.floor(aiDamage * aiAffinityResult.multiplier);
+                        const aiDamageAfterDefense = Math.max(1, aiDamageWithAffinity - Math.floor(battleState.playerMonster.defense * 0.3));
                         const aiVariability = 0.8 + (Math.random() * 0.4); // Random between 0.8 and 1.2 (±20%)
                         const finalAiDamage = Math.floor(aiDamageAfterDefense * aiVariability);
                         const newPlayerHp = Math.max(0, battleState.playerMonster.hp - finalAiDamage);
@@ -655,6 +684,8 @@ export default function BattleArena() {
 
                         // For AI attacks - CORRECTED VARIABLES
                         console.log("=== AI ATTACK DEBUG ===");
+                        console.log("AI Affinity:", aiAbilityAffinity, "Multiplier:", aiAffinityResult.multiplier, "Effectiveness:", aiAffinityResult.effectiveness);
+                        console.log("Player resistances for AI attack:", playerResistances, "Player weaknesses:", playerWeaknesses);
                         console.log("Attacker Stats:", { power: battleState.aiMonster.power, name: battleState.aiMonster.name });
                         console.log("Defender Stats:", { defense: battleState.playerMonster.defense, name: battleState.playerMonster.name });
                         console.log("Base Damage (before defense):", aiDamage);
@@ -667,7 +698,8 @@ export default function BattleArena() {
                           ...prev!,
                           playerMonster: { ...prev!.playerMonster, hp: newPlayerHp },
                           aiMonster: { ...prev!.aiMonster, mp: newAiMp },
-                          battleLog: [...prev!.battleLog, `${battleState.aiMonster.name} used ${chosenAbility.name} for ${finalAiDamage} damage!`],
+                          battleLog: [...prev.battleLog, `${battleState.aiMonster.name} used ${chosenAbility.name} for ${finalAiDamage} damage!${aiAffinityResult.effectiveness === 'super_effective' ? ' It\'s super effective!' : aiAffinityResult.effectiveness === 'not_very_effective' ? ' It\'s not very effective...' : ''}`],
+                          
                           turn: 'player',
                           winner: newPlayerHp <= 0 ? 'ai' : null,
                           phase: newPlayerHp <= 0 ? 'end' : 'select'
