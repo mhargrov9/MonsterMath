@@ -87,9 +87,20 @@ const calculateDamage = (
 
   console.log('Damage calculation:', { baseDamage, affinityMultiplier, finalDamage, effectivenessMessage });
 
+  // Check for status effect application
+  let statusEffect = null;
+  if (ability.statusEffect && Math.random() < ability.statusEffect.chance) {
+    statusEffect = {
+      effectName: ability.statusEffect.effectName,
+      duration: ability.statusEffect.duration,
+      appliedThisTurn: true
+    };
+  }
+
   return {
     damage: finalDamage,
-    effectivenessMessage: effectivenessMessage
+    effectivenessMessage: effectivenessMessage,
+    statusEffect: statusEffect
   };
 };
 
@@ -143,9 +154,15 @@ interface AIMonster {
   monster: any;
 }
 
+interface StatusEffect {
+  effectName: string;
+  duration: number;
+  appliedThisTurn?: boolean;
+}
+
 interface BattleState {
-  playerMonster: UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number };
-  aiMonster: AIMonster;
+  playerMonster: UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number; statusEffects?: StatusEffect[] };
+  aiMonster: AIMonster & { statusEffects?: StatusEffect[] };
   turn: 'player' | 'ai';
   phase: 'select' | 'animate' | 'result' | 'end';
   battleLog: string[];
