@@ -623,10 +623,12 @@ export default function BattleArena() {
                     if (newAiHp > 0) {
                       setTimeout(async () => {
                         // AI chooses an ability to use
-                        const aiAbilities = await getAiMonsterAbilities(battleState.aiMonster.monster);
+                        const aiAbilities = await
+                        getAiMonsterAbilities(battleState.aiMonster.monster.id);
+
                         // Get all abilities AI can afford (including Basic Attack which costs 0 MP)
                         const availableAbilities = aiAbilities.filter((ability: any) => {
-                          const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
+                          const manaCost = ability.mp_cost || 0;
                           return battleState.aiMonster.mp >= manaCost;
                         });
 
