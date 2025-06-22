@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { eq } from 'drizzle-orm';
 import { db } from '../../../db';
-import { abilities, monsterAbilities } from '../../../db/schema';
+import { abilities, monsterAbilities } from '../../../shared/schema';
 
 export default async function handler(req: Request, res: Response) {
   const { monsterId } = req.params;

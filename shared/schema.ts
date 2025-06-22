@@ -75,6 +75,38 @@ export const monsters = pgTable("monsters", {
   starterSet: boolean("starter_set").default(false).notNull(), // Part of starter set
 });
 
+
+// Abilities table - NEW relational structure
+export const abilities = pgTable("abilities", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  ability_type: varchar("ability_type").notNull(), // 'damage', 'heal', 'buff', etc.
+  mp_cost: integer("mp_cost").default(0).notNull(),
+  affinity: varchar("affinity").notNull(), // Fire, Water, Earth, etc.
+  power_multiplier: integer("power_multiplier").notNull(), // Stored as integer (60 = 0.60)
+  scaling_stat: varchar("scaling_stat").default('power'), // 'power', 'speed', 'defense'
+  status_effect: jsonb("status_effect"), // Status effect data
+  min_hits: integer("min_hits").default(1),
+  max_hits: integer("max_hits").default(1),
+  priority: integer("priority").default(0),
+  crit_chance_modifier: integer("crit_chance_modifier").default(0),
+  lifesteal_percent: integer("lifesteal_percent").default(0),
+});
+
+// Monster-Abilities join table - Links monsters to their abilities
+export const monsterAbilities = pgTable("monster_abilities", {
+  monster_id: integer("monster_id").references(() => monsters.id).notNull(),
+  ability_id: integer("ability_id").references(() => abilities.id).notNull(),
+  is_basic_attack: boolean("is_basic_attack").default(false),
+  override_affinity: varchar("override_affinity"), // For Basic Attack inheritance
+  created_at: timestamp("created_at").defaultNow(),
+});
+
+
+
+
+
 // User monsters (owned monsters)
 export const userMonsters = pgTable("user_monsters", {
   id: serial("id").primaryKey(),
@@ -171,3 +203,5 @@ export type InsertBattle = z.infer<typeof insertBattleSchema>;
 export type InsertInventoryItem = z.infer<typeof insertInventorySchema>;
 export type AiTeam = typeof aiTeams.$inferSelect;
 export type InsertAiTeam = z.infer<typeof insertAiTeamSchema>;
+export type Ability = typeof abilities.$inferSelect;
+export type MonsterAbility = typeof monsterAbilities.$inferSelect;
