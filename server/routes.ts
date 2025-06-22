@@ -278,6 +278,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Monster abilities endpoint - NEW relational structure
+  app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req, res) => {
+    try {
+      const { monsterId } = req.params;
+
+      try {
+        const validatedMonsterId = validateMonsterId(monsterId);
+
+        // Query the new relational structure
+        const result = await storage.getMonsterAbilities(validatedMonsterId);
+
+        res.json({ abilities: result });
+      } catch (validationError) {
+        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid monster ID" });
+      }
+    } catch (error) {
+      handleError(error, res, "Failed to fetch monster abilities");
+    }
+  });
+  
   app.get("/api/questions", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
