@@ -48,6 +48,18 @@ const calculateDamage = (
     defendingMonster.weaknesses || []
   );
 
+  // DEBUG: Basic Attack affinity
+  if (ability.name === 'Basic Attack') {
+    console.log('=== BASIC ATTACK AFFINITY DEBUG ===');
+    console.log('Attack Affinity:', ability.affinity);
+    console.log('Defender Resistances:', defendingMonster.resistances);
+    console.log('Defender Weaknesses:', defendingMonster.weaknesses);
+    console.log('Affinity Multiplier Result:', affinityMultiplier);
+    console.log('=====================================');
+  }
+
+  
+
   // Calculate final damage with variability
   const damageWithAffinity = baseDamage * affinityMultiplier;
   const variability = 0.8 + Math.random() * 0.4; // ±20% variability
@@ -75,13 +87,18 @@ const getAffinityMultiplier = (
   defenderResistances: string[],
   defenderWeaknesses: string[]
 ) => {
+  // Convert to lowercase for case-insensitive comparison
+  const attackAffinityLower = attackAffinity.toLowerCase();
+  const resistancesLower = defenderResistances?.map(r => r.toLowerCase()) || [];
+  const weaknessesLower = defenderWeaknesses?.map(w => w.toLowerCase()) || [];
+
   // Check for weakness (2x damage)
-  if (defenderWeaknesses?.includes(attackAffinity)) {
+  if (weaknessesLower.includes(attackAffinityLower)) {
     return 2.0;
   }
 
   // Check for resistance (0.5x damage)
-  if (defenderResistances?.includes(attackAffinity)) {
+  if (resistancesLower.includes(attackAffinityLower)) {
     return 0.5;
   }
 
@@ -513,7 +530,10 @@ export default function BattleArena() {
                     // Get ability affinity from database - look it up properly
                     let abilityAffinity = "Normal"; // Default fallback only
 
-                    if (!isBasicAttack) {
+                    if (isBasicAttack) {
+                      // Basic Attack inherits the monster's elemental type
+                      abilityAffinity = battleState.playerMonster.monster.type || "Normal";
+                    } else {
                       // Look up the ability data from the monster's abilities in the database
                       try {
                         const playerAbilities = battleState.playerMonster.monster.abilities;
@@ -625,7 +645,9 @@ export default function BattleArena() {
                         const aiAbilityForCalculation = {
                           name: chosenAbility.name,
                           multiplier: chosenAbility.multiplier || 0.6,
-                          affinity: chosenAbility.affinity || "Normal",
+                          affinity: chosenAbility.name === 'Basic Attack' ? 
+                            (battleState.aiMonster.monster.type || "Normal") : 
+                            (chosenAbility.affinity || "Normal"),
                           uses_defense: chosenAbility.uses_defense || false
                         };
 
