@@ -466,7 +466,7 @@ export class DatabaseStorage implements IStorage {
           power_multiplier: abilities.power_multiplier,
           affinity: abilities.affinity,
           ability_type: abilities.ability_type,
-          status_effect: abilities.status_effect,
+          // status_effect: abilities.status_effect,  // Comment out this line
           min_hits: abilities.min_hits,
           max_hits: abilities.max_hits,
           override_affinity: monsterAbilities.override_affinity
