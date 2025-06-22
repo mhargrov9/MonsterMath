@@ -526,7 +526,7 @@ export default function BattleArena() {
                 battleMode={true}
                 battleMp={battleState.playerMonster.mp}
                 isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
-                onAbilityClick={(abilityName: string, manaCost: number, damage: number, description: string) => {
+                onAbilityClick={async (abilityName: string, manaCost: number, damage: number, description: string) => {
                   if (battleState.turn === 'player' && battleState.phase === 'select') {
                     // Calculate damage
                     // Calculate damage with ±20% variability
@@ -543,7 +543,10 @@ export default function BattleArena() {
                     } else {
                       // Look up the ability data from the monster's abilities in the database
                       try {
-                        const playerAbilities = battleState.playerMonster.monster.abilities;
+                        // Fetch abilities from the new relational API
+                        const response = await fetch(`/api/monster-abilities/${battleState.playerMonster.monster.id}`);
+                        const data = await response.json();
+                        const playerAbilities = data.abilities;
                         let abilities = [];
 
                         if (typeof playerAbilities === 'string') {
@@ -566,7 +569,10 @@ export default function BattleArena() {
                     let abilityMultiplier = 0.6; // Basic Attack default
                     if (!isBasicAttack) {
                       try {
-                        const playerAbilities = battleState.playerMonster.monster.abilities;
+                        // Fetch abilities from the new relational API
+                        const response = await fetch(`/api/monster-abilities/${battleState.playerMonster.monster.id}`);
+                        const data = await response.json();
+                        const playerAbilities = data.abilities;
                         let abilities = [];
 
                         if (typeof playerAbilities === 'string') {
