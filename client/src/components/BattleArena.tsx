@@ -13,6 +13,7 @@ import MonsterCard from "./MonsterCard";
 import { BattleTeamSelector } from "./BattleTeamSelector";
 import { ArrowLeft } from "lucide-react";
 
+
 // Add this around line 20-30, after imports but before the main BattleArena function
 const calculateDamage = (
   attackingMonster: any,
@@ -172,53 +173,28 @@ interface BattleState {
   screenShake: boolean;
 }
 
-// Helper function to get AI monster abilities with proper damage calculation
-const getAiMonsterAbilities = (monster: any) => {
-  // Parse abilities from the monster data
-  let abilities = [];
+
+// Updated function to get AI monster abilities from relational database
+const getAiMonsterAbilities = async (monsterId: number) => {
   try {
-    if (monster.abilities) {
-      if (typeof monster.abilities === 'string') {
-        abilities = JSON.parse(monster.abilities);
-      } else if (Array.isArray(monster.abilities)) {
-        abilities = monster.abilities;
-      }
-    }
+    // Query the new relational structure
+    const response = await apiRequest('/api/monster-abilities/' + monsterId);
+    return response.abilities || [];
   } catch (error) {
-    abilities = [];
+    console.error('Error fetching monster abilities:', error);
+    // Fallback to Basic Attack only
+    return [{
+      id: 1,
+      name: 'Basic Attack',
+      mp_cost: 0,
+      power_multiplier: 1.0,
+      affinity: 'Normal', // Will be overridden by monster's affinity
+      ability_type: 'damage'
+    }];
   }
-
-  // Filter to only ACTIVE abilities (AI can use) and calculate damage using multipliers
-  const activeAbilities = abilities.filter((ability: any) => ability.type === 'ACTIVE').map((ability: any) => {
-    // Calculate damage based on multiplier and appropriate stat
-    let baseDamage = 0;
-    const multiplier = ability.multiplier || 0.6; // Default to Basic Attack multiplier if missing
-
-    // Special case: Shell Slam uses Defense stat instead of Power
-    if (ability.name === 'Shell Slam') {
-      baseDamage = Math.floor((monster.base_defense || monster.baseDefense || monster.defense) * multiplier);
-    } else {
-      // All other abilities use Power stat
-      baseDamage = Math.floor((monster.base_power || monster.basePower || monster.power) * multiplier);
-    }
-
-    return {
-      ...ability,
-      damage: baseDamage
-    };
-  });
-
-  // Always include Basic Attack as option with 0.6 multiplier
-  const basicAttack = {
-    name: 'Basic Attack',
-    cost: '0 MP',
-    description: 'A basic physical attack',
-    damage: Math.floor((monster.base_power || monster.basePower || monster.power) * 0.6),
-    multiplier: 0.6
-  };
-
-  return [basicAttack, ...activeAbilities];
 };
+
+
 
   // This function follows the exact pseudocode logic provided
 
@@ -244,7 +220,9 @@ export default function BattleArena() {
   const handleBattleStart = (selectedMonsters: any[], generatedOpponent?: any) => {
     // If opponent is already generated (from BattleTeamSelector), use the new setup
     if (!generatedOpponent) {
-      setupBattleArena(selectedMonsters);
+      // For now, just log this - we'll implement later
+      console.log('Would call setupBattleArena with:', selectedMonsters);
+      return;
     } else {
       // Legacy path for pre-generated opponents (fallback)
       console.log('Using pre-generated opponent (legacy path)');
@@ -643,9 +621,9 @@ export default function BattleArena() {
                     
                     // Simple AI counter-attack after short delay
                     if (newAiHp > 0) {
-                      setTimeout(() => {
+                      setTimeout(async () => {
                         // AI chooses an ability to use
-                        const aiAbilities = getAiMonsterAbilities(battleState.aiMonster.monster);
+                        const aiAbilities = await getAiMonsterAbilities(battleState.aiMonster.monster);
                         // Get all abilities AI can afford (including Basic Attack which costs 0 MP)
                         const availableAbilities = aiAbilities.filter((ability: any) => {
                           const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
