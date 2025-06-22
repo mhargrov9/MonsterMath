@@ -231,7 +231,7 @@ export class DatabaseStorage implements IStorage {
           description: monsters.description,
           iconClass: monsters.iconClass,
           gradient: monsters.gradient,
-          abilities: monsters.abilities,
+          
           resistances: monsters.resistances,
           weaknesses: monsters.weaknesses,
           levelUpgrades: monsters.levelUpgrades,
@@ -807,7 +807,7 @@ export class DatabaseStorage implements IStorage {
         base_power: monsters.basePower,
         base_speed: monsters.baseSpeed,
         base_defense: monsters.baseDefense,
-        abilities: monsters.abilities,
+       
         resistances: monsters.resistances,
         weaknesses: monsters.weaknesses,
         description: monsters.description,
