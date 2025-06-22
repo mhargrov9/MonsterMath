@@ -446,38 +446,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)))
       .returning();
 
-    async getMonsterAbilities(monsterId: number) {
-      try {
-        // Query the new relational structure
-        const result = await db
-          .select({
-            id: abilities.id,
-            name: abilities.name,
-            mp_cost: abilities.mp_cost,
-            power_multiplier: abilities.power_multiplier,
-            affinity: abilities.affinity,
-            ability_type: abilities.ability_type,
-            status_effect: abilities.status_effect,
-            min_hits: abilities.min_hits,
-            max_hits: abilities.max_hits,
-            override_affinity: monsterAbilities.override_affinity
-          })
-          .from(abilities)
-          .innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id))
-          .where(eq(monsterAbilities.monster_id, monsterId));
-
-        // Apply affinity overrides (especially for Basic Attack)
-        const processedAbilities = result.map(ability => ({
-          ...ability,
-          affinity: ability.override_affinity || ability.affinity
-        }));
-
-        return processedAbilities;
-      } catch (error) {
-        console.error('Database error in getMonsterAbilities:', error);
-        throw error;
-      }
-    }
+    
     
     if (!updated) {
       throw new Error("Monster not found or not owned by user");
@@ -486,6 +455,39 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async getMonsterAbilities(monsterId: number) {
+    try {
+      // Query the new relational structure
+      const result = await db
+        .select({
+          id: abilities.id,
+          name: abilities.name,
+          mp_cost: abilities.mp_cost,
+          power_multiplier: abilities.power_multiplier,
+          affinity: abilities.affinity,
+          ability_type: abilities.ability_type,
+          status_effect: abilities.status_effect,
+          min_hits: abilities.min_hits,
+          max_hits: abilities.max_hits,
+          override_affinity: monsterAbilities.override_affinity
+        })
+        .from(abilities)
+        .innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id))
+        .where(eq(monsterAbilities.monster_id, monsterId));
+
+      // Apply affinity overrides (especially for Basic Attack)
+      const processedAbilities = result.map(ability => ({
+        ...ability,
+        affinity: ability.override_affinity || ability.affinity
+      }));
+
+      return processedAbilities;
+    } catch (error) {
+      console.error('Database error in getMonsterAbilities:', error);
+      throw error;
+    }
+  }
+  
   // Question operations
   async getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined> {
     const subjectFilter = subject === "mixed" ? sql`true` : eq(questions.subject, subject);
