@@ -60,14 +60,26 @@ const calculateDamage = (
 
   
 
+
+  // Apply defense reduction (defender's defense reduces damage by 30%)
+  const defenseReduction = (defendingMonster.base_defense || defendingMonster.baseDefense || defendingMonster.defense || 0) * 0.3;
+  const damageAfterDefense = Math.max(1, (baseDamage * affinityMultiplier) - defenseReduction);
+
   // Calculate final damage with variability
-  const damageWithAffinity = baseDamage * affinityMultiplier;
   const variability = 0.8 + Math.random() * 0.4; // ±20% variability
-  const finalDamage = Math.round(damageWithAffinity * variability);
+  let finalDamage = Math.round(damageAfterDefense * variability);
+
+  // Critical Hit calculation (5% chance)
+  const isCriticalHit = Math.random() < 0.05;
+  if (isCriticalHit) {
+    finalDamage = Math.round(finalDamage * 1.5);
+  }
 
   // Generate effectiveness message
   let effectivenessMessage = "";
-  if (affinityMultiplier > 1.0) {
+  if (isCriticalHit) {
+    effectivenessMessage = "A Critical Hit!";
+  } else if (affinityMultiplier > 1.0) {
     effectivenessMessage = "It's super effective!";
   } else if (affinityMultiplier < 1.0) {
     effectivenessMessage = "It's not very effective...";
