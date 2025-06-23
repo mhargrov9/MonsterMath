@@ -248,10 +248,7 @@ export default function MonsterCard({
   
   // NEW: Fetch abilities from the relational API endpoint
   const { data: abilitiesData, isLoading: abilitiesLoading, error: abilitiesError } = useQuery({
-    queryKey: ["/api/monster-abilities/", monster.id],
-    queryFn: async () => {
-      return await apiRequest(`/api/monster-abilities/${monster.id}`);
-    },
+    queryKey: [`/api/monster-abilities/${monster.id}`],
     enabled: !!monster.id, // Only run query if monster.id exists
   });
 
