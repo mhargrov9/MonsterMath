@@ -214,6 +214,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req: any, res) => {
+    try {
+      const monsterId = parseInt(req.params.monsterId);
+      if (isNaN(monsterId)) {
+        return res.status(400).json({ message: "Invalid monster ID" });
+      }
+      const abilities = await storage.getMonsterAbilities(monsterId);
+      res.json(abilities);
+    } catch (error) {
+      handleError(error, res, "Failed to fetch monster abilities");
+    }
+  });
+
   app.post("/api/monsters/purchase", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

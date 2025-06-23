@@ -40,6 +40,7 @@ export interface IStorage {
   getAllMonsters(): Promise<Monster[]>;
   createMonster(monster: InsertMonster): Promise<Monster>;
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
+  getMonsterAbilities(monsterId: number): Promise<any[]>;
   purchaseMonster(userId: string, monsterId: number): Promise<UserMonster>;
   upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   applyMonsterUpgrade(
