@@ -68,7 +68,7 @@ export const monsters = pgTable("monsters", {
   description: text("description"),
   iconClass: varchar("icon_class").notNull(), // Font Awesome class
   gradient: varchar("gradient").notNull(), // CSS gradient colors
-  abilities: jsonb("abilities").notNull(), // Passive and active abilities
+  
   resistances: jsonb("resistances").default('[]').notNull(), // Damage resistances
   weaknesses: jsonb("weaknesses").default('[]').notNull(), // Damage weaknesses
   levelUpgrades: jsonb("level_upgrades").default('{}').notNull(), // Upgrades per level

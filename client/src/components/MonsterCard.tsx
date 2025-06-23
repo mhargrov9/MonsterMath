@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Hand, Mountain, Sparkles, Target, Plus, ShieldX } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -251,34 +251,18 @@ export default function MonsterCard({
   const monsterData = getMonsterData(monster.id, monster);
   const level = userMonster?.level || 1;
   
-  // Parse abilities data - handle both JSON string and object formats
-  let parsedAbilities = [];
-  try {
-    if (monster.abilities) {
-      // If abilities is a string (JSON), parse it
-      if (typeof monster.abilities === 'string') {
-        parsedAbilities = JSON.parse(monster.abilities);
-      } else if (Array.isArray(monster.abilities)) {
-        // If abilities is already an array, use it directly
-        parsedAbilities = monster.abilities;
-      }
-    }
-  } catch (error) {
-    console.error('Error parsing monster abilities:', error);
-    parsedAbilities = [];
-  }
-  
-  // Use parsed database abilities if available, otherwise fall back to hardcoded data
-  const rawAbilities = parsedAbilities.length > 0 
-    ? parsedAbilities 
-    : monsterData.abilities;
-  
-  // Sort abilities: PASSIVE first, then ACTIVE
-  const actualAbilities = rawAbilities.sort((a: any, b: any) => {
-    if (a.type === 'PASSIVE' && b.type === 'ACTIVE') return -1;
-    if (a.type === 'ACTIVE' && b.type === 'PASSIVE') return 1;
-    return 0;
+  // NEW: Fetch abilities from the relational API endpoint
+  const { data: abilitiesData, isLoading: abilitiesLoading, error: abilitiesError } = useQuery({
+    queryKey: ["/api/monster-abilities/", monster.id],
+    queryFn: async () => {
+      return await apiRequest(`/api/monster-abilities/${monster.id}`);
+    },
+    enabled: !!monster.id, // Only run query if monster.id exists
   });
+
+  // Process the abilities data
+  const actualAbilities = abilitiesData?.abilities || [];
+  
   const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
   const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
@@ -586,6 +570,24 @@ export default function MonsterCard({
             <div className="bg-white/70 dark:bg-black/30 p-2 rounded flex-1">
               <div className="text-xs font-bold mb-2 border-b border-gray-400 pb-1">ABILITIES</div>
               <div className="space-y-2 text-xs">
+                {/* Loading State */}
+                {abilitiesLoading && (
+                  <div className="text-center text-gray-500 text-xs">
+                    Loading abilities...
+                  </div>
+                )}
+                {/* Error State */}
+                {abilitiesError && (
+                  <div className="text-center text-red-500 text-xs">
+                    Failed to load abilities
+                  </div>
+                )}
+                {/* Abilities List */}
+                {!abilitiesLoading && !abilitiesError && actualAbilities.length === 0 && (
+                  <div className="text-center text-gray-500 text-xs">
+                    No abilities available
+                  </div>
+                )}
                 {actualAbilities.map((ability: any, index: number) => {
                   const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
                   const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && battleMp >= manaCost;
