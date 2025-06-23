@@ -189,13 +189,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Monster operations
-  async getAllMonsters(): Promise<Monster[]> {
-    return await db.select().from(monsters).orderBy(asc(monsters.goldCost));
-  }
+  
 
-  async createMonster(monsterData: InsertMonster): Promise<Monster> {
-    const [monster] = await db.insert(monsters).values(monsterData).returning();
-    return monster;
+  async getAllMonsters(): Promise<Monster[]> {
+    return await db.select({
+      id: monsters.id,
+      name: monsters.name,
+      type: monsters.type,
+      basePower: monsters.basePower,
+      baseSpeed: monsters.baseSpeed,
+      baseDefense: monsters.baseDefense,
+      baseHp: monsters.baseHp,
+      baseMp: monsters.baseMp,
+      hpPerLevel: monsters.hpPerLevel,
+      mpPerLevel: monsters.mpPerLevel,
+      goldCost: monsters.goldCost,
+      diamondCost: monsters.diamondCost,
+      description: monsters.description,
+      iconClass: monsters.iconClass,
+      gradient: monsters.gradient,
+      resistances: monsters.resistances,
+      weaknesses: monsters.weaknesses,
+      levelUpgrades: monsters.levelUpgrades,
+      starterSet: monsters.starterSet,
+    }).from(monsters).orderBy(asc(monsters.goldCost));
   }
 
   async getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]> {
@@ -247,7 +264,27 @@ export class DatabaseStorage implements IStorage {
 
   async purchaseMonster(userId: string, monsterId: number): Promise<UserMonster> {
     // Get monster details
-    const [monster] = await db.select().from(monsters).where(eq(monsters.id, monsterId));
+    const [monster] = await db.select({
+      id: monsters.id,
+      name: monsters.name,
+      type: monsters.type,
+      basePower: monsters.basePower,
+      baseSpeed: monsters.baseSpeed,
+      baseDefense: monsters.baseDefense,
+      baseHp: monsters.baseHp,
+      baseMp: monsters.baseMp,
+      hpPerLevel: monsters.hpPerLevel,
+      mpPerLevel: monsters.mpPerLevel,
+      goldCost: monsters.goldCost,
+      diamondCost: monsters.diamondCost,
+      description: monsters.description,
+      iconClass: monsters.iconClass,
+      gradient: monsters.gradient,
+      resistances: monsters.resistances,
+      weaknesses: monsters.weaknesses,
+      levelUpgrades: monsters.levelUpgrades,
+      starterSet: monsters.starterSet,
+    }).from(monsters).where(eq(monsters.id, monsterId));
     if (!monster) {
       throw new Error("Monster not found");
     }
@@ -425,10 +462,19 @@ export class DatabaseStorage implements IStorage {
   async repairMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
     // Get the monster's max HP to restore it
     const userMonstersWithBase = await db
-      .select()
-      .from(userMonsters)
-      .leftJoin(monsters, eq(userMonsters.monsterId, monsters.id))
-      .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
+    .select({
+      user_monsters: {
+        id: userMonsters.id,
+        hp: userMonsters.hp,
+        maxHp: userMonsters.maxHp
+      },
+      monsters: {
+        baseHp: monsters.baseHp
+      }
+    })
+    .from(userMonsters)
+    .leftJoin(monsters, eq(userMonsters.monsterId, monsters.id))
+    .where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
 
     if (userMonstersWithBase.length === 0) {
       throw new Error("Monster not found or not owned by user");

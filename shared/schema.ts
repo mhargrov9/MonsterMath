@@ -77,21 +77,44 @@ export const monsters = pgTable("monsters", {
 
 
 // Abilities table - NEW relational structure
+// Abilities table - FINAL relational structure
 export const abilities = pgTable("abilities", {
   id: serial("id").primaryKey(),
+
+  // Group 1: Core Identity Columns
   name: varchar("name").notNull(),
   description: text("description"),
-  ability_type: varchar("ability_type").notNull(), // 'damage', 'heal', 'buff', etc.
-  mp_cost: integer("mp_cost").default(0).notNull(),
-  affinity: varchar("affinity").notNull(), // Fire, Water, Earth, etc.
-  power_multiplier: integer("power_multiplier").notNull(), // Stored as integer (60 = 0.60)
-  scaling_stat: varchar("scaling_stat").default('power'), // 'power', 'speed', 'defense'
-  status_effect: jsonb("status_effect"), // Status effect data
-  min_hits: integer("min_hits").default(1),
-  max_hits: integer("max_hits").default(1),
-  priority: integer("priority").default(0),
-  crit_chance_modifier: integer("crit_chance_modifier").default(0),
-  lifesteal_percent: integer("lifesteal_percent").default(0),
+
+  // Group 2: Mechanical Function Columns
+  ability_type: varchar("ability_type").notNull(), // 'ACTIVE' or 'PASSIVE'
+  mp_cost: integer("mp_cost"),
+  affinity: varchar("affinity"),
+  power_multiplier: decimal("power_multiplier", { precision: 4, scale: 2 }),
+  scaling_stat: varchar("scaling_stat"), // 'POWER', 'DEFENSE', etc.
+  healing_power: integer("healing_power").default(0).notNull(),
+  target: varchar("target"), // 'OPPONENT', 'SELF'
+
+  // Group 3: Status Effect Columns
+  status_effect_applies: varchar("status_effect_applies"), // 'POISONED', 'PARALYZED', etc.
+  status_effect_chance: decimal("status_effect_chance", { precision: 4, scale: 2 }), // 0.0 to 1.0
+  status_effect_duration: integer("status_effect_duration"),
+  status_effect_value: decimal("status_effect_value", { precision: 10, scale: 2 }),
+  status_effect_value_type: varchar("status_effect_value_type"), // 'FLAT_HP', 'PERCENT_MAX_HP'
+  status_effect_trigger_affinity: varchar("status_effect_trigger_affinity"),
+
+  // Group 4: Advanced & Future-Proofing Columns
+  priority: integer("priority").default(0).notNull(),
+  crit_chance_modifier: decimal("crit_chance_modifier", { precision: 4, scale: 2 }).default('0').notNull(),
+  lifesteal_percent: decimal("lifesteal_percent", { precision: 4, scale: 2 }).default('0').notNull(),
+  target_stat_modifier: varchar("target_stat_modifier"),
+  stat_modifier_value: integer("stat_modifier_value"),
+  stat_modifier_duration: integer("stat_modifier_duration"),
+
+  // Multi-hit ability support
+  min_hits: integer("min_hits").default(1).notNull(),
+  max_hits: integer("max_hits").default(1).notNull(),
+
+  created_at: timestamp("created_at").defaultNow()
 });
 
 // Monster-Abilities join table - Links monsters to their abilities

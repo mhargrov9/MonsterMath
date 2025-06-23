@@ -21,12 +21,7 @@ interface MonsterCardProps {
     baseMp?: number;
     goldCost?: number;
     diamondCost?: number;
-    abilities?: Array<{
-      name: string;
-      type: 'ACTIVE' | 'PASSIVE';
-      cost?: string;
-      description: string;
-    }>;
+    
     resistances?: string;
     weaknesses?: string;
     description?: string;
