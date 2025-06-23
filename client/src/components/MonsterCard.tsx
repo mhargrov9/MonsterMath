@@ -8,7 +8,7 @@ import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Hand
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-//
+
 interface MonsterCardProps {
   monster: {
     id: number;
@@ -531,30 +531,7 @@ export default function MonsterCard({
             </div>
 
             {/* Basic Attack Button */}
-            <div 
-              className={`mt-2 p-1.5 rounded border transition-all duration-200 text-xs ${
-                battleMode && isPlayerTurn 
-                  ? 'bg-blue-100 border-blue-500 border-2 shadow-lg cursor-pointer hover:bg-blue-200' 
-                  : 'bg-white/70 dark:bg-black/30 border-gray-300'
-              }`}
-              onClick={() => {
-                if (battleMode && isPlayerTurn && onAbilityClick) {
-                  const power = userMonster?.power || monster.basePower;
-                  const damage = Math.floor(power * 0.6);
-                  onAbilityClick('Basic Attack', 0, damage, '');
-                }
-              }}
-            >
-              <div className="flex items-center gap-1.5 mb-1">
-                <Badge variant="outline" className="text-xs px-1 py-0.5 rounded-full bg-blue-500 text-white border-blue-500">
-                  B
-                </Badge>
-                <Sword className="w-3 h-3 text-blue-500" />
-                <span className="font-semibold">Basic Attack</span>
-                <span className="text-blue-600 font-medium">(0 MP)</span>
-              </div>
-
-            </div>
+            
           </div>
 
           {/* Abilities Box */}
