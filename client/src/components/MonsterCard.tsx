@@ -255,8 +255,8 @@ export default function MonsterCard({
     enabled: !!monster.id, // Only run query if monster.id exists
   });
 
-  // Process the abilities data
-  const actualAbilities = abilitiesData?.abilities || [];
+  // Process the abilities data - API returns abilities array directly
+  const actualAbilities = abilitiesData || [];
   
   const isShattered = userMonster?.isShattered || false;
   // Use persistent HP/MP from database, fall back to base values only for new monsters
@@ -584,9 +584,9 @@ export default function MonsterCard({
                   </div>
                 )}
                 {actualAbilities.map((ability: any, index: number) => {
-                  const manaCost = ability.cost ? parseInt(ability.cost.replace(/\D/g, '')) : 0;
-                  const canAfford = battleMode && isPlayerTurn && ability.type === 'ACTIVE' && battleMp >= manaCost;
-                  const isClickable = battleMode && isPlayerTurn && ability.type === 'ACTIVE';
+                  const manaCost = ability.mp_cost || 0;
+                  const canAfford = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE' && battleMp >= manaCost;
+                  const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
                   
                   return (
                     <div 
@@ -604,9 +604,9 @@ export default function MonsterCard({
                           const power = userMonster?.power || monster.basePower;
                           let damage = 0;
 
-                          if (ability.type === 'ACTIVE') {
+                          if (ability.ability_type === 'ACTIVE') {
                             // Use ability multiplier if available, otherwise use default
-                            const multiplier = ability.multiplier || 0.8; // Default multiplier
+                            const multiplier = ability.power_multiplier || 0.8; // Default multiplier
 
                             // Special case: Shell Slam uses Defense stat
                             if (ability.name === 'Shell Slam') {
@@ -623,7 +623,7 @@ export default function MonsterCard({
                       }}
                     >
                       <div className="flex items-center gap-1.5 mb-1">
-                        {ability.type === 'PASSIVE' ? (
+                        {ability.ability_type === 'PASSIVE' ? (
                           <div className="w-4 h-4 bg-black rounded-full flex items-center justify-center">
                             <span className="text-white text-xs font-bold">P</span>
                           </div>
@@ -634,7 +634,7 @@ export default function MonsterCard({
                         )}
                         {getAbilityIcon(ability.name)}
                         <span className="font-semibold">{ability.name}</span>
-                        {ability.cost && <span className="text-blue-600 font-medium">({ability.cost})</span>}
+                        {ability.mp_cost && <span className="text-blue-600 font-medium">({ability.mp_cost} MP)</span>}
                       </div>
                       <div className="text-gray-700 dark:text-gray-300 leading-tight text-xs ml-6">
                         {ability.description}
