@@ -1090,7 +1090,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedUser] = await db
       .update(users)
       .set({
-        battle_tokens: newTokens,
+        battleTokens: newTokens,
         updatedAt: new Date()
       })
       .where(eq(users.id, userId))
