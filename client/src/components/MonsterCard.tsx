@@ -21,7 +21,6 @@ interface MonsterCardProps {
     baseMp?: number;
     goldCost?: number;
     diamondCost?: number;
-    
     resistances?: string;
     weaknesses?: string;
     description?: string;
@@ -50,17 +49,17 @@ interface MonsterCardProps {
   battleMode?: boolean;
   isPlayerTurn?: boolean;
   battleMp?: number;
-  onAbilityClick?: (abilityName: string, manaCost: number, damage: number, description: string) => void;
+  onAbilityClick?: (ability: any) => void;
+  showAbilities?: boolean;
 }
 
 const getMonsterData = (monsterId: number, monster: any) => {
   // Use database description if available, otherwise fall back to default
   const description = monster.description || "A mysterious creature with unknown abilities.";
-  
+
   // Parse database resistances and weaknesses, fall back to arrays if needed
   let resistances = [];
   let weaknesses = [];
-  
   try {
     resistances = Array.isArray(monster.resistances) ? monster.resistances : JSON.parse(monster.resistances || '[]');
     weaknesses = Array.isArray(monster.weaknesses) ? monster.weaknesses : JSON.parse(monster.weaknesses || '[]');
@@ -87,7 +86,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
             description: "A powerful punch dealing 1.2x Power as Fire damage."
           },
           {
-            type: "ACTIVE", 
+            type: "ACTIVE",
             name: "Tremor Stomp",
             cost: "50 MP",
             description: "Deals 0.8x Power as Earth damage and has a 20% chance to make opponent flinch."
@@ -98,6 +97,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Fire",
         cardStyle: "stone-textured border-amber-600 bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950 dark:to-red-900"
       };
+
     case 7: // Aetherion
       return {
         archetype: "Glass Cannon",
@@ -105,7 +105,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         abilities: [
           {
             type: "PASSIVE",
-            name: "Precognition", 
+            name: "Precognition",
             description: "A 15% chance to completely dodge an incoming attack, taking 0 damage."
           },
           {
@@ -116,7 +116,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
           },
           {
             type: "ACTIVE",
-            name: "Psy-Beam", 
+            name: "Psy-Beam",
             cost: "70 MP",
             description: "A focused beam dealing 1.5x Power as Psychic damage, but has a 10% chance to fail."
           }
@@ -126,6 +126,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Psychic",
         cardStyle: "crystalline border-purple-600 bg-gradient-to-br from-purple-50 to-blue-100 dark:from-purple-950 dark:to-blue-900"
       };
+
     case 8: // Geode Tortoise
       return {
         archetype: "Tank",
@@ -136,6 +137,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Electric",
         cardStyle: "border-green-600 bg-gradient-to-br from-green-50 to-brown-100 dark:from-green-950 dark:to-brown-900"
       };
+
     case 9: // Gale-Feather Griffin
       return {
         archetype: "Scout",
@@ -146,6 +148,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Earth",
         cardStyle: "border-cyan-600 bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-cyan-950 dark:to-blue-900"
       };
+
     case 10: // Cinder-Tail Salamander
       return {
         archetype: "Attacker",
@@ -156,6 +159,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Fire",
         cardStyle: "border-red-600 bg-gradient-to-br from-red-50 to-orange-100 dark:from-red-950 dark:to-orange-900"
       };
+
     case 11: // River-Spirit Axolotl
       return {
         archetype: "Support",
@@ -166,6 +170,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Water",
         cardStyle: "border-blue-600 bg-gradient-to-br from-blue-50 to-teal-100 dark:from-blue-950 dark:to-teal-900"
       };
+
     case 12: // Spark-Tail Squirrel
       return {
         archetype: "Controller",
@@ -176,6 +181,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
         resistance: resistances[0] || "Air",
         cardStyle: "border-yellow-600 bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-950 dark:to-amber-900"
       };
+
     default:
       return {
         archetype: "Unknown",
@@ -228,24 +234,26 @@ const getAbilityIcon = (abilityName: string) => {
   return <Sword className="w-3 h-3 text-gray-500" />;
 };
 
-export default function MonsterCard({ 
-  monster, 
-  userMonster, 
-  isFlipped = false, 
-  onFlip, 
+export default function MonsterCard({
+  monster,
+  userMonster,
+  isFlipped = false,
+  onFlip,
   showUpgradeAnimation = false,
   size = 'medium',
   battleMode = false,
   isPlayerTurn = false,
   battleMp = 0,
-  onAbilityClick
+  onAbilityClick,
+  showAbilities = true
 }: MonsterCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
   const monsterData = getMonsterData(monster.id, monster);
   const level = userMonster?.level || 1;
-  
+
   // NEW: Fetch abilities from the relational API endpoint
   const { data: abilitiesData, isLoading: abilitiesLoading, error: abilitiesError } = useQuery({
     queryKey: [`/api/monster-abilities/${monster.id}`],
@@ -254,20 +262,24 @@ export default function MonsterCard({
 
   // Process the abilities data - API returns abilities array directly
   const actualAbilities = abilitiesData || [];
-  
+
   const isShattered = userMonster?.isShattered || false;
+
   // Use persistent HP/MP from database, fall back to base values only for new monsters
-  const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined 
-    ? userMonster.hp 
+  const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined
+    ? userMonster.hp
     : (monster.baseHp || 950);
-  const maxHp = userMonster?.maxHp !== null && userMonster?.maxHp !== undefined 
-    ? userMonster.maxHp 
+
+  const maxHp = userMonster?.maxHp !== null && userMonster?.maxHp !== undefined
+    ? userMonster.maxHp
     : (monster.baseHp || 950);
-  const displayMp = battleMode 
+
+  const displayMp = battleMode
     ? (battleMp ?? (userMonster?.mp !== null && userMonster?.mp !== undefined ? userMonster.mp : (monster.baseMp || 200)))
     : (userMonster?.mp !== null && userMonster?.mp !== undefined ? userMonster.mp : (monster.baseMp || 200));
-  const maxMp = userMonster?.maxMp !== null && userMonster?.maxMp !== undefined 
-    ? userMonster.maxMp 
+
+  const maxMp = userMonster?.maxMp !== null && userMonster?.maxMp !== undefined
+    ? userMonster.maxMp
     : (monster.baseMp || 200);
 
   // Responsive card classes based on size - increased heights to show all content
@@ -290,14 +302,11 @@ export default function MonsterCard({
   const hpMissing = maxHp - currentHp;
   const healingCost = Math.ceil(hpMissing / 10);
   const needsHealing = userMonster && currentHp < maxHp && !battleMode && !isShattered;
-  
-
 
   // Healing mutation
   const healMutation = useMutation({
     mutationFn: async () => {
       if (!userMonster) throw new Error("No monster to heal");
-      
       return await apiRequest("POST", "/api/monsters/heal", {
         monsterId: userMonster.id,
         healingCost: healingCost
@@ -324,7 +333,7 @@ export default function MonsterCard({
   if (isFlipped && userMonster) {
     // Battle Record (Back of Card)
     return (
-      <Card 
+      <Card
         className={`${monsterData.cardStyle} ${cardClasses} border-4 cursor-pointer transition-all duration-500 hover:scale-105`}
         onClick={onFlip}
         onMouseEnter={() => setIsHovered(true)}
@@ -378,7 +387,7 @@ export default function MonsterCard({
   }
 
   return (
-    <Card 
+    <Card
       className={`${monsterData.cardStyle} ${cardClasses} border-4 relative overflow-hidden transition-all duration-500 ${
         showUpgradeAnimation ? 'animate-pulse shadow-2xl shadow-yellow-400/50' : ''
       } ${isHovered ? 'scale-105 shadow-xl' : ''} ${onFlip ? 'cursor-pointer' : ''} ${
@@ -403,16 +412,20 @@ export default function MonsterCard({
             }`}>
               LV. {level}
             </div>
+
             {/* Pulsating Eye - only for owned monsters */}
             {userMonster && (monster.id === 7 || monster.id === 6) && (
               <div className="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center animate-pulse">
                 <Eye className="w-4 h-4 text-white" />
               </div>
             )}
+
             <h1 className="text-xl font-bold tracking-wider">{monster.name.toUpperCase()}</h1>
           </div>
+
           <div className="text-right">
             <div className="text-sm text-red-400 font-bold">HP {currentHp} / {maxHp}</div>
+
             {/* Shattered Status Icon */}
             {isShattered && (
               <div className="flex items-center gap-1 mt-1">
@@ -420,13 +433,14 @@ export default function MonsterCard({
                 <span className="text-xs text-red-600 font-bold">SHATTERED</span>
               </div>
             )}
+
             {/* Heal Button */}
             {needsHealing && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     className="mt-1 h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600"
                     disabled={healMutation.isPending}
                     onClick={(e) => {
@@ -450,7 +464,7 @@ export default function MonsterCard({
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
+                    <AlertDialogAction
                       onClick={(e) => {
                         e.stopPropagation();
                         healMutation.mutate();
@@ -477,7 +491,7 @@ export default function MonsterCard({
             }}
             size={size === 'small' ? 'small' : size === 'large' ? 'large' : 'medium'}
           />
-          
+
           {/* Living Animation Overlay for specific monsters */}
           {monster.id === 6 && (
             <div className="absolute inset-0 bg-gradient-radial from-red-500/10 via-transparent to-transparent animate-pulse pointer-events-none" />
@@ -490,7 +504,7 @@ export default function MonsterCard({
         {/* Type Line */}
         <div className="bg-gradient-to-r from-gray-700 to-gray-800 text-white px-3 py-2 text-center">
           <span className="text-sm font-semibold">
-            {monsterData.archetype} — {monsterData.affinities.join(' / ')}
+            {monsterData.archetype} --- {monsterData.affinities.join(' / ')}
           </span>
         </div>
 
@@ -529,9 +543,6 @@ export default function MonsterCard({
               </div>
               <div className="text-sm font-bold">{displayMp}/{maxMp}</div>
             </div>
-
-            {/* Basic Attack Button */}
-            
           </div>
 
           {/* Abilities Box */}
@@ -545,54 +556,39 @@ export default function MonsterCard({
                     Loading abilities...
                   </div>
                 )}
+
                 {/* Error State */}
                 {abilitiesError && (
                   <div className="text-center text-red-500 text-xs">
                     Failed to load abilities
                   </div>
                 )}
+
                 {/* Abilities List */}
                 {!abilitiesLoading && !abilitiesError && actualAbilities.length === 0 && (
                   <div className="text-center text-gray-500 text-xs">
                     No abilities available
                   </div>
                 )}
-                {actualAbilities.map((ability: any, index: number) => {
+
+                {showAbilities && actualAbilities.map((ability: any, index: number) => {
                   const manaCost = ability.mp_cost || 0;
-                  const canAfford = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE' && battleMp >= manaCost;
+                  const canAfford = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE' && displayMp >= manaCost;
                   const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
-                  
+
                   return (
-                    <div 
-                      key={index} 
+                    <div
+                      key={index}
                       className={`p-1.5 rounded border transition-all duration-200 ${
-                        canAfford 
-                          ? 'bg-red-100 border-red-500 border-2 shadow-lg cursor-pointer hover:bg-red-200' 
+                        canAfford
+                          ? 'bg-red-100 border-red-500 border-2 shadow-lg cursor-pointer hover:bg-red-200'
                           : isClickable && !canAfford
                           ? 'bg-gray-100 border-gray-400 opacity-50 cursor-not-allowed'
                           : 'bg-white/50 dark:bg-black/20 border-gray-300'
                       }`}
                       onClick={() => {
                         if (canAfford && onAbilityClick) {
-                          // Calculate damage based on ability multiplier and monster stats
-                          const power = userMonster?.power || monster.basePower;
-                          let damage = 0;
-
-                          if (ability.ability_type === 'ACTIVE') {
-                            // Use ability multiplier if available, otherwise use default
-                            const multiplier = ability.power_multiplier || 0.8; // Default multiplier
-
-                            // Special case: Shell Slam uses Defense stat
-                            if (ability.name === 'Shell Slam') {
-                              const defense = userMonster?.defense || monster.baseDefense;
-                              damage = Math.floor(defense * multiplier);
-                            } else {
-                              // All other abilities use Power stat
-                              damage = Math.floor(power * multiplier);
-                            }
-                          }
-
-                          onAbilityClick(ability.name, manaCost, damage, ability.description);
+                          onAbilityClick(ability);
                         }
                       }}
                     >
@@ -641,10 +637,6 @@ export default function MonsterCard({
             <span>{monsterData.resistance}</span>
           </div>
         </div>
-
-
-
-
       </CardContent>
     </Card>
   );
