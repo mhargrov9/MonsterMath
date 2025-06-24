@@ -23,6 +23,7 @@ import {
   type InsertInventoryItem,
   type InsertAiTeam,
 } from "@shared/schema";
+
 import { db } from "./db";
 import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
 
@@ -115,22 +116,59 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db.select({
+      id: users.id, email: users.email, username: users.username, passwordHash: users.passwordHash,
+      firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl,
+      authProvider: users.authProvider, gold: users.gold, diamonds: users.diamonds,
+      currentSubject: users.currentSubject, questionsAnswered: users.questionsAnswered,
+      correctAnswers: users.correctAnswers, currentStreak: users.currentStreak,
+      answeredQuestionIds: users.answeredQuestionIds, battleTokens: users.battleTokens,
+      battleTokensLastRefresh: users.battleTokensLastRefresh, battleSlots: users.battleSlots,
+      rankPoints: users.rankPoints, storyProgress: users.storyProgress, createdAt: users.createdAt,
+      updatedAt: users.updatedAt, subscriptionIntent: users.subscriptionIntent,
+      notificationEmail: users.notificationEmail
+    }).from(users).where(eq(users.id, id));
+
     return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db.select({
+      id: users.id, email: users.email, username: users.username, passwordHash: users.passwordHash,
+      firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl,
+      authProvider: users.authProvider, gold: users.gold, diamonds: users.diamonds,
+      currentSubject: users.currentSubject, questionsAnswered: users.questionsAnswered,
+      correctAnswers: users.correctAnswers, currentStreak: users.currentStreak,
+      answeredQuestionIds: users.answeredQuestionIds, battleTokens: users.battleTokens,
+      battleTokensLastRefresh: users.battleTokensLastRefresh, battleSlots: users.battleSlots,
+      rankPoints: users.rankPoints, storyProgress: users.storyProgress, createdAt: users.createdAt,
+      updatedAt: users.updatedAt, subscriptionIntent: users.subscriptionIntent,
+      notificationEmail: users.notificationEmail
+    }).from(users).where(eq(users.username, username));
+
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db.select({
+      id: users.id, email: users.email, username: users.username, passwordHash: users.passwordHash,
+      firstName: users.firstName, lastName: users.lastName, profileImageUrl: users.profileImageUrl,
+      authProvider: users.authProvider, gold: users.gold, diamonds: users.diamonds,
+      currentSubject: users.currentSubject, questionsAnswered: users.questionsAnswered,
+      correctAnswers: users.correctAnswers, currentStreak: users.currentStreak,
+      answeredQuestionIds: users.answeredQuestionIds, battleTokens: users.battleTokens,
+      battleTokensLastRefresh: users.battleTokensLastRefresh, battleSlots: users.battleSlots,
+      rankPoints: users.rankPoints, storyProgress: users.storyProgress, createdAt: users.createdAt,
+      updatedAt: users.updatedAt, subscriptionIntent: users.subscriptionIntent,
+      notificationEmail: users.notificationEmail
+    }).from(users).where(eq(users.email, email));
+
     return user;
   }
 
   async createLocalUser(username: string, email: string, passwordHash: string): Promise<User> {
     const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
     const [user] = await db
       .insert(users)
       .values({
@@ -143,6 +181,7 @@ export class DatabaseStorage implements IStorage {
         diamonds: 0,
       })
       .returning();
+
     return user;
   }
 
@@ -158,6 +197,7 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
+
     return user;
   }
 
@@ -173,6 +213,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
+
     return user;
   }
 
@@ -185,6 +226,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
+
     return user;
   }
 
@@ -289,6 +331,7 @@ export class DatabaseStorage implements IStorage {
 
     // Get user to check currency
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     if (!user) {
       throw new Error("User not found");
     }
@@ -315,6 +358,7 @@ export class DatabaseStorage implements IStorage {
 
     // Deduct currency
     await this.updateUserCurrency(userId, -monster.goldCost, -monster.diamondCost);
+
     return userMonster;
   }
 
@@ -345,6 +389,7 @@ export class DatabaseStorage implements IStorage {
 
     // Check if user has enough gold
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     if (!user || user.gold < upgradeCost) {
       throw new Error("Insufficient gold");
     }
@@ -352,6 +397,7 @@ export class DatabaseStorage implements IStorage {
     // Check for evolution stage upgrade
     let newEvolutionStage = userMonster.evolutionStage;
     const newLevel = userMonster.level + 1;
+
     if (newLevel >= 10 && userMonster.evolutionStage < 4) {
       newEvolutionStage = Math.min(4, Math.floor(newLevel / 3) + 1);
     }
@@ -372,6 +418,7 @@ export class DatabaseStorage implements IStorage {
 
     // Deduct gold
     await this.updateUserCurrency(userId, -upgradeCost);
+
     return upgraded;
   }
 
@@ -543,16 +590,15 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Question operations
+  // Question operations - FIXED getRandomQuestion function
   async getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined> {
     const subjectFilter = subject === "mixed" ? sql`true` : eq(questions.subject, subject);
     let excludeFilter = sql`true`;
 
-    // If userId provided, exclude already answered questions
     if (userId) {
-      const [user] = await db.select().from(users).where(eq(users.id, userId));
-      if (user && (user as any).answeredQuestionIds) {
-        const answeredIds = (user as any).answeredQuestionIds as number[];
+      const user = await this.getUser(userId); // Use the fixed getUser function
+      if (user && user.answeredQuestionIds) {
+        const answeredIds = user.answeredQuestionIds as number[];
         if (answeredIds.length > 0) {
           excludeFilter = sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`;
         }
@@ -565,17 +611,19 @@ export class DatabaseStorage implements IStorage {
       .where(and(subjectFilter, eq(questions.difficulty, difficulty), excludeFilter))
       .orderBy(sql`random()`)
       .limit(1);
-
     return question;
   }
 
   async markQuestionAnswered(userId: string, questionId: number): Promise<void> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     if (!user) return;
 
     const currentAnswered = ((user as any).answeredQuestionIds as number[]) || [];
+
     if (!currentAnswered.includes(questionId)) {
       const updatedAnswered = [...currentAnswered, questionId];
+
       await db
         .update(users)
         .set({ answeredQuestionIds: updatedAnswered } as any)
@@ -635,6 +683,7 @@ export class DatabaseStorage implements IStorage {
   async addInventoryItem(userId: string, item: InsertInventoryItem): Promise<InventoryItem> {
     // Check if item already exists - if so, update quantity
     const existing = await this.getInventoryItem(userId, item.itemName);
+
     if (existing) {
       return await this.updateInventoryQuantity(userId, item.itemName, item.quantity || 1);
     }
@@ -652,11 +701,13 @@ export class DatabaseStorage implements IStorage {
 
   async updateInventoryQuantity(userId: string, itemName: string, quantityDelta: number): Promise<InventoryItem> {
     const existing = await this.getInventoryItem(userId, itemName);
+
     if (!existing) {
       throw new Error("Item not found in inventory");
     }
 
     const newQuantity = existing.quantity + quantityDelta;
+
     if (newQuantity <= 0) {
       await this.removeInventoryItem(userId, itemName);
       throw new Error("Item removed from inventory");
@@ -682,6 +733,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(inventory)
       .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)));
+
     return item;
   }
 
@@ -738,9 +790,11 @@ export class DatabaseStorage implements IStorage {
     console.log(`Log 1: Player TPL calculated as: ${playerTPL}`);
 
     const availableTeams = await this.getAllAiTeams();
+
     if (!availableTeams || availableTeams.length === 0) {
       throw new Error("No AI Teams are available in the database to generate an opponent.");
     }
+
     console.log(`Available AI teams count: ${availableTeams.length}`);
 
     let selectedTeam: AiTeam | null = null;
@@ -749,9 +803,11 @@ export class DatabaseStorage implements IStorage {
     // Attempt 1: Find a suitable team with flexible scaling
     for (const team of availableTeams) {
       const teamComposition = team.composition as Array<{monsterId: number, baseLevel: number}>;
+
       if (!teamComposition || teamComposition.length === 0) continue;
 
       const baseTeamTPL = teamComposition.reduce((sum, member) => sum + member.baseLevel, 0);
+
       if (baseTeamTPL === 0) continue;
 
       const minScaling = 0.5;
@@ -775,8 +831,8 @@ export class DatabaseStorage implements IStorage {
       const targetTPL = playerTPL;
       const monstersCount = composition.length;
       let remainingTPL = targetTPL;
-
       const levels = Array(monstersCount).fill(0);
+
       for (let i = 0; i < targetTPL; i++) {
         levels[i % monstersCount]++;
       }
@@ -790,6 +846,7 @@ export class DatabaseStorage implements IStorage {
     }
 
     const scaledMonsters = [];
+
     for (const member of composition) {
       const finalLevel = Math.max(1, Math.min(10, member.baseLevel));
 
@@ -856,6 +913,7 @@ export class DatabaseStorage implements IStorage {
 
   async purchaseBattleSlot(userId: string): Promise<{ user: User; cost: number }> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
+
     if (!user) {
       throw new Error("User not found");
     }
@@ -915,45 +973,51 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // Battle Token operations
+  // Battle Token operations - FIXED with explicit getUser usage
   async refreshBattleTokens(userId: string): Promise<User> {
-    const [updated] = await db
-      .update(users)
-      .set({
-        battleTokens: 3, // Reset to max tokens
-        lastTokenRefresh: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(users.id, userId))
-      .returning();
+    const user = await this.getUser(userId); // Uses the already-fixed, explicit getUser
 
-    if (!updated) {
-      throw new Error("User not found");
+    if (!user) throw new Error("User not found");
+
+    const now = new Date();
+    // This line now works because getUser provides the correct camelCase property
+    const lastRefresh = new Date(user.battleTokensLastRefresh);
+    const hoursSinceRefresh = (now.getTime() - lastRefresh.getTime()) / (1000 * 60 * 60);
+
+    // If 24+ hours have passed, refresh tokens to 5
+    if (hoursSinceRefresh >= 24) {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          battleTokens: 5,
+          battleTokensLastRefresh: now,
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      return updatedUser;
     }
 
-    return updated;
+    return user;
   }
 
   async spendBattleToken(userId: string): Promise<User> {
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) {
-      throw new Error("User not found");
+    // This function now receives a correctly-cased user object from refreshBattleTokens
+    const user = await this.refreshBattleTokens(userId);
+
+    if (user.battleTokens <= 0) {
+      throw new Error("NO_BATTLE_TOKENS");
     }
 
-    if ((user.battleTokens || 0) <= 0) {
-      throw new Error("No battle tokens available");
-    }
-
-    const [updated] = await db
+    const [updatedUser] = await db
       .update(users)
       .set({
-        battleTokens: (user.battleTokens || 0) - 1,
-        updatedAt: new Date()
+        battleTokens: user.battleTokens - 1,
       })
       .where(eq(users.id, userId))
       .returning();
 
-    return updated;
+    return updatedUser;
   }
 
   // Rank Point operations
@@ -988,7 +1052,29 @@ export class DatabaseStorage implements IStorage {
       .insert(aiTeams)
       .values({ ...trainerData, teamType: 'trainer' })
       .returning();
+
     return trainer;
+  }
+
+  // Developer Tools - FIXED addBattleTokens function
+  async addBattleTokens(userId: string, amount: number): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      throw new Error("User not found during token addition");
+    }
+    const currentTokens = user.battleTokens || 0;
+    const newTokens = currentTokens + amount;
+
+    const [updatedUser] = await db
+      .update(users)
+      .set({ battleTokens: newTokens, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error("Failed to update user tokens");
+    }
+    return updatedUser;
   }
 }
 

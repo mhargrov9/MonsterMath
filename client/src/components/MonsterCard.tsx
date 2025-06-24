@@ -61,6 +61,7 @@ const getMonsterData = (monsterId: number, monster: any) => {
   // Parse database resistances and weaknesses, fall back to arrays if needed
   let resistances = [];
   let weaknesses = [];
+
   try {
     resistances = Array.isArray(monster.resistances) ? monster.resistances : JSON.parse(monster.resistances || '[]');
     weaknesses = Array.isArray(monster.weaknesses) ? monster.weaknesses : JSON.parse(monster.weaknesses || '[]');
@@ -254,6 +255,8 @@ export default function MonsterCard({
   const { toast } = useToast();
 
   const monsterData = getMonsterData(monster.id, monster);
+
+  console.log('MonsterCard received userMonster prop:', userMonster);
   const level = userMonster?.level || 1;
 
   // NEW: Fetch abilities from the relational API endpoint
@@ -269,7 +272,6 @@ export default function MonsterCard({
 
   // Use persistent HP/MP from database, fall back to base values only for new monsters
   const currentHp = battleHp ?? (userMonster?.hp ?? monster.baseHp ?? 0);
-
   const maxHp = userMonster?.maxHp !== null && userMonster?.maxHp !== undefined
     ? userMonster.maxHp
     : (monster.baseHp || 950);

@@ -32,6 +32,18 @@ export default function MonsterLab() {
     queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
   }, []);
 
+  // Developer Tools - Add Battle Tokens
+  const addTokensMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/dev/add-tokens", { amount: 5 }),
+    onSuccess: () => {
+      toast({ title: "Success", description: "5 Battle Tokens added!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
     queryKey: ["/api/monsters"],
   });
@@ -70,6 +82,7 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
+
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to purchase monster",
@@ -102,19 +115,20 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
-      
+
       // Handle free trial limit - show subscription gate
       if (error.message === "FREE_TRIAL_LIMIT") {
         // Find the monster that triggered the limit from the mutation context
         const triggerMonsterId = (error as any)?.context?.userMonsterId;
         const monster = userMonsters.find(um => um.id === triggerMonsterId);
+
         if (monster) {
           setBlockedMonster(monster);
           setShowSubscriptionGate(true);
         }
         return;
       }
-      
+
       toast({
         title: "Upgrade Failed",
         description: error.message || "Failed to upgrade monster",
@@ -149,6 +163,7 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
+
       toast({
         title: "Upgrade Failed",
         description: error.message || "Failed to apply upgrade",
@@ -164,7 +179,7 @@ export default function MonsterLab() {
       setShowSubscriptionGate(true);
       return;
     }
-    
+
     setSelectedMonster(userMonster);
     setShowUpgradeChoice(true);
   };
@@ -176,7 +191,7 @@ export default function MonsterLab() {
 
   const handleUpgradeChoice = (upgradeOption: any) => {
     if (!selectedMonster) return;
-    
+
     applyUpgradeMutation.mutate({
       userMonsterId: selectedMonster.id,
       upgradeKey: upgradeOption.upgradeKey,
@@ -200,15 +215,15 @@ export default function MonsterLab() {
             Back to Lab
           </Button>
         </div>
-        
+
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Current Monster</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
-              <VeoMonster 
-                monsterId={selectedMonster.monsterId} 
+              <VeoMonster
+                monsterId={selectedMonster.monsterId}
                 evolutionStage={selectedMonster.evolutionStage}
                 upgradeChoices={selectedMonster.upgradeChoices || {}}
                 size="large"
@@ -224,8 +239,8 @@ export default function MonsterLab() {
               </div>
             </CardContent>
           </Card>
-          
-          <UpgradeChoice 
+
+          <UpgradeChoice
             userMonster={selectedMonster}
             onUpgrade={handleUpgradeChoice}
             userGold={user?.gold || 0}
@@ -238,8 +253,13 @@ export default function MonsterLab() {
 
   return (
     <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
-      
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
+        <Button variant="outline" size="sm" onClick={() => addTokensMutation.mutate()} disabled={addTokensMutation.isPending}>
+          Dev: Add 5 Tokens
+        </Button>
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Available Monsters */}
         <div>
@@ -251,7 +271,7 @@ export default function MonsterLab() {
                   monster={monster}
                   size="medium"
                 />
-                <Button 
+                <Button
                   onClick={() => purchaseMutation.mutate(monster.id)}
                   disabled={purchaseMutation.isPending}
                   className="shadow-lg w-full max-w-xs touch-manipulation min-h-[48px]"
@@ -287,10 +307,11 @@ export default function MonsterLab() {
                     showUpgradeAnimation={animatingCards[userMonster.id] || false}
                     size="medium"
                   />
+
                   {!(flippedCards[userMonster.id] || false) && (
                     <div className="flex flex-col gap-2 w-full max-w-xs">
                       {userMonster.level < MAX_LEVEL ? (
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={() => {
                             // Check if monster is at Level 3 (free trial limit)
@@ -299,7 +320,7 @@ export default function MonsterLab() {
                               setShowSubscriptionGate(true);
                               return;
                             }
-                            
+
                             setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
                             upgradeMutation.mutate(userMonster.id);
                             setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
@@ -314,7 +335,8 @@ export default function MonsterLab() {
                           Max Level Reached
                         </div>
                       )}
-                      <Button 
+
+                      <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleSpecialUpgrade(userMonster)}
@@ -330,7 +352,7 @@ export default function MonsterLab() {
           </div>
         </div>
       </div>
-      
+
       {/* Subscription Gate Modal */}
       {showSubscriptionGate && blockedMonster && (
         <LabSubscriptionGate

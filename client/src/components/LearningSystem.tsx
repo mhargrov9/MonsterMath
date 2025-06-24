@@ -43,7 +43,7 @@ export default function LearningSystem() {
           description: `You earned ${data.goldEarned} Gold!`,
           className: "bg-lime-green text-white",
         });
-        
+
         // If there's a next question, update the cache with it
         if (data.nextQuestion) {
           queryClient.setQueryData(["/api/questions", selectedSubject, 2], data.nextQuestion);
@@ -58,6 +58,7 @@ export default function LearningSystem() {
           variant: "destructive",
         });
       }
+
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setSelectedAnswer("");
       setShowHint(false);
@@ -118,6 +119,7 @@ export default function LearningSystem() {
             <i className="fas fa-calculator text-lg sm:text-2xl mb-1 sm:mb-2 block"></i>
             Math Magic
           </Button>
+
           <Button
             onClick={() => {
               setSelectedSubject("spelling");
@@ -134,6 +136,7 @@ export default function LearningSystem() {
             <i className="fas fa-spell-check text-lg sm:text-2xl mb-1 sm:mb-2 block"></i>
             Spelling Spells
           </Button>
+
           <Button
             onClick={() => {
               setSelectedSubject("mixed");
@@ -165,7 +168,7 @@ export default function LearningSystem() {
                 </span>
               </div>
             </div>
-            
+
             <div className="text-center mb-6 sm:mb-8">
               <h4 className="font-fredoka text-xl sm:text-2xl lg:text-3xl text-gray-800 mb-3 sm:mb-4">
                 {question.questionText}
@@ -207,6 +210,7 @@ export default function LearningSystem() {
                 <span className="hidden sm:inline">Need a Hint?</span>
                 <span className="sm:hidden">Hint</span>
               </Button>
+
               <Button
                 onClick={handleNewQuestion}
                 disabled={answerMutation.isPending}

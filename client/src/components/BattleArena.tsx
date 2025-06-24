@@ -17,6 +17,7 @@ interface Monster {
   is_fainted: boolean;
   resistances: string[];
   weaknesses: string[];
+  level: number; // Added level property
 }
 
 interface UserMonster {
@@ -24,6 +25,14 @@ interface UserMonster {
   user_id: number;
   monster_id: number;
   monster: Monster;
+  level: number; // Added level property
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  power: number;
+  defense: number;
+  speed: number;
 }
 
 interface Ability {
@@ -135,6 +144,7 @@ const BattleArena: React.FC = () => {
     // Check for critical hit (base 5% + ability modifier)
     const critChance = 0.05 + (ability.crit_chance_modifier || 0);
     const isCritical = Math.random() < critChance;
+
     if (isCritical) {
       baseDamage *= 1.5;
     }
@@ -143,6 +153,7 @@ const BattleArena: React.FC = () => {
 
     // Check for status effect application
     let statusEffect: StatusEffect | undefined;
+
     if (ability.status_effect_applies &&
         ability.status_effect_chance &&
         Math.random() < ability.status_effect_chance) {
@@ -169,6 +180,12 @@ const BattleArena: React.FC = () => {
   };
 
   const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
+    if (!selectedTeam || selectedTeam.length === 0) {
+      console.error("handleBattleStart called with no selected team.");
+      // We can add a user-facing error message here later if we want.
+      return;
+    }
+
     try {
       // Set the first monster from the selected team as player monster
       setPlayerMonster(selectedTeam[0]);
@@ -181,7 +198,7 @@ const BattleArena: React.FC = () => {
       const aiAbilities = await aiAbilitiesResponse.json();
       setAiMonsterAbilities(aiAbilities);
 
-      // Initialize battle state
+      // Initialize battle state - FIXED VERSION with level property included
       setBattleState({
         turn: 'player',
         phase: 'select',
@@ -193,7 +210,8 @@ const BattleArena: React.FC = () => {
           max_mp: selectedTeam[0].maxMp,
           power: selectedTeam[0].power,
           defense: selectedTeam[0].defense,
-          speed: selectedTeam[0].speed
+          speed: selectedTeam[0].speed,
+          level: selectedTeam[0].level // Include the level
         },
         aiMonster: {
           ...generatedOpponent.scaledMonsters[0].monster,
@@ -203,14 +221,16 @@ const BattleArena: React.FC = () => {
           max_mp: generatedOpponent.scaledMonsters[0].mp,
           power: generatedOpponent.scaledMonsters[0].monster.basePower,
           defense: generatedOpponent.scaledMonsters[0].monster.baseDefense,
-          speed: generatedOpponent.scaledMonsters[0].monster.baseSpeed
+          speed: generatedOpponent.scaledMonsters[0].monster.baseSpeed,
+          level: generatedOpponent.scaledMonsters[0].level // Include the level
         },
-        battleLog: [`Battle begins! ${selectedTeam[0].monster.name} vs ${generatedOpponent.scaledMonsters[0].monster.name}!`],
+        battleLog: [`Battle begins! ${selectedTeam[0].monster.name} (Lv.${selectedTeam[0].level}) vs ${generatedOpponent.scaledMonsters[0].monster.name} (Lv.${generatedOpponent.scaledMonsters[0].level})!`],
         battleEnded: false
       });
 
       // Switch to combat mode
       setBattleMode('combat');
+
     } catch (error) {
       console.error('Error starting battle:', error);
     }
@@ -248,9 +268,11 @@ const BattleArena: React.FC = () => {
 
     // Build battle log message
     let logMessage = `${playerMonster.monster.name} used ${ability.name}! `;
+
     if (damageResult.isCritical) {
       logMessage += "A Critical Hit! ";
     }
+
     logMessage += `Dealt ${damageResult.damage} damage to ${battleState.aiMonster.name}.`;
 
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
@@ -315,9 +337,11 @@ const BattleArena: React.FC = () => {
 
         // Build AI attack log message
         let aiLogMessage = `${updatedAiMonsterWithMp.name} used ${selectedAbility.name}! `;
+
         if (aiDamageResult.isCritical) {
           aiLogMessage += "A Critical Hit! ";
         }
+
         aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${playerMonster.monster.name}.`;
 
         const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
