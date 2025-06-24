@@ -14,6 +14,15 @@ interface Monster {
   affinity: string;
   image_url?: string;
   is_fainted: boolean;
+  resistances: string[];
+  weaknesses: string[];
+}
+
+interface UserMonster {
+  id: number;
+  user_id: number;
+  monster_id: number;
+  monster: Monster;
 }
 
 interface Ability {
@@ -58,7 +67,7 @@ interface DamageResult {
 }
 
 const BattleArena: React.FC = () => {
-  const [playerMonster, setPlayerMonster] = useState<Monster | null>(null);
+  const [playerMonster, setPlayerMonster] = useState<UserMonster | null>(null);
   const [aiMonster, setAiMonster] = useState<Monster | null>(null);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
@@ -199,7 +208,7 @@ const BattleArena: React.FC = () => {
     setPlayerMonster(updatedPlayerMonster);
 
     // Calculate damage using the full ability object
-    const damageResult = calculateDamage(updatedPlayerMonster, aiMonster, ability);
+    const damageResult = calculateDamage(updatedPlayerMonster.monster, aiMonster, ability);
 
     // Apply damage to AI monster
     const newAiHp = Math.max(0, aiMonster.hp - damageResult.damage);
@@ -207,7 +216,7 @@ const BattleArena: React.FC = () => {
     setAiMonster(updatedAiMonster);
 
     // Build battle log message
-    let logMessage = `${updatedPlayerMonster.name} used ${ability.name}! `;
+    let logMessage = `${updatedPlayerMonster.monster.name} used ${ability.name}! `;
 
     if (damageResult.isCritical) {
       logMessage += "A Critical Hit! ";
@@ -257,7 +266,7 @@ const BattleArena: React.FC = () => {
         setAiMonster(updatedAiMonsterWithMp);
 
         // Calculate AI damage using full ability object
-        const aiDamageResult = calculateDamage(updatedAiMonsterWithMp, updatedPlayerMonster, selectedAbility);
+        const aiDamageResult = calculateDamage(updatedAiMonsterWithMp, updatedPlayerMonster.monster, selectedAbility);
 
         // Apply damage to player monster
         const newPlayerHp = Math.max(0, updatedPlayerMonster.hp - aiDamageResult.damage);
@@ -275,7 +284,7 @@ const BattleArena: React.FC = () => {
           aiLogMessage += "A Critical Hit! ";
         }
 
-        aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${updatedPlayerMonster.name}.`;
+        aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${updatedPlayerMonster.monster.name}.`;
 
         const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
         if (aiEffectivenessMsg) {
@@ -284,14 +293,14 @@ const BattleArena: React.FC = () => {
 
         // Handle AI status effect application
         if (aiDamageResult.statusEffect) {
-          aiLogMessage += ` ${updatedPlayerMonster.name} is now affected by ${aiDamageResult.statusEffect.effectName}!`;
+          aiLogMessage += ` ${updatedPlayerMonster.monster.name} is now affected by ${aiDamageResult.statusEffect.effectName}!`;
         }
 
         setBattleLog(prev => [...prev, aiLogMessage]);
 
         // Check if player monster is defeated
         if (finalPlayerMonster.is_fainted) {
-          setBattleLog(prev => [...prev, `${updatedPlayerMonster.name} has been defeated! You lose!`]);
+          setBattleLog(prev => [...prev, `${updatedPlayerMonster.monster.name} has been defeated! You lose!`]);
           setBattleEnded(true);
           return;
         }
@@ -321,7 +330,7 @@ const BattleArena: React.FC = () => {
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4 text-blue-600">Your Monster</h2>
           <MonsterCard 
-            monster={playerMonster} 
+            monster={playerMonster.monster} 
             onAbilityClick={onAbilityClick}
             showAbilities={isPlayerTurn && !battleEnded}
           />
