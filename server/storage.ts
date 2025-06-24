@@ -131,7 +131,6 @@ export class DatabaseStorage implements IStorage {
 
   async createLocalUser(username: string, email: string, passwordHash: string): Promise<User> {
     const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
     const [user] = await db
       .insert(users)
       .values({
@@ -144,7 +143,6 @@ export class DatabaseStorage implements IStorage {
         diamonds: 0,
       })
       .returning();
-
     return user;
   }
 
@@ -160,7 +158,6 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
-
     return user;
   }
 
@@ -176,7 +173,6 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-
     return user;
   }
 
@@ -189,7 +185,6 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(users.id, userId))
       .returning();
-
     return user;
   }
 
@@ -294,7 +289,6 @@ export class DatabaseStorage implements IStorage {
 
     // Get user to check currency
     const [user] = await db.select().from(users).where(eq(users.id, userId));
-
     if (!user) {
       throw new Error("User not found");
     }
@@ -312,16 +306,15 @@ export class DatabaseStorage implements IStorage {
         power: monster.basePower,
         speed: monster.baseSpeed,
         defense: monster.baseDefense,
-        hp: monster.baseHp,      // SET this to baseHp
-        maxHp: monster.baseHp,  // SET this to baseHp
-        mp: monster.baseMp,       // SET this to baseMp
-        maxMp: monster.baseMp     // SET this to baseMp
+        hp: monster.baseHp, // SET this to baseHp
+        maxHp: monster.baseHp, // SET this to baseHp
+        mp: monster.baseMp, // SET this to baseMp
+        maxMp: monster.baseMp // SET this to baseMp
       })
       .returning();
 
     // Deduct currency
     await this.updateUserCurrency(userId, -monster.goldCost, -monster.diamondCost);
-
     return userMonster;
   }
 
@@ -352,7 +345,6 @@ export class DatabaseStorage implements IStorage {
 
     // Check if user has enough gold
     const [user] = await db.select().from(users).where(eq(users.id, userId));
-
     if (!user || user.gold < upgradeCost) {
       throw new Error("Insufficient gold");
     }
@@ -360,7 +352,6 @@ export class DatabaseStorage implements IStorage {
     // Check for evolution stage upgrade
     let newEvolutionStage = userMonster.evolutionStage;
     const newLevel = userMonster.level + 1;
-
     if (newLevel >= 10 && userMonster.evolutionStage < 4) {
       newEvolutionStage = Math.min(4, Math.floor(newLevel / 3) + 1);
     }
@@ -381,7 +372,6 @@ export class DatabaseStorage implements IStorage {
 
     // Deduct gold
     await this.updateUserCurrency(userId, -upgradeCost);
-
     return upgraded;
   }
 
@@ -556,16 +546,13 @@ export class DatabaseStorage implements IStorage {
   // Question operations
   async getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined> {
     const subjectFilter = subject === "mixed" ? sql`true` : eq(questions.subject, subject);
-
     let excludeFilter = sql`true`;
 
     // If userId provided, exclude already answered questions
     if (userId) {
       const [user] = await db.select().from(users).where(eq(users.id, userId));
-
       if (user && (user as any).answeredQuestionIds) {
         const answeredIds = (user as any).answeredQuestionIds as number[];
-
         if (answeredIds.length > 0) {
           excludeFilter = sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`;
         }
@@ -584,14 +571,11 @@ export class DatabaseStorage implements IStorage {
 
   async markQuestionAnswered(userId: string, questionId: number): Promise<void> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
-
     if (!user) return;
 
     const currentAnswered = ((user as any).answeredQuestionIds as number[]) || [];
-
     if (!currentAnswered.includes(questionId)) {
       const updatedAnswered = [...currentAnswered, questionId];
-
       await db
         .update(users)
         .set({ answeredQuestionIds: updatedAnswered } as any)
@@ -651,7 +635,6 @@ export class DatabaseStorage implements IStorage {
   async addInventoryItem(userId: string, item: InsertInventoryItem): Promise<InventoryItem> {
     // Check if item already exists - if so, update quantity
     const existing = await this.getInventoryItem(userId, item.itemName);
-
     if (existing) {
       return await this.updateInventoryQuantity(userId, item.itemName, item.quantity || 1);
     }
@@ -669,13 +652,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateInventoryQuantity(userId: string, itemName: string, quantityDelta: number): Promise<InventoryItem> {
     const existing = await this.getInventoryItem(userId, itemName);
-
     if (!existing) {
       throw new Error("Item not found in inventory");
     }
 
     const newQuantity = existing.quantity + quantityDelta;
-
     if (newQuantity <= 0) {
       await this.removeInventoryItem(userId, itemName);
       throw new Error("Item removed from inventory");
@@ -701,7 +682,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(inventory)
       .where(and(eq(inventory.userId, userId), eq(inventory.itemName, itemName)));
-
     return item;
   }
 
@@ -757,22 +737,25 @@ export class DatabaseStorage implements IStorage {
   }> {
     console.log(`Log 1: Player TPL calculated as: ${playerTPL}`);
 
-    // Get all available AI teams
     const availableTeams = await this.getAllAiTeams();
+    if (!availableTeams || availableTeams.length === 0) {
+      throw new Error("No AI Teams are available in the database to generate an opponent.");
+    }
     console.log(`Available AI teams count: ${availableTeams.length}`);
 
-    // Try flexible matching first - use wider TPL range (up to 50% variance)
     let selectedTeam: AiTeam | null = null;
     let composition: Array<{monsterId: number, baseLevel: number}> = [];
 
-    // Attempt 1: Try to find suitable teams with flexible scaling
+    // Attempt 1: Find a suitable team with flexible scaling
     for (const team of availableTeams) {
       const teamComposition = team.composition as Array<{monsterId: number, baseLevel: number}>;
-      const baseTeamTPL = teamComposition.reduce((sum, member) => sum + member.baseLevel, 0);
+      if (!teamComposition || teamComposition.length === 0) continue;
 
-      // Check if this team can be scaled to match player TPL (allow 2x scaling factor range)
-      const minScaling = 0.5; // Can scale down to 50%
-      const maxScaling = 2.0; // Can scale up to 200%
+      const baseTeamTPL = teamComposition.reduce((sum, member) => sum + member.baseLevel, 0);
+      if (baseTeamTPL === 0) continue;
+
+      const minScaling = 0.5;
+      const maxScaling = 2.0;
       const requiredScaling = playerTPL / baseTeamTPL;
 
       if (requiredScaling >= minScaling && requiredScaling <= maxScaling) {
@@ -783,20 +766,230 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Attempt 2: If no team found, use manual level distribution
-    if (!selectedTeam && availableTeams.length > 0) {
+    // Attempt 2: If no team found, pick a random one and redistribute levels
+    if (!selectedTeam) {
       selectedTeam = availableTeams[Math.floor(Math.random() * availableTeams.length)];
       composition = selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>;
       console.log(`Log 2: AI Archetype selected: ${selectedTeam.name} (manual level redistribution)`);
 
-      // Redistribute levels to match target TPL exactly
       const targetTPL = playerTPL;
       const monstersCount = composition.length;
+      let remainingTPL = targetTPL;
 
-      // Start with level 1 for all monsters, then distribute remaining levels
-      let remainingTPL = targetTPL - monstersCount; // Subtract base level 1 for each monster
+      const levels = Array(monstersCount).fill(0);
+      for (let i = 0; i < targetTPL; i++) {
+        levels[i % monstersCount]++;
+      }
 
-      composition = composition.map((member, index) => ({
-        monsterId: member.monsterId,
-        baseLevel: 1 + Math.floor(remainingTPL / monstersCount) + (index < (remainingTPL % monstersCount) ? 1 : 0)
-      }));
+      const originalComposition = [...(selectedTeam.composition as Array<{monsterId: number, baseLevel: number}>)];
+      composition = originalComposition.map(member => ({ ...member, baseLevel: 1 }));
+
+      composition.forEach((member, index) => {
+        member.baseLevel = Math.min(10, levels[index]);
+      });
+    }
+
+    const scaledMonsters = [];
+    for (const member of composition) {
+      const finalLevel = Math.max(1, Math.min(10, member.baseLevel));
+
+      const [monster] = await db.select({
+        id: monsters.id,
+        name: monsters.name,
+        type: monsters.type,
+        baseHp: monsters.baseHp,
+        baseMp: monsters.baseMp,
+        hpPerLevel: monsters.hpPerLevel,
+        mpPerLevel: monsters.mpPerLevel,
+        basePower: monsters.basePower,
+        baseSpeed: monsters.baseSpeed,
+        baseDefense: monsters.baseDefense,
+        resistances: monsters.resistances,
+        weaknesses: monsters.weaknesses,
+        description: monsters.description,
+        iconClass: monsters.iconClass,
+        gradient: monsters.gradient,
+        starterSet: monsters.starterSet,
+        levelUpgrades: monsters.levelUpgrades
+      }).from(monsters).where(eq(monsters.id, member.monsterId));
+
+      if (!monster) {
+        console.error(`Log 4: Validation for monster ID ${member.monsterId} FAILED - not found in database`);
+        continue;
+      }
+
+      const hp = Math.floor(monster.baseHp + (monster.hpPerLevel * (finalLevel - 1)));
+      const mp = Math.floor(monster.baseMp + (monster.mpPerLevel * (finalLevel - 1)));
+
+      scaledMonsters.push({ monster, level: finalLevel, hp, mp });
+    }
+
+    if (scaledMonsters.length === 0) {
+      throw new Error(`Failed to generate battle team "${selectedTeam.name}" - all monsters in its composition failed validation.`);
+    }
+
+    const monsterNames = scaledMonsters.map(m => `${m.monster.name} (Lv.${m.level})`);
+    console.log(`Log 5: Final AI team generated with monsters: [${monsterNames.join(', ')}]`);
+
+    return { team: selectedTeam, scaledMonsters };
+  }
+
+  // Battle slot operations
+  async getUserBattleSlots(userId: string): Promise<number> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user?.battleSlots || 3; // Default 3 slots
+  }
+
+  async updateUserBattleSlots(userId: string, slots: number): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ battleSlots: slots })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updated) {
+      throw new Error("User not found");
+    }
+
+    return updated;
+  }
+
+  async purchaseBattleSlot(userId: string): Promise<{ user: User; cost: number }> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const currentSlots = user.battleSlots || 3;
+    const cost = 100 * Math.pow(2, currentSlots - 3); // Exponential cost: 100, 200, 400, 800...
+
+    if (user.gold < cost) {
+      throw new Error("Insufficient gold");
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({
+        gold: user.gold - cost,
+        battleSlots: currentSlots + 1,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return { user: updated, cost };
+  }
+
+  // Interest Test operations
+  async recordSubscriptionIntent(userId: string, intent: 'monthly' | 'yearly'): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        subscriptionIntent: intent,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updated) {
+      throw new Error("User not found");
+    }
+
+    return updated;
+  }
+
+  async recordNotificationEmail(userId: string, email: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        notificationEmail: email,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updated) {
+      throw new Error("User not found");
+    }
+
+    return updated;
+  }
+
+  // Battle Token operations
+  async refreshBattleTokens(userId: string): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        battleTokens: 3, // Reset to max tokens
+        lastTokenRefresh: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updated) {
+      throw new Error("User not found");
+    }
+
+    return updated;
+  }
+
+  async spendBattleToken(userId: string): Promise<User> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if ((user.battleTokens || 0) <= 0) {
+      throw new Error("No battle tokens available");
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({
+        battleTokens: (user.battleTokens || 0) - 1,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return updated;
+  }
+
+  // Rank Point operations
+  async updateUserRankPoints(userId: string, rpDelta: number): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({
+        rankPoints: sql`${users.rankPoints} + ${rpDelta}`,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updated) {
+      throw new Error("User not found");
+    }
+
+    return updated;
+  }
+
+  // AI Trainer operations
+  async getAllAiTrainers(): Promise<AiTeam[]> {
+    return await db
+      .select()
+      .from(aiTeams)
+      .where(eq(aiTeams.teamType, 'trainer'))
+      .orderBy(asc(aiTeams.name));
+  }
+
+  async createAiTrainer(trainerData: InsertAiTeam): Promise<AiTeam> {
+    const [trainer] = await db
+      .insert(aiTeams)
+      .values({ ...trainerData, teamType: 'trainer' })
+      .returning();
+    return trainer;
+  }
+}
+
+export const storage = new DatabaseStorage();
