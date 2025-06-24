@@ -109,13 +109,13 @@ const BattleArena: React.FC = () => {
   };
 
   const calculateDamage = (
-    attackingMonster: Monster, 
-    defendingMonster: Monster, 
+    attackingMonster: Monster,
+    defendingMonster: Monster,
     ability: Ability
   ): DamageResult => {
     // Determine which stat to use for scaling
-    const scalingStat = ability.scaling_stat === 'DEFENSE' 
-      ? attackingMonster.defense 
+    const scalingStat = ability.scaling_stat === 'DEFENSE'
+      ? attackingMonster.defense
       : attackingMonster.power;
 
     // Base damage calculation using ability's power multiplier
@@ -143,8 +143,8 @@ const BattleArena: React.FC = () => {
 
     // Check for status effect application
     let statusEffect: StatusEffect | undefined;
-    if (ability.status_effect_applies && 
-        ability.status_effect_chance && 
+    if (ability.status_effect_applies &&
+        ability.status_effect_chance &&
         Math.random() < ability.status_effect_chance) {
       statusEffect = {
         effectName: ability.status_effect_applies,
@@ -211,7 +211,6 @@ const BattleArena: React.FC = () => {
 
       // Switch to combat mode
       setBattleMode('combat');
-
     } catch (error) {
       console.error('Error starting battle:', error);
     }
@@ -241,19 +240,17 @@ const BattleArena: React.FC = () => {
 
     // Apply damage to AI monster
     const newAiHp = Math.max(0, battleState.aiMonster.hp - damageResult.damage);
-    const updatedAiMonster = { 
-      ...battleState.aiMonster, 
-      hp: newAiHp, 
-      is_fainted: newAiHp === 0 
+    const updatedAiMonster = {
+      ...battleState.aiMonster,
+      hp: newAiHp,
+      is_fainted: newAiHp === 0
     };
 
     // Build battle log message
     let logMessage = `${playerMonster.monster.name} used ${ability.name}! `;
-
     if (damageResult.isCritical) {
       logMessage += "A Critical Hit! ";
     }
-
     logMessage += `Dealt ${damageResult.damage} damage to ${battleState.aiMonster.name}.`;
 
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
@@ -295,7 +292,7 @@ const BattleArena: React.FC = () => {
           ability => ability.ability_type === 'ACTIVE' && updatedAiMonster.mp >= ability.mp_cost
         );
 
-        const selectedAbility = affordableAbilities.length > 0 
+        const selectedAbility = affordableAbilities.length > 0
           ? affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)]
           : aiMonsterAbilities[0]; // Fallback to first ability if none affordable
 
@@ -310,19 +307,17 @@ const BattleArena: React.FC = () => {
 
         // Apply damage to player monster
         const newPlayerHp = Math.max(0, updatedPlayerMonster.hp - aiDamageResult.damage);
-        const finalPlayerMonster = { 
-          ...updatedPlayerMonster, 
-          hp: newPlayerHp, 
-          is_fainted: newPlayerHp === 0 
+        const finalPlayerMonster = {
+          ...updatedPlayerMonster,
+          hp: newPlayerHp,
+          is_fainted: newPlayerHp === 0
         };
 
         // Build AI attack log message
         let aiLogMessage = `${updatedAiMonsterWithMp.name} used ${selectedAbility.name}! `;
-
         if (aiDamageResult.isCritical) {
           aiLogMessage += "A Critical Hit! ";
         }
-
         aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${playerMonster.monster.name}.`;
 
         const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
@@ -388,8 +383,8 @@ const BattleArena: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4 text-blue-600">Your Monster</h2>
-          <MonsterCard 
-            monster={playerMonster.monster} 
+          <MonsterCard
+            monster={playerMonster.monster}
             onAbilityClick={onAbilityClick}
             battleMode={true}
             isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
@@ -400,10 +395,10 @@ const BattleArena: React.FC = () => {
 
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-4 text-red-600">Opponent</h2>
-          <MonsterCard 
-            monster={aiMonster} 
+          <MonsterCard
+            monster={aiMonster}
             onAbilityClick={() => {}}
-            showAbilities={false}
+            showAbilities={true}
             battleHp={battleState.aiMonster.hp}
           />
         </div>
@@ -424,7 +419,7 @@ const BattleArena: React.FC = () => {
 
       <div className="text-center">
         {battleState.battleEnded ? (
-          <button 
+          <button
             onClick={resetBattle}
             className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
           >
@@ -432,8 +427,8 @@ const BattleArena: React.FC = () => {
           </button>
         ) : (
           <p className="text-lg font-semibold">
-            {battleState.turn === 'player' && battleState.phase === 'select' 
-              ? "Your Turn - Select an ability!" 
+            {battleState.turn === 'player' && battleState.phase === 'select'
+              ? "Your Turn - Select an ability!"
               : "Opponent's turn..."}
           </p>
         )}
