@@ -185,8 +185,20 @@ const BattleArena: React.FC = () => {
       setBattleState({
         turn: 'player',
         phase: 'select',
-        playerMonster: selectedTeam[0].monster,
-        aiMonster: generatedOpponent.scaledMonsters[0].monster,
+        playerMonster: {
+          ...selectedTeam[0].monster, // Start with the base monster data
+          hp: selectedTeam[0].hp,      // Use the current HP from the UserMonster object
+          max_hp: selectedTeam[0].maxHp, // Use the max HP from the UserMonster object
+          mp: selectedTeam[0].mp,      // Use the current MP from the UserMonster object
+          max_mp: selectedTeam[0].maxMp  // Use the max MP from the UserMonster object
+        },
+        aiMonster: {
+          ...generatedOpponent.scaledMonsters[0].monster, // Base AI monster data
+          hp: generatedOpponent.scaledMonsters[0].hp,
+          max_hp: generatedOpponent.scaledMonsters[0].hp,
+          mp: generatedOpponent.scaledMonsters[0].mp,
+          max_mp: generatedOpponent.scaledMonsters[0].mp
+        },
         battleLog: [`Battle begins! ${selectedTeam[0].monster.name} vs ${generatedOpponent.scaledMonsters[0].monster.name}!`],
         battleEnded: false
       });
