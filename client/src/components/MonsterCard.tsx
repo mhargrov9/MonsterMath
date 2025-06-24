@@ -49,6 +49,7 @@ interface MonsterCardProps {
   battleMode?: boolean;
   isPlayerTurn?: boolean;
   battleMp?: number;
+  battleHp?: number;
   onAbilityClick?: (ability: any) => void;
   showAbilities?: boolean;
 }
@@ -244,6 +245,7 @@ export default function MonsterCard({
   battleMode = false,
   isPlayerTurn = false,
   battleMp = 0,
+  battleHp,
   onAbilityClick,
   showAbilities = true
 }: MonsterCardProps) {
@@ -266,9 +268,7 @@ export default function MonsterCard({
   const isShattered = userMonster?.isShattered || false;
 
   // Use persistent HP/MP from database, fall back to base values only for new monsters
-  const currentHp = userMonster?.hp !== null && userMonster?.hp !== undefined
-    ? userMonster.hp
-    : (monster.baseHp || 950);
+  const currentHp = battleHp ?? (userMonster?.hp ?? monster.baseHp ?? 0);
 
   const maxHp = userMonster?.maxHp !== null && userMonster?.maxHp !== undefined
     ? userMonster.maxHp

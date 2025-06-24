@@ -186,18 +186,24 @@ const BattleArena: React.FC = () => {
         turn: 'player',
         phase: 'select',
         playerMonster: {
-          ...selectedTeam[0].monster, // Start with the base monster data
-          hp: selectedTeam[0].hp,      // Use the current HP from the UserMonster object
-          max_hp: selectedTeam[0].maxHp, // Use the max HP from the UserMonster object
-          mp: selectedTeam[0].mp,      // Use the current MP from the UserMonster object
-          max_mp: selectedTeam[0].maxMp  // Use the max MP from the UserMonster object
+          ...selectedTeam[0].monster,
+          hp: selectedTeam[0].hp,
+          max_hp: selectedTeam[0].maxHp,
+          mp: selectedTeam[0].mp,
+          max_mp: selectedTeam[0].maxMp,
+          power: selectedTeam[0].power,
+          defense: selectedTeam[0].defense,
+          speed: selectedTeam[0].speed
         },
         aiMonster: {
-          ...generatedOpponent.scaledMonsters[0].monster, // Base AI monster data
+          ...generatedOpponent.scaledMonsters[0].monster,
           hp: generatedOpponent.scaledMonsters[0].hp,
           max_hp: generatedOpponent.scaledMonsters[0].hp,
           mp: generatedOpponent.scaledMonsters[0].mp,
-          max_mp: generatedOpponent.scaledMonsters[0].mp
+          max_mp: generatedOpponent.scaledMonsters[0].mp,
+          power: generatedOpponent.scaledMonsters[0].monster.basePower,
+          defense: generatedOpponent.scaledMonsters[0].monster.baseDefense,
+          speed: generatedOpponent.scaledMonsters[0].monster.baseSpeed
         },
         battleLog: [`Battle begins! ${selectedTeam[0].monster.name} vs ${generatedOpponent.scaledMonsters[0].monster.name}!`],
         battleEnded: false
@@ -388,6 +394,7 @@ const BattleArena: React.FC = () => {
             battleMode={true}
             isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
             battleMp={battleState.playerMonster.mp}
+            battleHp={battleState.playerMonster.hp}
           />
         </div>
 
@@ -397,6 +404,7 @@ const BattleArena: React.FC = () => {
             monster={aiMonster} 
             onAbilityClick={() => {}}
             showAbilities={false}
+            battleHp={battleState.aiMonster.hp}
           />
         </div>
       </div>
