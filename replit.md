@@ -360,6 +360,12 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Verified all 7 monsters have proper abilities data (16 abilities total, 22 relationships)
   - Monster Cards now display abilities correctly with Active/Passive indicators and mana costs
   - Fixed database schema synchronization issues preventing abilities from loading
+- June 24, 2025: Battle Tokens System Fix
+  - Fixed "Dev: Add 5 Tokens" button functionality in Monster Lab
+  - Corrected apiRequest function call format and added authentication credentials
+  - Fixed Drizzle ORM property mapping issue (battle_tokens database column to battleTokens object property)
+  - Cleaned up /api/dev/add-tokens endpoint with proper authentication middleware
+  - Battle tokens now correctly increment when button is clicked with success notifications
 
 ## User Preferences
 
