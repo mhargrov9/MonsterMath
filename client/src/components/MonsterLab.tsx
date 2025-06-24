@@ -1,22 +1,25 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Coins, Gem, Zap, Shield, Gauge } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import VeoMonster from "./VeoMonster";
-import UpgradeChoice from "./UpgradeChoice";
 import MonsterCard from "./MonsterCard";
+import ArenaSubscriptionGate from "./ArenaSubscriptionGate";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Users, Zap, Shield } from "lucide-react";
+import UpgradeChoice from "./UpgradeChoice";
+import VeoMonster from "./VeoMonster";
 import LabSubscriptionGate from "./LabSubscriptionGate";
 import BattleSlotUpgrade from "./BattleSlotUpgrade";
 import { Monster, UserMonster, GameUser } from "@/types/game";
-import { useState } from "react";
+import { useEffect } from "react";
 
 const MAX_LEVEL = 10; // Maximum level for monsters
+
+function isUnauthorizedError(error: any): boolean {
+  return error?.message?.includes('Unauthorized') || error?.status === 401;
+}
 
 export default function MonsterLab() {
   const { toast } = useToast();
@@ -32,14 +35,28 @@ export default function MonsterLab() {
     queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
   }, []);
 
-  // Developer Tools - Add Battle Tokens
+  // Developer Tools - Add Battle Tokens - WITH EXTENSIVE DEBUGGING
   const addTokensMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/dev/add-tokens", { amount: 5 }),
-    onSuccess: () => {
+    mutationFn: async () => {
+      console.log('DEV BUTTON: About to call apiRequest for /api/dev/add-tokens');
+      const response = await apiRequest("/api/dev/add-tokens", { 
+        method: "POST", 
+        data: { amount: 5 } 
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      console.log('DEV BUTTON: API call successful, response:', data);
+      console.log('DEV BUTTON: Response type:', typeof data);
+      console.log('DEV BUTTON: Response keys:', data ? Object.keys(data) : 'no keys');
       toast({ title: "Success", description: "5 Battle Tokens added!" });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     },
     onError: (error: Error) => {
+      console.log('DEV BUTTON: API call failed, error:', error);
+      console.log('DEV BUTTON: Error message:', error.message);
+      console.log('DEV BUTTON: Error stack:', error.stack);
+      console.log('DEV BUTTON: Error name:', error.name);
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
@@ -215,12 +232,8 @@ export default function MonsterLab() {
             Back to Lab
           </Button>
         </div>
-
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Current Monster</CardTitle>
-            </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
               <VeoMonster
                 monsterId={selectedMonster.monsterId}
@@ -233,7 +246,6 @@ export default function MonsterLab() {
                 <p className="text-sm text-muted-foreground">Level {selectedMonster.level} • Stage {selectedMonster.evolutionStage}</p>
                 <div className="flex gap-4 mt-2">
                   <Badge variant="destructive"><Zap className="w-3 h-3 mr-1" />{selectedMonster.power}</Badge>
-                  <Badge variant="secondary"><Gauge className="w-3 h-3 mr-1" />{selectedMonster.speed}</Badge>
                   <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />{selectedMonster.defense}</Badge>
                 </div>
               </div>
@@ -255,8 +267,16 @@ export default function MonsterLab() {
     <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
-        <Button variant="outline" size="sm" onClick={() => addTokensMutation.mutate()} disabled={addTokensMutation.isPending}>
-          Dev: Add 5 Tokens
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            console.log('DEV BUTTON: Button clicked, mutation pending:', addTokensMutation.isPending);
+            addTokensMutation.mutate();
+          }}
+          disabled={addTokensMutation.isPending}
+        >
+          {addTokensMutation.isPending ? "Adding..." : "Dev: Add 5 Tokens"}
         </Button>
       </div>
 

@@ -200,10 +200,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dev/add-tokens", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { amount = 5 } = req.body; // Default to adding 5 tokens
+      const { amount = 5 } = req.body;
 
       const user = await storage.addBattleTokens(userId, amount);
-      res.json({ message: `${amount} battle tokens added.`, user });
+
+      res.json({ 
+        message: `${amount} battle tokens added.`, 
+        user,
+        battleTokens: user.battleTokens 
+      });
     } catch (error) {
       handleError(error, res, "Failed to add battle tokens");
     }

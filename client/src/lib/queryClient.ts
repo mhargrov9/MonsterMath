@@ -20,6 +20,7 @@ export const apiRequest = async (url: string, { method, data, headers: customHea
     method,
     headers,
     body,
+    credentials: "include", // Include cookies for authentication
   });
 
   return response;

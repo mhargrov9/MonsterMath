@@ -1056,24 +1056,57 @@ export class DatabaseStorage implements IStorage {
     return trainer;
   }
 
-  // Developer Tools - FIXED addBattleTokens function
+  // Developer Tools - FIXED addBattleTokens function WITH EXTENSIVE DEBUGGING
   async addBattleTokens(userId: string, amount: number): Promise<User> {
+    console.log('STORAGE: addBattleTokens called for userId:', userId, 'amount:', amount);
+    console.log('STORAGE: userId type:', typeof userId);
+    console.log('STORAGE: amount type:', typeof amount);
+    console.log('STORAGE: About to call this.getUser...');
+
     const user = await this.getUser(userId);
+    console.log('STORAGE: Fetched user:', user);
+    console.log('STORAGE: User type:', typeof user);
+    console.log('STORAGE: User properties:', user ? Object.keys(user) : 'no properties');
+
     if (!user) {
+      console.log('STORAGE: No user found, throwing error');
       throw new Error("User not found during token addition");
     }
+
     const currentTokens = user.battleTokens || 0;
+    console.log('STORAGE: Current tokens:', currentTokens);
+    console.log('STORAGE: Current tokens type:', typeof currentTokens);
+
     const newTokens = currentTokens + amount;
+    console.log('STORAGE: New token count will be:', newTokens);
+    console.log('STORAGE: About to execute database update...');
+
+    console.log('STORAGE: Database update query details:');
+    console.log('  - Table: users');
+    console.log('  - Set: battle_tokens =', newTokens);
+    console.log('  - Where: users.id =', userId);
+    console.log('  - Returning: true');
 
     const [updatedUser] = await db
       .update(users)
-      .set({ battleTokens: newTokens, updatedAt: new Date() })
+      .set({
+        battle_tokens: newTokens,
+        updatedAt: new Date()
+      })
       .where(eq(users.id, userId))
       .returning();
 
+    console.log('STORAGE: Database update returned:', updatedUser);
+    console.log('STORAGE: Updated user type:', typeof updatedUser);
+    console.log('STORAGE: Updated user properties:', updatedUser ? Object.keys(updatedUser) : 'no properties');
+    console.log('STORAGE: Updated user battleTokens:', updatedUser?.battleTokens);
+
     if (!updatedUser) {
+      console.log('STORAGE: Database update returned null/undefined, throwing error');
       throw new Error("Failed to update user tokens");
     }
+
+    console.log('STORAGE: Returning updated user successfully');
     return updatedUser;
   }
 }
