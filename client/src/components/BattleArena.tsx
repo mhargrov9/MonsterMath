@@ -286,7 +286,7 @@ const BattleArena: React.FC = () => {
       if (aiMonsterAbilities.length > 0 && battleState) {
         // AI selects a random ability it can afford
         const affordableAbilities = aiMonsterAbilities.filter(
-          ability => updatedAiMonster.mp >= ability.mp_cost
+          ability => ability.ability_type === 'ACTIVE' && updatedAiMonster.mp >= ability.mp_cost
         );
 
         const selectedAbility = affordableAbilities.length > 0 
