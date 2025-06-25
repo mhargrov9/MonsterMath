@@ -25,6 +25,7 @@ interface MonsterCardProps {
     weaknesses?: string;
     description?: string;
     starterSet?: boolean;
+    level?: number; // Added level property to monster interface
   };
   userMonster?: {
     id: number;
@@ -257,7 +258,9 @@ export default function MonsterCard({
   const monsterData = getMonsterData(monster.id, monster);
 
   console.log('MonsterCard received userMonster prop:', userMonster);
-  const level = userMonster?.level || 1;
+
+  // FIXED: Check monster prop first (which contains battleState data), then fall back to userMonster
+  const level = monster.level || userMonster?.level || 1;
 
   // NEW: Fetch abilities from the relational API endpoint
   const { data: abilitiesData, isLoading: abilitiesLoading, error: abilitiesError } = useQuery({
@@ -498,6 +501,7 @@ export default function MonsterCard({
           {monster.id === 6 && (
             <div className="absolute inset-0 bg-gradient-radial from-red-500/10 via-transparent to-transparent animate-pulse pointer-events-none" />
           )}
+
           {monster.id === 7 && (
             <div className="absolute inset-0 bg-gradient-radial from-purple-500/10 via-transparent to-transparent animate-pulse pointer-events-none" />
           )}
