@@ -256,15 +256,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { monsterId } = req.body;
 
+      console.log(`Purchase request: User ${userId}, Monster ID ${monsterId}`);
+
       try {
         const validatedMonsterId = validateMonsterId(monsterId);
         const userMonster = await storage.purchaseMonster(userId, validatedMonsterId);
+        console.log(`Purchase successful: User monster ID ${userMonster.id}`);
         res.json(userMonster);
       } catch (validationError) {
+        console.log(`Validation error:`, validationError);
         return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid monster ID" });
       }
 
     } catch (error) {
+      console.log(`Purchase error:`, error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to purchase monster" });
     }
   });
