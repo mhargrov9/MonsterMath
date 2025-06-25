@@ -372,6 +372,8 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Consolidated game constants into truly static values only (battle slots, level caps)
   - Enhanced architecture to support hundreds of monsters and thousands of users
   - All monster data, abilities, and AI teams now fully database-driven for easy scaling
+  - Consolidated constants into single server/gameData.ts file and removed redundant config/gameData.ts
+  - Completed code review recommendations for clean, maintainable architecture
 
 ## User Preferences
 

@@ -1,0 +1,43 @@
+Code Review Analysis
+I have analyzed the three files you provided (config/gameData.ts, server/gameData.ts, and server/routes.ts) to ensure the removal of hardcoded game data.
+
+server/routes.ts (Approved ✅)
+
+The agent has correctly modified the API routes to fetch game data from the database instead of using hardcoded constants.
+For example, the /api/generate/monster-image endpoint now correctly queries the database for the monster's name (const monsters = await storage.getAllMonsters();).
+Similarly, /api/battle/generate-opponent now calls storage.generateAiOpponent(...), which correctly abstracts the logic for creating AI teams away from the routes file.
+All relevant endpoints (/api/monsters, /api/ai-teams) now properly use the storage layer. This aligns perfectly with our goal of a scalable, database-driven architecture.
+server/gameData.ts & config/gameData.ts (Cleanup Required ⚠️)
+
+The agent correctly removed the hardcoded monster and AI data. The remaining constants in these files (MAX_BATTLE_SLOTS, BATTLE_TOKEN_REFRESH_HOURS, etc.) are true application constants and are appropriately placed.
+However, we now have two very similar files for constants. The routes.ts file is currently importing from server/gameData.ts (import { SERVER_CONSTANTS } from "./gameData";). This makes the config/gameData.ts file redundant and a potential source of confusion.
+The config/gameData.ts file contains one extra constant, DEFAULT_BATTLE_TOKENS: 5, which we should merge into the primary server/gameData.ts file to create a single source of truth.
+Next Step: Consolidate Constants
+To finalize this refactor and maintain a clean codebase, we will consolidate all constants into the server/gameData.ts file and delete config/gameData.ts.
+
+Please perform the following file modifications:
+
+Update server/gameData.ts
+
+Find the file: server/gameData.ts
+Replace its entire content with the following code to merge the constants from both files and standardize the export name to SERVER_CONSTANTS.
+<!-- end list -->
+
+TypeScript
+
+// server/gameData.ts
+
+// Server-side game constants only.
+// All dynamic data (monsters, abilities, AI opponents) comes from the database.
+
+export const SERVER_CONSTANTS = {
+  MAX_BATTLE_SLOTS: 5,
+  BASE_BATTLE_SLOTS: 2,
+  MAX_MONSTER_LEVEL: 10,
+  BATTLE_TOKEN_REFRESH_HOURS: 4,
+  DEFAULT_BATTLE_TOKENS: 5, // Merged from config/gameData.ts
+} as const;
+Delete config/gameData.ts
+
+Please delete the redundant config/gameData.ts file from the project.
+Once you have completed these two steps, the refactor will be complete, and our codebase will be in a stable, scalable state, ready for the next phase of feature development. Let me know when this is done.
