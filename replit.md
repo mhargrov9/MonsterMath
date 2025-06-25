@@ -366,6 +366,12 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Fixed Drizzle ORM property mapping issue (battle_tokens database column to battleTokens object property)
   - Cleaned up /api/dev/add-tokens endpoint with proper authentication middleware
   - Battle tokens now correctly increment when button is clicked with success notifications
+- June 25, 2025: Scalability Improvements - Database-Driven Architecture
+  - Removed hardcoded AI_OPPONENTS and MONSTER_NAMES constants from config files
+  - Updated server routes to use database queries instead of static mappings
+  - Consolidated game constants into truly static values only (battle slots, level caps)
+  - Enhanced architecture to support hundreds of monsters and thousands of users
+  - All monster data, abilities, and AI teams now fully database-driven for easy scaling
 
 ## User Preferences
 

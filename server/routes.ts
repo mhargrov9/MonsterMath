@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { AI_OPPONENTS, MONSTER_NAMES } from "../config/gameData";
+import { SERVER_CONSTANTS } from "./gameData";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -74,7 +74,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // For monsters with custom uploaded images, serve them directly
         if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
-          const monsterName = MONSTER_NAMES[monsterIdNum as keyof typeof MONSTER_NAMES];
+          // Get monster name from database instead of hardcoded mapping
+          const monsters = await storage.getAllMonsters();
+          const monster = monsters.find(m => m.id === monsterIdNum);
+          const monsterName = monster?.name;
 
           // Try to find the image file using fs.readdir
           try {
