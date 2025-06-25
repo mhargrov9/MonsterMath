@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import MonsterCard from './MonsterCard';
 import { BattleTeamSelector } from './BattleTeamSelector';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface Monster {
   id: number;
@@ -17,7 +19,7 @@ interface Monster {
   is_fainted: boolean;
   resistances: string[];
   weaknesses: string[];
-  level: number; // Added level property
+  level: number;
 }
 
 interface UserMonster {
@@ -25,7 +27,7 @@ interface UserMonster {
   user_id: number;
   monster_id: number;
   monster: Monster;
-  level: number; // Added level property
+  level: number;
   hp: number;
   maxHp: number;
   mp: number;
@@ -76,72 +78,69 @@ interface DamageResult {
   statusEffect?: StatusEffect;
 }
 
-interface BattleState {
-  turn: 'player' | 'ai';
-  phase: 'select' | 'animating' | 'processing';
-  playerMonster: Monster;
-  aiMonster: Monster;
-  battleLog: string[];
-  battleEnded: boolean;
-  winner?: 'player' | 'ai';
-}
-
 const BattleArena: React.FC = () => {
-  const [battleMode, setBattleMode] = useState<'team-select' | 'combat'>('team-select');
-  const [playerMonster, setPlayerMonster] = useState<UserMonster | null>(null);
-  const [aiMonster, setAiMonster] = useState<Monster | null>(null);
-  const [battleState, setBattleState] = useState<BattleState | null>(null);
-  const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Ability[]>([]);
+  const [battleMode, setBattleMode] = useState<'team-select' | 'lead-select' | 'combat'>('team-select');
+
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // State for the full teams
+  const [playerTeam, setPlayerTeam] = useState<UserMonster[]>([]);
+  const [aiTeam, setAiTeam] = useState<Monster[]>([]);
+
+  // State to track the INDEX of the active monster in the team arrays
+  const [activePlayerIndex, setActivePlayerIndex] = useState(0);
+  const [activeAiIndex, setActiveAiIndex] = useState(0);
+
+  // State to manage whose turn it is and the battle phase
+  const [turn, setTurn] = useState<'player' | 'ai' | 'pre-battle'>('pre-battle');
+  const [battleLog, setBattleLog] = useState<string[]>([]);
+  const [battleEnded, setBattleEnded] = useState(false);
+  const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
+
+  // Abilities for AI monsters
+  const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Record<number, Ability[]>>({});
 
   const getAffinityMultiplier = (
     attackAffinity: string,
     defenderResistances: string[],
     defenderWeaknesses: string[]
   ): number => {
-    // Convert to lowercase for case-insensitive comparison
     const attackAffinityLower = attackAffinity.toLowerCase();
     const resistancesLower = defenderResistances?.map(r => r.toLowerCase()) || [];
     const weaknessesLower = defenderWeaknesses?.map(w => w.toLowerCase()) || [];
 
-    // Check for weakness (2x damage)
     if (weaknessesLower.includes(attackAffinityLower)) {
       return 2.0;
     }
 
-    // Check for resistance (0.5x damage)
     if (resistancesLower.includes(attackAffinityLower)) {
       return 0.5;
     }
 
-    // Normal effectiveness (1x damage)
     return 1.0;
   };
 
   const calculateDamage = (
-    attackingMonster: Monster,
-    defendingMonster: Monster,
+    attackingMonster: Monster | UserMonster,
+    defendingMonster: Monster | UserMonster,
     ability: Ability
   ): DamageResult => {
-    // Determine which stat to use for scaling
-    const scalingStat = ability.scaling_stat === 'DEFENSE'
-      ? attackingMonster.defense
-      : attackingMonster.power;
+    const attackerPower = 'power' in attackingMonster ? attackingMonster.power : attackingMonster.monster.power;
+    const attackerDefense = 'defense' in attackingMonster ? attackingMonster.defense : attackingMonster.monster.defense;
+    const defenderResistances = 'resistances' in defendingMonster ? defendingMonster.resistances : defendingMonster.monster.resistances;
+    const defenderWeaknesses = 'weaknesses' in defendingMonster ? defendingMonster.weaknesses : defendingMonster.monster.weaknesses;
 
-    // Base damage calculation using ability's power multiplier
+    const scalingStat = ability.scaling_stat === 'DEFENSE' ? attackerDefense : attackerPower;
+
     let baseDamage = scalingStat * ability.power_multiplier;
-
-    // Add random variance (±20%)
     const variance = 0.8 + Math.random() * 0.4;
     baseDamage *= variance;
 
-    // Apply affinity multiplier using real monster resistances and weaknesses
-    const affinityMultiplier = getAffinityMultiplier(ability.affinity, defendingMonster.resistances, defendingMonster.weaknesses);
+    const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
     baseDamage *= affinityMultiplier;
-
-    // Apply defense reduction (30%)
     baseDamage *= 0.7;
 
-    // Check for critical hit (base 5% + ability modifier)
     const critChance = 0.05 + (ability.crit_chance_modifier || 0);
     const isCritical = Math.random() < critChance;
 
@@ -151,7 +150,6 @@ const BattleArena: React.FC = () => {
 
     const finalDamage = Math.round(Math.max(1, baseDamage));
 
-    // Check for status effect application
     let statusEffect: StatusEffect | undefined;
 
     if (ability.status_effect_applies &&
@@ -179,101 +177,183 @@ const BattleArena: React.FC = () => {
     return "";
   };
 
+  // AI Decision Making Function with Detailed Logging
+  const decideAiAction = (): { action: 'attack'; ability: Ability | null } | { action: 'swap'; newIndex: number } => {
+    console.log("--- AI: Deciding action ---");
+    const activeAiMonster = aiTeam[activeAiIndex];
+    const activePlayerMonster = playerTeam[activePlayerIndex];
+    const benchedAiMonsters = aiTeam.filter((_, index) => index !== activeAiIndex && _.hp > 0);
+
+    console.log(`AI: Active monster is ${activeAiMonster.name} with ${activeAiMonster.hp}/${activeAiMonster.max_hp} HP.`);
+
+    // 1. Self-Preservation Check
+    const hpPercent = activeAiMonster.hp / activeAiMonster.max_hp;
+    if (hpPercent < 0.25 && benchedAiMonsters.length > 0) {
+        console.log("AI: HP is low, considering a swap.");
+        const healthyBenchMonsterIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (m.hp / m.max_hp) > 0.5 && m.hp > 0);
+        if (healthyBenchMonsterIndex !== -1) {
+            console.log(`AI: Decided to SWAP to ${aiTeam[healthyBenchMonsterIndex].name}.`);
+            return { action: 'swap', newIndex: healthyBenchMonsterIndex };
+        }
+    }
+
+    // 2. Tactical Disadvantage Check
+    const playerAffinity = activePlayerMonster.monster.affinity;
+    const isAtDisadvantage = activeAiMonster.weaknesses && activeAiMonster.weaknesses.includes(playerAffinity);
+    if (isAtDisadvantage && benchedAiMonsters.length > 0) {
+        console.log("AI: Is at a tactical disadvantage, considering a swap.");
+        const betterMatchupIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (!m.weaknesses || !m.weaknesses.includes(playerAffinity)) && m.hp > 0);
+        if (betterMatchupIndex !== -1) {
+            console.log(`AI: Decided to SWAP to ${aiTeam[betterMatchupIndex].name}.`);
+            return { action: 'swap', newIndex: betterMatchupIndex };
+        }
+    }
+
+    // 3. Default to Attack
+    console.log("AI: Defaulting to attack.");
+    const aiAbilities = aiMonsterAbilities[activeAiMonster.id] || [];
+    console.log(`AI: Available abilities for ${activeAiMonster.name}:`, aiAbilities.map(a => `${a.name} (${a.mp_cost} MP)`));
+
+    const affordableAbilities = aiAbilities.filter(
+      ability => ability.ability_type === 'ACTIVE' && activeAiMonster.mp >= ability.mp_cost
+    );
+
+    console.log(`AI: Affordable abilities:`, affordableAbilities.map(a => `${a.name} (${a.mp_cost} MP)`));
+
+    if (affordableAbilities.length > 0) {
+        const selectedAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+        console.log(`AI: Chose affordable ability: ${selectedAbility.name}.`);
+        return { action: 'attack', ability: selectedAbility };
+    } else {
+        console.error("AI: CRITICAL - No affordable abilities found!");
+        return { action: 'attack', ability: null };
+    }
+  };
+
   const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
+    setIsLoading(true);
+
     if (!selectedTeam || selectedTeam.length === 0) {
       console.error("handleBattleStart called with no selected team.");
-      // We can add a user-facing error message here later if we want.
+      setIsLoading(false);
       return;
     }
 
     try {
-      // Set the first monster from the selected team as player monster
-      setPlayerMonster(selectedTeam[0]);
+      setPlayerTeam(selectedTeam);
 
-      // Set the AI monster from the generated opponent
-      setAiMonster(generatedOpponent.scaledMonsters[0].monster);
+      // Convert generated opponent to proper Monster array
+      const aiMonsters = generatedOpponent.scaledMonsters.map((scaledMonster: any) => ({
+        ...scaledMonster.monster,
+        hp: scaledMonster.hp,
+        max_hp: scaledMonster.hp,
+        mp: scaledMonster.mp,
+        max_mp: scaledMonster.mp,
+        power: scaledMonster.monster.basePower,
+        defense: scaledMonster.monster.baseDefense,
+        speed: scaledMonster.monster.baseSpeed,
+        level: scaledMonster.level,
+        is_fainted: false
+      }));
 
-      // Fetch AI monster abilities
-      const aiAbilitiesResponse = await fetch(`/api/monster-abilities/${generatedOpponent.scaledMonsters[0].monster.id}`);
-      const aiAbilities = await aiAbilitiesResponse.json();
-      setAiMonsterAbilities(aiAbilities);
+      setAiTeam(aiMonsters);
 
-      // Initialize battle state - FIXED VERSION with level property included
-      setBattleState({
-        turn: 'player',
-        phase: 'select',
-        playerMonster: {
-          ...selectedTeam[0].monster,
-          hp: selectedTeam[0].hp,
-          max_hp: selectedTeam[0].maxHp,
-          mp: selectedTeam[0].mp,
-          max_mp: selectedTeam[0].maxMp,
-          power: selectedTeam[0].power,
-          defense: selectedTeam[0].defense,
-          speed: selectedTeam[0].speed,
-          level: selectedTeam[0].level // This line is the fix
-        },
-        aiMonster: {
-          ...generatedOpponent.scaledMonsters[0].monster,
-          hp: generatedOpponent.scaledMonsters[0].hp,
-          max_hp: generatedOpponent.scaledMonsters[0].hp,
-          mp: generatedOpponent.scaledMonsters[0].mp,
-          max_mp: generatedOpponent.scaledMonsters[0].mp,
-          power: generatedOpponent.scaledMonsters[0].monster.basePower,
-          defense: generatedOpponent.scaledMonsters[0].monster.baseDefense,
-          speed: generatedOpponent.scaledMonsters[0].monster.baseSpeed,
-          level: generatedOpponent.scaledMonsters[0].level // Include the level
-        },
-        battleLog: [`Battle begins! ${selectedTeam[0].monster.name} (Lv.${selectedTeam[0].level}) vs ${generatedOpponent.scaledMonsters[0].monster.name} (Lv.${generatedOpponent.scaledMonsters[0].level})!`],
-        battleEnded: false
-      });
+      // Pre-load AI abilities for all monsters
+      const abilitiesMap: Record<number, Ability[]> = {};
+      for (const monster of aiMonsters) {
+        try {
+          const response = await fetch(`/api/monster-abilities/${monster.id}`);
+          const abilities = await response.json();
+          abilitiesMap[monster.id] = abilities;
+        } catch (error) {
+          console.error(`Failed to fetch abilities for monster ${monster.id}:`, error);
+          abilitiesMap[monster.id] = [];
+        }
+      }
+      setAiMonsterAbilities(abilitiesMap);
 
-      // Switch to combat mode
-      setBattleMode('combat');
+      setBattleLog([`Battle is about to begin! Select your starting monster.`]);
+      setBattleMode('lead-select');
+      setTurn('pre-battle');
 
     } catch (error) {
       console.error('Error starting battle:', error);
     }
+
+    setIsLoading(false);
   };
 
-  // Refactored onAbilityClick handler - now receives full ability object
-  const onAbilityClick = async (ability: Ability) => {
-    if (!playerMonster || !aiMonster || !battleState || battleState.turn !== 'player' || battleState.phase !== 'select') return;
+  const selectLeadMonster = (index: number) => {
+    setActivePlayerIndex(index);
+    // AI randomly selects its lead
+    const randomAiIndex = Math.floor(Math.random() * aiTeam.length);
+    setActiveAiIndex(randomAiIndex);
+
+    setBattleLog(prev => [
+      ...prev, 
+      `${playerTeam[index].monster.name} will start for you!`,
+      `Your opponent sends out ${aiTeam[randomAiIndex].name}!`
+    ]);
+
+    // Determine first turn based on speed and start the battle
+    determineFirstTurn(playerTeam[index], aiTeam[randomAiIndex]);
+    setBattleMode('combat');
+  };
+
+  const determineFirstTurn = (playerMonster: UserMonster, aiMonster: Monster) => {
+    const playerSpeed = playerMonster.speed;
+    const aiSpeed = aiMonster.speed;
+
+    if (playerSpeed >= aiSpeed) {
+      setTurn('player');
+      setBattleLog(prev => [...prev, `${playerMonster.monster.name} is faster and gets the first turn!`]);
+    } else {
+      setTurn('ai');
+      setBattleLog(prev => [...prev, `${aiMonster.name} is faster and gets the first turn!`]);
+    }
+  };
+
+  const handlePlayerAbility = async (ability: Ability) => {
+    if (turn !== 'player' || battleEnded) return;
+
+    const activePlayerMonster = playerTeam[activePlayerIndex];
+    const activeAiMonster = aiTeam[activeAiIndex];
 
     // Check if player has enough MP
-    if (battleState.playerMonster.mp < ability.mp_cost) {
-      setBattleState(prev => prev ? {
-        ...prev,
-        battleLog: [...prev.battleLog, `${playerMonster.monster.name} doesn't have enough MP to use ${ability.name}!`]
-      } : prev);
+    if (activePlayerMonster.mp < ability.mp_cost) {
+      setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} doesn't have enough MP to use ${ability.name}!`]);
       return;
     }
 
-    // Deduct MP cost and update battle state
-    const updatedPlayerMonster = {
-      ...battleState.playerMonster,
-      mp: battleState.playerMonster.mp - ability.mp_cost
+    // Deduct MP cost
+    const updatedPlayerTeam = [...playerTeam];
+    updatedPlayerTeam[activePlayerIndex] = {
+      ...activePlayerMonster,
+      mp: activePlayerMonster.mp - ability.mp_cost
     };
+    setPlayerTeam(updatedPlayerTeam);
 
-    // Calculate damage using the full ability object
-    const damageResult = calculateDamage(updatedPlayerMonster, battleState.aiMonster, ability);
+    // Calculate damage
+    const damageResult = calculateDamage(activePlayerMonster, activeAiMonster, ability);
 
     // Apply damage to AI monster
-    const newAiHp = Math.max(0, battleState.aiMonster.hp - damageResult.damage);
-    const updatedAiMonster = {
-      ...battleState.aiMonster,
+    const newAiHp = Math.max(0, activeAiMonster.hp - damageResult.damage);
+    const updatedAiTeam = [...aiTeam];
+    updatedAiTeam[activeAiIndex] = {
+      ...activeAiMonster,
       hp: newAiHp,
       is_fainted: newAiHp === 0
     };
+    setAiTeam(updatedAiTeam);
 
     // Build battle log message
-    let logMessage = `${playerMonster.monster.name} used ${ability.name}! `;
+    let logMessage = `${activePlayerMonster.monster.name} used ${ability.name}! `;
 
     if (damageResult.isCritical) {
       logMessage += "A Critical Hit! ";
     }
 
-    logMessage += `Dealt ${damageResult.damage} damage to ${battleState.aiMonster.name}.`;
+    logMessage += `Dealt ${damageResult.damage} damage to ${activeAiMonster.name}.`;
 
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
     if (effectivenessMsg) {
@@ -282,107 +362,157 @@ const BattleArena: React.FC = () => {
 
     // Handle status effect application
     if (damageResult.statusEffect) {
-      logMessage += ` ${battleState.aiMonster.name} is now affected by ${damageResult.statusEffect.effectName}!`;
+      logMessage += ` ${activeAiMonster.name} is now affected by ${damageResult.statusEffect.effectName}!`;
     }
 
-    // Update battle state
-    setBattleState(prev => prev ? {
-      ...prev,
-      playerMonster: updatedPlayerMonster,
-      aiMonster: updatedAiMonster,
-      battleLog: [...prev.battleLog, logMessage],
-      turn: 'ai',
-      phase: 'processing'
-    } : prev);
+    setBattleLog(prev => [...prev, logMessage]);
 
     // Check if AI monster is defeated
-    if (updatedAiMonster.is_fainted) {
-      setBattleState(prev => prev ? {
-        ...prev,
-        battleLog: [...prev.battleLog, `${battleState.aiMonster.name} has been defeated! You win!`],
-        battleEnded: true,
-        winner: 'player'
-      } : prev);
+    if (newAiHp === 0) {
+      setBattleLog(prev => [...prev, `${activeAiMonster.name} has been defeated!`]);
+
+      // Check if AI has more monsters
+      const remainingAiMonsters = updatedAiTeam.filter(monster => monster.hp > 0);
+      if (remainingAiMonsters.length === 0) {
+        setBattleLog(prev => [...prev, "You win the battle!"]);
+        setBattleEnded(true);
+        setWinner('player');
+        return;
+      } else {
+        // AI automatically switches to next available monster
+        const nextAiIndex = updatedAiTeam.findIndex(monster => monster.hp > 0);
+        setActiveAiIndex(nextAiIndex);
+        setBattleLog(prev => [...prev, `Your opponent sends out ${updatedAiTeam[nextAiIndex].name}!`]);
+      }
+    }
+
+    // End player turn
+    setTurn('ai');
+  };
+
+  const handleSwapMonster = (newIndex: number) => {
+    if (newIndex === activePlayerIndex || turn !== 'player' || battleEnded) return;
+
+    const newActiveMonster = playerTeam[newIndex];
+
+    // Check if the monster is fainted
+    if (newActiveMonster.hp <= 0) {
+      setBattleLog(prev => [...prev, `${newActiveMonster.monster.name} is unable to battle!`]);
       return;
     }
 
-    // AI counter-attack with delay
-    setTimeout(() => {
-      if (aiMonsterAbilities.length > 0 && battleState) {
-        // AI selects a random ability it can afford
-        const affordableAbilities = aiMonsterAbilities.filter(
-          ability => ability.ability_type === 'ACTIVE' && updatedAiMonster.mp >= ability.mp_cost
-        );
-
-        const selectedAbility = affordableAbilities.length > 0
-          ? affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)]
-          : aiMonsterAbilities[0]; // Fallback to first ability if none affordable
-
-        // Deduct AI MP cost
-        const updatedAiMonsterWithMp = {
-          ...updatedAiMonster,
-          mp: Math.max(0, updatedAiMonster.mp - selectedAbility.mp_cost)
-        };
-
-        // Calculate AI damage using full ability object
-        const aiDamageResult = calculateDamage(updatedAiMonsterWithMp, updatedPlayerMonster, selectedAbility);
-
-        // Apply damage to player monster
-        const newPlayerHp = Math.max(0, updatedPlayerMonster.hp - aiDamageResult.damage);
-        const finalPlayerMonster = {
-          ...updatedPlayerMonster,
-          hp: newPlayerHp,
-          is_fainted: newPlayerHp === 0
-        };
-
-        // Build AI attack log message
-        let aiLogMessage = `${updatedAiMonsterWithMp.name} used ${selectedAbility.name}! `;
-
-        if (aiDamageResult.isCritical) {
-          aiLogMessage += "A Critical Hit! ";
-        }
-
-        aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${playerMonster.monster.name}.`;
-
-        const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
-        if (aiEffectivenessMsg) {
-          aiLogMessage += ` ${aiEffectivenessMsg}`;
-        }
-
-        // Handle AI status effect application
-        if (aiDamageResult.statusEffect) {
-          aiLogMessage += ` ${playerMonster.monster.name} is now affected by ${aiDamageResult.statusEffect.effectName}!`;
-        }
-
-        setBattleState(prev => prev ? {
-          ...prev,
-          playerMonster: finalPlayerMonster,
-          aiMonster: updatedAiMonsterWithMp,
-          battleLog: [...prev.battleLog, aiLogMessage],
-          turn: 'player',
-          phase: 'select'
-        } : prev);
-
-        // Check if player monster is defeated
-        if (finalPlayerMonster.is_fainted) {
-          setBattleState(prev => prev ? {
-            ...prev,
-            battleLog: [...prev.battleLog, `${playerMonster.monster.name} has been defeated! You lose!`],
-            battleEnded: true,
-            winner: 'ai'
-          } : prev);
-          return;
-        }
-      }
-    }, 2000);
+    setActivePlayerIndex(newIndex);
+    setBattleLog(prev => [...prev, `You called back your monster and sent out ${newActiveMonster.monster.name}!`]);
+    setTurn('ai'); // Swapping costs the turn
   };
+
+  const handleAiAbility = () => {
+    if (battleEnded) return;
+
+    const activeAiMonster = aiTeam[activeAiIndex];
+    const activePlayerMonster = playerTeam[activePlayerIndex];
+    const aiAbilities = aiMonsterAbilities[activeAiMonster.id] || [];
+
+    if (aiAbilities.length === 0) {
+      setBattleLog(prev => [...prev, `${activeAiMonster.name} has no abilities!`]);
+      setTurn('player');
+      return;
+    }
+
+    // AI selects a random ability it can afford
+    const affordableAbilities = aiAbilities.filter(
+      ability => ability.ability_type === 'ACTIVE' && activeAiMonster.mp >= ability.mp_cost
+    );
+
+    const selectedAbility = affordableAbilities.length > 0
+      ? affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)]
+      : aiAbilities[0]; // Fallback to first ability if none affordable
+
+    // Deduct AI MP cost
+    const updatedAiTeam = [...aiTeam];
+    updatedAiTeam[activeAiIndex] = {
+      ...activeAiMonster,
+      mp: Math.max(0, activeAiMonster.mp - selectedAbility.mp_cost)
+    };
+    setAiTeam(updatedAiTeam);
+
+    // Calculate AI damage
+    const aiDamageResult = calculateDamage(activeAiMonster, activePlayerMonster, selectedAbility);
+
+    // Apply damage to player monster
+    const newPlayerHp = Math.max(0, activePlayerMonster.hp - aiDamageResult.damage);
+    const updatedPlayerTeam = [...playerTeam];
+    updatedPlayerTeam[activePlayerIndex] = {
+      ...activePlayerMonster,
+      hp: newPlayerHp
+    };
+    setPlayerTeam(updatedPlayerTeam);
+
+    // Build AI attack log message
+    let aiLogMessage = `${activeAiMonster.name} used ${selectedAbility.name}! `;
+
+    if (aiDamageResult.isCritical) {
+      aiLogMessage += "A Critical Hit! ";
+    }
+
+    aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${activePlayerMonster.monster.name}.`;
+
+    const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
+    if (aiEffectivenessMsg) {
+      aiLogMessage += ` ${aiEffectivenessMsg}`;
+    }
+
+    // Handle AI status effect application
+    if (aiDamageResult.statusEffect) {
+      aiLogMessage += ` ${activePlayerMonster.monster.name} is now affected by ${aiDamageResult.statusEffect.effectName}!`;
+    }
+
+    setBattleLog(prev => [...prev, aiLogMessage]);
+
+    // Check if player monster is defeated
+    if (newPlayerHp === 0) {
+      setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} has been defeated!`]);
+
+      // Check if player has more monsters
+      const remainingPlayerMonsters = updatedPlayerTeam.filter(monster => monster.hp > 0);
+      if (remainingPlayerMonsters.length === 0) {
+        setBattleLog(prev => [...prev, "You lose the battle!"]);
+        setBattleEnded(true);
+        setWinner('ai');
+        return;
+      } else {
+        // Player must choose next monster - this will be handled in UI
+        setBattleLog(prev => [...prev, "Choose your next monster!"]);
+        setTurn('player'); // Player needs to swap
+        return;
+      }
+    }
+
+    // End AI turn
+    setTurn('player');
+  };
+
+  // AI Turn Logic
+  useEffect(() => {
+    if (turn === 'ai' && !battleEnded) {
+      // Add a timeout for dramatic effect
+      setTimeout(() => {
+        handleAiAbility();
+      }, 1500);
+    }
+  }, [turn, battleEnded]);
 
   const resetBattle = () => {
     setBattleMode('team-select');
-    setPlayerMonster(null);
-    setAiMonster(null);
-    setBattleState(null);
-    setAiMonsterAbilities([]);
+    setPlayerTeam([]);
+    setAiTeam([]);
+    setActivePlayerIndex(0);
+    setActiveAiIndex(0);
+    setTurn('pre-battle');
+    setBattleLog([]);
+    setBattleEnded(false);
+    setWinner(null);
+    setAiMonsterAbilities({});
   };
 
   // Team selection view
@@ -395,70 +525,166 @@ const BattleArena: React.FC = () => {
     );
   }
 
-  // Combat view
-  if (!playerMonster || !aiMonster || !battleState) {
-    return <div className="flex justify-center items-center h-64">Loading battle...</div>;
-  }
-
-  return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-bold text-center mb-8">Battle Arena</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-blue-600">Your Monster</h2>
-          <MonsterCard
-            monster={battleState.playerMonster}
-            onAbilityClick={onAbilityClick}
-            battleMode={true}
-            isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
-            battleMp={battleState.playerMonster.mp}
-            battleHp={battleState.playerMonster.hp}
-          />
-        </div>
-
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4 text-red-600">Opponent</h2>
-          <MonsterCard
-            monster={battleState.aiMonster}
-            onAbilityClick={() => {}}
-            showAbilities={true}
-            battleHp={battleState.aiMonster.hp}
-          />
+  // Lead monster selection view
+  if (battleMode === 'lead-select') {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-center mb-8">Choose Your Lead Monster</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {playerTeam.map((userMonster, index) => (
+            <Card key={userMonster.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-4">
+                <MonsterCard
+                  monster={userMonster.monster}
+                  userMonster={userMonster}
+                  size="small"
+                />
+                <Button 
+                  onClick={() => selectLeadMonster(index)}
+                  className="w-full mt-4"
+                  disabled={userMonster.hp <= 0}
+                >
+                  {userMonster.hp <= 0 ? 'Fainted' : 'Choose as Lead'}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
+    );
+  }
 
-      <div className="bg-gray-100 p-4 rounded-lg mb-4">
-        <h3 className="text-lg font-semibold mb-2">Battle Log</h3>
-        <div className="h-40 overflow-y-auto bg-white p-3 rounded border">
-          {battleState.battleLog.length === 0 ? (
-            <p className="text-gray-500 italic">Battle will begin when you select an ability...</p>
+  // Combat view
+  if (battleMode === 'combat') {
+    // Add this loading check right at the top
+    if (isLoading) {
+      return <div className="text-center p-8">Loading battle...</div>;
+    }
+
+    const activePlayerMonster = playerTeam[activePlayerIndex];
+    const activeAiMonster = aiTeam[activeAiIndex];
+
+    // Add this guard clause
+    if (!activePlayerMonster || !activeAiMonster) {
+      return <div className="text-center p-8">Setting up combatants...</div>;
+    }
+
+    const benchedMonsters = playerTeam.filter((_, index) => index !== activePlayerIndex);
+    const needsToSwap = activePlayerMonster.hp <= 0 && playerTeam.some(monster => monster.hp > 0);
+
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-center mb-8">Battle Arena</h1>
+
+        {/* Active Monsters */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-4 text-blue-600">Your Active Monster</h2>
+            <MonsterCard
+              monster={{
+                ...activePlayerMonster.monster,
+                hp: activePlayerMonster.hp,
+                max_hp: activePlayerMonster.maxHp,
+                mp: activePlayerMonster.mp,
+                max_mp: activePlayerMonster.maxMp,
+                power: activePlayerMonster.power,
+                defense: activePlayerMonster.defense,
+                speed: activePlayerMonster.speed,
+                level: activePlayerMonster.level
+              }}
+              onAbilityClick={handlePlayerAbility}
+              battleMode={true}
+              isPlayerTurn={turn === 'player' && !needsToSwap}
+              battleMp={activePlayerMonster.mp}
+              battleHp={activePlayerMonster.hp}
+            />
+          </div>
+
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-4 text-red-600">Opponent's Active Monster</h2>
+            <MonsterCard
+              monster={activeAiMonster}
+              onAbilityClick={() => {}}
+              showAbilities={true}
+              battleHp={activeAiMonster.hp}
+            />
+          </div>
+        </div>
+
+        {/* Bench Management */}
+        {benchedMonsters.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-4 text-center">Your Bench</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {benchedMonsters.map((monster, benchIndex) => {
+                const originalIndex = playerTeam.findIndex(m => m.id === monster.id);
+                return (
+                  <Card key={monster.id} className="cursor-pointer hover:shadow-lg transition-shadow">
+                    <CardContent className="p-2">
+                      <MonsterCard
+                        monster={monster.monster}
+                        userMonster={monster}
+                        size="small"
+                      />
+                      <Button 
+                        onClick={() => handleSwapMonster(originalIndex)}
+                        className="w-full mt-2"
+                        size="sm"
+                        disabled={turn !== 'player' || monster.hp <= 0 || battleEnded}
+                        variant={needsToSwap && monster.hp > 0 ? "default" : "outline"}
+                      >
+                        {monster.hp <= 0 ? 'Fainted' : needsToSwap ? 'Send Out!' : 'Swap In'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Battle Log */}
+        <div className="bg-gray-100 p-4 rounded-lg mb-4">
+          <h3 className="text-lg font-semibold mb-2">Battle Log</h3>
+          <div className="h-40 overflow-y-auto bg-white p-3 rounded border">
+            {battleLog.length === 0 ? (
+              <p className="text-gray-500 italic">Battle will begin soon...</p>
+            ) : (
+              battleLog.map((log, index) => (
+                <p key={index} className="mb-1 text-sm">{log}</p>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Turn Status */}
+        <div className="text-center">
+          {battleEnded ? (
+            <div>
+              <p className="text-2xl font-bold mb-4">
+                {winner === 'player' ? '🎉 Victory! 🎉' : '💀 Defeat 💀'}
+              </p>
+              <Button onClick={resetBattle} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                New Battle
+              </Button>
+            </div>
+          ) : needsToSwap ? (
+            <p className="text-lg font-semibold text-red-600">
+              Your monster is down! Choose a replacement from your bench!
+            </p>
           ) : (
-            battleState.battleLog.map((log, index) => (
-              <p key={index} className="mb-1 text-sm">{log}</p>
-            ))
+            <p className="text-lg font-semibold">
+              {turn === 'player' 
+                ? "Your Turn - Attack or Swap!" 
+                : `${activeAiMonster.name} is thinking...`}
+            </p>
           )}
         </div>
       </div>
+    );
+  }
 
-      <div className="text-center">
-        {battleState.battleEnded ? (
-          <button
-            onClick={resetBattle}
-            className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded"
-          >
-            New Battle
-          </button>
-        ) : (
-          <p className="text-lg font-semibold">
-            {battleState.turn === 'player' && battleState.phase === 'select'
-              ? "Your Turn - Select an ability!"
-              : "Opponent's turn..."}
-          </p>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 };
 
 export default BattleArena;

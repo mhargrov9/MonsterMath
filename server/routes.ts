@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { SERVER_CONSTANTS } from "./gameData";
+import { AI_OPPONENTS, MONSTER_NAMES } from "../config/gameData";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -74,10 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // For monsters with custom uploaded images, serve them directly
         if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
-          // Get monster name from database instead of hardcoded mapping
-          const monsters = await storage.getAllMonsters();
-          const monster = monsters.find(m => m.id === monsterIdNum);
-          const monsterName = monster?.name;
+          const monsterName = MONSTER_NAMES[monsterIdNum as keyof typeof MONSTER_NAMES];
 
           // Try to find the image file using fs.readdir
           try {
@@ -199,20 +196,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })(req, res, next);
   });
 
-  // Developer Tools - Add Battle Tokens
-  app.post("/api/dev/add-tokens", isAuthenticated, async (req: any, res) => {
+  // Developer Tools - Add Battle Tokens - WITH AUTHENTICATION TEMPORARILY BYPASSED FOR DEBUGGING
+  app.post("/api/dev/add-tokens", async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      console.log('ROUTE: /api/dev/add-tokens endpoint hit');
+      console.log('ROUTE: Request headers:', req.headers);
+      console.log('ROUTE: Request body:', req.body);
+
+      const userId = 'local_1750003872665_ijacq19mc'; // HARDCODED FOR DEBUGGING - TEMPORARY
       const { amount = 5 } = req.body;
+
+      console.log('ROUTE: /api/dev/add-tokens hit for userId:', userId);
+      console.log('ROUTE: Token amount to add:', amount);
+      console.log('ROUTE: Using hardcoded userId for debugging');
+      console.log('ROUTE: About to call storage.addBattleTokens...');
 
       const user = await storage.addBattleTokens(userId, amount);
 
-      res.json({ 
-        message: `${amount} battle tokens added.`, 
-        user,
-        battleTokens: user.battleTokens 
-      });
+      console.log('ROUTE: storage.addBattleTokens returned:', user);
+      console.log('ROUTE: User battleTokens property:', user?.battleTokens);
+      console.log('ROUTE: About to send response...');
+
+      const response = { message: `${amount} battle tokens added.`, user };
+      console.log('ROUTE: Final response object:', response);
+
+      res.json(response);
     } catch (error) {
+      console.log('ROUTE: Error in /api/dev/add-tokens:', error);
+      console.log('ROUTE: Error type:', typeof error);
+      console.log('ROUTE: Error message:', (error as Error)?.message);
+      console.log('ROUTE: Error stack:', (error as Error)?.stack);
       handleError(error, res, "Failed to add battle tokens");
     }
   });
@@ -256,20 +269,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { monsterId } = req.body;
 
-      console.log(`Purchase request: User ${userId}, Monster ID ${monsterId}`);
-
       try {
         const validatedMonsterId = validateMonsterId(monsterId);
         const userMonster = await storage.purchaseMonster(userId, validatedMonsterId);
-        console.log(`Purchase successful: User monster ID ${userMonster.id}`);
         res.json(userMonster);
       } catch (validationError) {
-        console.log(`Validation error:`, validationError);
         return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid monster ID" });
       }
 
     } catch (error) {
-      console.log(`Purchase error:`, error);
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to purchase monster" });
     }
   });

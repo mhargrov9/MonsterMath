@@ -302,8 +302,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async purchaseMonster(userId: string, monsterId: number): Promise<UserMonster> {
-    console.log(`Purchase attempt: User ${userId} trying to buy monster ${monsterId}`);
-    
     // Get monster details
     const [monster] = await db.select({
       id: monsters.id,
@@ -328,40 +326,19 @@ export class DatabaseStorage implements IStorage {
     }).from(monsters).where(eq(monsters.id, monsterId));
 
     if (!monster) {
-      console.log(`Monster ${monsterId} not found`);
       throw new Error("Monster not found");
     }
-
-    console.log(`Found monster: ${monster.name}, cost: ${monster.goldCost} gold`);
 
     // Get user to check currency
     const [user] = await db.select().from(users).where(eq(users.id, userId));
 
     if (!user) {
-      console.log(`User ${userId} not found`);
       throw new Error("User not found");
     }
 
-    console.log(`User has ${user.gold} gold, monster costs ${monster.goldCost}`);
-
     if (user.gold < monster.goldCost || user.diamonds < monster.diamondCost) {
-      console.log(`Insufficient currency: user has ${user.gold}g/${user.diamonds}d, needs ${monster.goldCost}g/${monster.diamondCost}d`);
       throw new Error("Insufficient currency");
     }
-
-    // Check if user already owns this monster
-    const existingMonster = await db
-      .select()
-      .from(userMonsters)
-      .where(and(eq(userMonsters.userId, userId), eq(userMonsters.monsterId, monsterId)))
-      .limit(1);
-
-    if (existingMonster.length > 0) {
-      console.log(`User already owns monster ${monsterId}`);
-      throw new Error("You already own this monster");
-    }
-
-    console.log(`Creating user monster entry...`);
 
     // Create user monster with base stats and initialize HP/MP
     const [userMonster] = await db
@@ -372,20 +349,16 @@ export class DatabaseStorage implements IStorage {
         power: monster.basePower,
         speed: monster.baseSpeed,
         defense: monster.baseDefense,
-        hp: monster.baseHp,
-        maxHp: monster.baseHp,
-        mp: monster.baseMp,
-        maxMp: monster.baseMp
+        hp: monster.baseHp, // SET this to baseHp
+        maxHp: monster.baseHp, // SET this to baseHp
+        mp: monster.baseMp, // SET this to baseMp
+        maxMp: monster.baseMp // SET this to baseMp
       })
       .returning();
 
-    console.log(`User monster created with ID: ${userMonster.id}`);
-
     // Deduct currency
-    console.log(`Deducting ${monster.goldCost} gold from user`);
     await this.updateUserCurrency(userId, -monster.goldCost, -monster.diamondCost);
 
-    console.log(`Purchase completed successfully`);
     return userMonster;
   }
 
@@ -1117,7 +1090,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedUser] = await db
       .update(users)
       .set({
-        battleTokens: newTokens,
+        battle_tokens: newTokens,
         updatedAt: new Date()
       })
       .where(eq(users.id, userId))
