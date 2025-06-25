@@ -252,28 +252,7 @@ const BattleArena: React.FC = () => {
       setPlayerTeam(selectedTeam);
 
       // Convert generated opponent to proper Monster array
-      const aiMonsters = generatedOpponent.scaledMonsters.map((scaledMonster: any) => {
-        // CORRECTED: Use 'baseHp' instead of 'max_hp' from the base monster object.
-        const maxHp = scaledMonster.monster.baseHp;
-
-        // Check if scaledMonster.hp is a valid number. If not, default to maxHp.
-        const currentHp = (typeof scaledMonster.hp === 'number' && !isNaN(scaledMonster.hp))
-          ? Math.min(scaledMonster.hp, maxHp)
-          : maxHp;
-
-        return {
-          ...scaledMonster.monster,
-          hp: currentHp,
-          max_hp: maxHp,
-          mp: scaledMonster.mp,
-          max_mp: scaledMonster.mp,
-          power: scaledMonster.monster.basePower,
-          defense: scaledMonster.monster.baseDefense,
-          speed: scaledMonster.monster.baseSpeed,
-          level: scaledMonster.level,
-          is_fainted: false
-        };
-      });
+      const aiMonsters = generatedOpponent.scaledMonsters;
 
       setAiTeam(aiMonsters);
 

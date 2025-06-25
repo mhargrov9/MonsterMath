@@ -81,7 +81,6 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
-
       toast({
         title: "Purchase Failed",
         description: error.message || "Failed to purchase monster",
@@ -114,20 +113,16 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
-
       // Handle free trial limit - show subscription gate
       if (error.message === "FREE_TRIAL_LIMIT") {
-        // Find the monster that triggered the limit from the mutation context
         const triggerMonsterId = (error as any)?.context?.userMonsterId;
         const monster = userMonsters.find(um => um.id === triggerMonsterId);
-
         if (monster) {
           setBlockedMonster(monster);
           setShowSubscriptionGate(true);
         }
         return;
       }
-
       toast({
         title: "Upgrade Failed",
         description: error.message || "Failed to upgrade monster",
@@ -162,7 +157,6 @@ export default function MonsterLab() {
         }, 500);
         return;
       }
-
       toast({
         title: "Upgrade Failed",
         description: error.message || "Failed to apply upgrade",
@@ -178,7 +172,6 @@ export default function MonsterLab() {
       setShowSubscriptionGate(true);
       return;
     }
-
     setSelectedMonster(userMonster);
     setShowUpgradeChoice(true);
   };
@@ -190,7 +183,6 @@ export default function MonsterLab() {
 
   const handleUpgradeChoice = (upgradeOption: any) => {
     if (!selectedMonster) return;
-
     applyUpgradeMutation.mutate({
       userMonsterId: selectedMonster.id,
       upgradeKey: upgradeOption.upgradeKey,
@@ -216,9 +208,6 @@ export default function MonsterLab() {
         </div>
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Current Monster</CardTitle>
-            </CardHeader>
             <CardContent className="flex flex-col items-center space-y-4">
               <VeoMonster
                 monsterId={selectedMonster.monsterId}
@@ -231,13 +220,11 @@ export default function MonsterLab() {
                 <p className="text-sm text-muted-foreground">Level {selectedMonster.level} • Stage {selectedMonster.evolutionStage}</p>
                 <div className="flex gap-4 mt-2">
                   <Badge variant="destructive"><Zap className="w-3 h-3 mr-1" />{selectedMonster.power}</Badge>
-                  <Badge variant="secondary"><Gauge className="w-3 h-3 mr-1" />{selectedMonster.speed}</Badge>
                   <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />{selectedMonster.defense}</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
-
           <UpgradeChoice
             userMonster={selectedMonster}
             onUpgrade={handleUpgradeChoice}
@@ -310,20 +297,17 @@ export default function MonsterLab() {
                     showUpgradeAnimation={animatingCards[userMonster.id] || false}
                     size="medium"
                   />
-
                   {!(flippedCards[userMonster.id] || false) && (
                     <div className="flex flex-col gap-2 w-full max-w-xs">
                       {userMonster.level < MAX_LEVEL ? (
                         <Button
                           size="sm"
                           onClick={() => {
-                            // Check if monster is at Level 3 (free trial limit)
                             if (userMonster.level >= 3) {
                               setBlockedMonster(userMonster);
                               setShowSubscriptionGate(true);
                               return;
                             }
-
                             setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
                             upgradeMutation.mutate(userMonster.id);
                             setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
@@ -338,7 +322,6 @@ export default function MonsterLab() {
                           Max Level Reached
                         </div>
                       )}
-
                       <Button
                         size="sm"
                         variant="outline"
@@ -436,6 +419,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       }
 
       const playerTPL = calculateTPL(selectedMonsters);
+
       const response = await apiRequest("/api/battle/generate-opponent", {
         method: "POST",
         data: { tpl: playerTPL }
@@ -444,32 +428,31 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       const responseData = await response.json();
       return responseData;
     },
-    onSuccess: (aiOpponent: any) => {
-      if (aiOpponent && aiOpponent.team) {
-        const opponentTPL = aiOpponent.scaledMonsters ?
-          calculateTPL(aiOpponent.scaledMonsters.map((m: any) => ({ level: m.level }))) : 0;
+    onSuccess: (data) => {
+      console.log("CLIENT LOG: generateOpponent successful. Data received:", data);
 
-        toast({
-          title: "Opponent Found!",
-          description: `Facing ${aiOpponent.team.name} (TPL: ${opponentTPL})`,
-          variant: "default",
-        });
-
-        onBattleStart(selectedMonsters, aiOpponent);
+      // Add a check to see if the data is what we expect
+      if (data && data.scaledMonsters && data.scaledMonsters.length > 0) {
+        console.log("CLIENT LOG: Data is valid, calling onBattleStart.");
+        onBattleStart(selectedMonsters, data);
       } else {
+        // This is the likely source of the "Invalid data" error
+        console.error("CLIENT LOG: Data received from server is considered invalid or empty.", data);
         toast({
           title: "Battle Generation Failed",
-          description: "Invalid opponent data received",
+          description: "Invalid opponent data received from server.",
           variant: "destructive",
         });
       }
       setIsGeneratingOpponent(false);
     },
-    onError: (error: Error) => {
+    onError: (error) => {
+      // This will log any network errors
+      console.error("CLIENT LOG: generateOpponent failed with a network or server error:", error);
       setIsGeneratingOpponent(false);
       toast({
-        title: "Error: Could not find a suitable opponent at this time",
-        description: error.message || "Please try adjusting your team composition",
+        title: "Battle Generation Failed",
+        description: (error as Error).message,
         variant: "destructive",
       });
     },
@@ -578,9 +561,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {selectedMonsters.map((userMonster) => (
                 <div key={userMonster.id} className="relative">
-                  <Badge
-                    className="absolute top-2 right-2 z-10 bg-green-600 text-white"
-                  >
+                  <Badge className="absolute top-2 right-2 z-10 bg-green-600 text-white">
                     LV.{userMonster.level} • Selected
                   </Badge>
                   <div onClick={() => handleMonsterSelect(userMonster)}>
@@ -609,16 +590,12 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
               return (
                 <div key={userMonster.id} className="relative mx-4 my-3">
                   {isSelected && (
-                    <Badge
-                      className="absolute top-4 right-4 z-10 bg-green-600 text-white"
-                    >
+                    <Badge className="absolute top-4 right-4 z-10 bg-green-600 text-white">
                       Selected
                     </Badge>
                   )}
                   {!isSelected && !canSelect && (
-                    <Badge
-                      className="absolute top-4 right-4 z-10 bg-gray-500 text-white"
-                    >
+                    <Badge className="absolute top-4 right-4 z-10 bg-gray-500 text-white">
                       Slots Full
                     </Badge>
                   )}
