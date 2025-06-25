@@ -21,6 +21,13 @@ function isUnauthorizedError(error: any): boolean {
   return error?.message?.includes('Unauthorized') || error?.status === 401;
 }
 
+async function throwIfResNotOk(res: Response) {
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
+  }
+}
+
 export default function MonsterLab() {
   const { toast } = useToast();
   const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
@@ -77,7 +84,14 @@ export default function MonsterLab() {
 
   const purchaseMutation = useMutation({
     mutationFn: async (monsterId: number) => {
-      return await apiRequest("POST", "/api/monsters/purchase", { monsterId });
+      console.log(`Frontend: Attempting to purchase monster ${monsterId}`);
+      const response = await apiRequest("/api/monsters/purchase", { 
+        method: "POST", 
+        data: { monsterId } 
+      });
+      console.log(`Frontend: Purchase response status:`, response.status);
+      await throwIfResNotOk(response);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
@@ -110,7 +124,12 @@ export default function MonsterLab() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (userMonsterId: number) => {
-      return await apiRequest("POST", "/api/monsters/upgrade", { userMonsterId });
+      const response = await apiRequest("/api/monsters/upgrade", { 
+        method: "POST", 
+        data: { userMonsterId } 
+      });
+      await throwIfResNotOk(response);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
