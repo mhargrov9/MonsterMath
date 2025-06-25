@@ -638,6 +638,37 @@ const BattleArena: React.FC = () => {
           </div>
         )}
 
+        {/* Opponent's Bench */}
+        {aiTeam.length > 1 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold mb-4 text-center text-red-600">Opponent's Bench</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {aiTeam.map((monster, index) => {
+                // Only show monsters that are not the active AI monster
+                if (index === activeAiIndex) return null;
+                
+                return (
+                  <Card key={monster.id} className="opacity-80">
+                    <CardContent className="p-2">
+                      <MonsterCard
+                        monster={monster}
+                        size="small"
+                        battleHp={monster.hp}
+                        showAbilities={false}
+                      />
+                      <div className="text-center mt-2 text-sm">
+                        <span className={`font-medium ${monster.hp <= 0 ? 'text-red-500' : 'text-gray-600'}`}>
+                          {monster.hp <= 0 ? 'Fainted' : 'Ready'}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Battle Log */}
         <div className="bg-gray-100 p-4 rounded-lg mb-4">
           <h3 className="text-lg font-semibold mb-2">Battle Log</h3>
