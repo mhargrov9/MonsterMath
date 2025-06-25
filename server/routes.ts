@@ -5,7 +5,6 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { AI_OPPONENTS, MONSTER_NAMES } from "../config/gameData";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -74,7 +73,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // For monsters with custom uploaded images, serve them directly
         if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
-          const monsterName = MONSTER_NAMES[monsterIdNum as keyof typeof MONSTER_NAMES];
+          // Get all monsters from the database to find the correct name
+          const monsters = await storage.getAllMonsters();
+          const monster = monsters.find(m => m.id === monsterIdNum);
+          const monsterName = monster?.name;
+
+          // Add a check in case the monster isn't found
+          if (!monsterName) {
+            console.error(`No monster found with ID: ${monsterIdNum}`);
+            const upgradeChoices = level ? { level: levelNum } : {};
+            const imageData = await veoClient.generateMonsterImage(monsterIdNum, upgradeChoices);
+            const buffer = Buffer.from(imageData, 'base64');
+            res.set({ 'Content-Type': 'image/png', 'Content-Length': buffer.length, 'Cache-Control': 'public, max-age=3600' });
+            return res.send(buffer);
+          }
 
           // Try to find the image file using fs.readdir
           try {
@@ -167,8 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Hash password and create user
       const bcrypt = await import('bcrypt');
       const passwordHash = await bcrypt.hash(password, 10);
-      const user = await storage.createLocalUser(username, email, passwordHash);
 
+      const user = await storage.createLocalUser(username, email, passwordHash);
       res.status(201).json({ message: "Account created successfully", userId: user.id });
 
     } catch (error) {
@@ -221,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('ROUTE: Final response object:', response);
 
       res.json(response);
+
     } catch (error) {
       console.log('ROUTE: Error in /api/dev/add-tokens:', error);
       console.log('ROUTE: Error type:', typeof error);
@@ -293,6 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const upgradedMonster = await storage.upgradeMonster(userId, userMonsterId);
       res.json(upgradedMonster);
+
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to upgrade monster" });
     }
@@ -325,6 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       res.json(upgradedMonster);
+
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to apply upgrade" });
     }
@@ -438,6 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json(question);
+
     } catch (error) {
       handleError(error, res, "Failed to fetch question");
     }
@@ -468,6 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           goldEarned: 0
         });
       }
+
     } catch (error) {
       handleError(error, res, "Failed to process answer");
     }
