@@ -784,29 +784,38 @@ export class DatabaseStorage implements IStorage {
   async generateAiOpponent(tpl: number) {
     console.log(`Log 1: TPL calculated as: ${tpl}`);
 
-    const TEAM_SIZE = 3;
+    const PREFERRED_TEAM_SIZE = 3;
 
-    // Fetch all non-starter monsters from the database to create a pool
-    const monsterPool = await db.select().from(monsters).where(eq(monsters.starterSet, false));
+    // REVERTED to use monsters.starterSet (camelCase) for the Drizzle ORM
+    let monsterPool = await db.select().from(monsters).where(eq(monsters.starterSet, false));
 
-    if (monsterPool.length < TEAM_SIZE) {
-      throw new Error("Not enough monsters in the pool to generate a full team.");
+    // If the non-starter pool is empty, use starter monsters as a fallback
+    if (monsterPool.length === 0) {
+      console.log("AI GEN LOG: No non-starter monsters found. Using starters as fallback pool.");
+      // REVERTED to use monsters.starterSet in the fallback query as well
+      monsterPool = await db.select().from(monsters).where(eq(monsters.starterSet, true));
     }
 
-    // Randomly select 3 unique monsters from the pool
+    // If both pools are empty, then we must throw an error.
+    if (monsterPool.length === 0) {
+        throw new Error("There are no monsters in the database to generate a team.");
+    }
+
+    const actualTeamSize = Math.min(PREFERRED_TEAM_SIZE, monsterPool.length);
+
+    // Randomly select up to actualTeamSize unique monsters from the pool
     const selectedTeamIndexes = new Set<number>();
-    while (selectedTeamIndexes.size < TEAM_SIZE) {
+    while (selectedTeamIndexes.size < actualTeamSize) {
       selectedTeamIndexes.add(Math.floor(Math.random() * monsterPool.length));
     }
 
     const teamMonsters = Array.from(selectedTeamIndexes).map(index => monsterPool[index]);
 
     // Distribute the TPL among the team members
-    const tplPerMonster = Math.floor(tpl / TEAM_SIZE);
+    const tplPerMonster = Math.floor(tpl / actualTeamSize);
 
     const scaledMonsters = teamMonsters.map(monster => {
       // Simple scaling logic: level is roughly TPL / 10
-      // We can make this more complex later
       const level = Math.max(1, Math.round(tplPerMonster / 10));
 
       // Calculate stats based on level
@@ -814,14 +823,26 @@ export class DatabaseStorage implements IStorage {
       const mp = monster.baseMp + (monster.mpPerLevel * (level - 1));
 
       return {
-        monster,
-        level,
-        hp,
-        mp
+        // Instead of nesting the whole monster object, we flatten it.
+        id: monster.id,
+        name: monster.name,
+        level: level,
+        hp: hp,
+        max_hp: monster.baseHp, // Use baseHp for max_hp
+        mp: mp,
+        max_mp: monster.baseMp, // Use baseMp for max_mp
+        power: monster.basePower,
+        defense: monster.baseDefense,
+        speed: monster.baseSpeed,
+        affinity: monster.type, // The schema uses 'type' for affinity
+        resistances: monster.resistances,
+        weaknesses: monster.weaknesses,
+        is_fainted: false
+        // We no longer return the nested 'monster' object.
       };
     });
 
-    console.log(`Log 2: Final AI team generated with monsters:`, scaledMonsters.map(m => `${m.monster.name} (Lv.${m.level})`));
+    console.log(`Log 2: Final AI team generated with monsters:`, scaledMonsters.map(m => `${m.name} (Lv.${m.level})`));
 
     // Return a structured object that the frontend expects
     return {
