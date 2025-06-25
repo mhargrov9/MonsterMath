@@ -80,7 +80,6 @@ interface DamageResult {
 
 const BattleArena: React.FC = () => {
   const [battleMode, setBattleMode] = useState<'team-select' | 'lead-select' | 'combat'>('team-select');
-
   // Add loading state
   const [isLoading, setIsLoading] = useState(false);
 
@@ -113,11 +112,9 @@ const BattleArena: React.FC = () => {
     if (weaknessesLower.includes(attackAffinityLower)) {
       return 2.0;
     }
-
     if (resistancesLower.includes(attackAffinityLower)) {
       return 0.5;
     }
-
     return 1.0;
   };
 
@@ -126,32 +123,44 @@ const BattleArena: React.FC = () => {
     defendingMonster: Monster | UserMonster,
     ability: Ability
   ): DamageResult => {
+    // Step 1: Get base stats from the correct monster object type
     const attackerPower = 'power' in attackingMonster ? attackingMonster.power : attackingMonster.monster.power;
-    const attackerDefense = 'defense' in attackingMonster ? attackingMonster.defense : attackingMonster.monster.defense;
+    const defenderDefense = 'defense' in defendingMonster ? defendingMonster.defense : defendingMonster.monster.defense;
     const defenderResistances = 'resistances' in defendingMonster ? defendingMonster.resistances : defendingMonster.monster.resistances;
     const defenderWeaknesses = 'weaknesses' in defendingMonster ? defendingMonster.weaknesses : defendingMonster.monster.weaknesses;
 
-    const scalingStat = ability.scaling_stat === 'DEFENSE' ? attackerDefense : attackerPower;
+    // Step 2: Calculate the raw attack power based on the ability
+    // Using a base of 50 to make the power stat more impactful
+    const attackPower = (attackerPower + 50) * ability.power_multiplier;
 
-    let baseDamage = scalingStat * ability.power_multiplier;
-    const variance = 0.8 + Math.random() * 0.4;
-    baseDamage *= variance;
+    // --- NEW DAMAGE LOGIC ---
+    // Step 3: Subtract defender's defense from the attack power
+    let rawDamage = attackPower - defenderDefense;
 
+    // Step 4: Apply a damage floor to ensure at least some damage is always dealt
+    // This also prevents negative damage from healing the opponent
+    rawDamage = Math.max(rawDamage, attackPower * 0.1); // Does at least 10% of the raw attack power
+
+    // Step 5: Apply affinity multiplier (e.g., Fire vs Water)
     const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
-    baseDamage *= affinityMultiplier;
-    baseDamage *= 0.7;
+    rawDamage *= affinityMultiplier;
 
+    // Step 6: Apply critical hit modifier
     const critChance = 0.05 + (ability.crit_chance_modifier || 0);
     const isCritical = Math.random() < critChance;
-
     if (isCritical) {
-      baseDamage *= 1.5;
+      rawDamage *= 1.5; // Critical hits do 50% more damage
     }
 
-    const finalDamage = Math.round(Math.max(1, baseDamage));
+    // Step 7: Apply a random variance of +/- 10%
+    const variance = 0.9 + Math.random() * 0.2; 
+    rawDamage *= variance;
 
+    // Step 8: Round to the nearest integer for the final damage
+    const finalDamage = Math.round(Math.max(1, rawDamage)); // Ensure at least 1 damage is always done
+
+    // --- Status Effect Logic (Unchanged) ---
     let statusEffect: StatusEffect | undefined;
-
     if (ability.status_effect_applies &&
         ability.status_effect_chance &&
         Math.random() < ability.status_effect_chance) {
@@ -180,6 +189,7 @@ const BattleArena: React.FC = () => {
   // AI Decision Making Function with Detailed Logging
   const decideAiAction = (): { action: 'attack'; ability: Ability | null } | { action: 'swap'; newIndex: number } => {
     console.log("--- AI: Deciding action ---");
+
     const activeAiMonster = aiTeam[activeAiIndex];
     const activePlayerMonster = playerTeam[activePlayerIndex];
     const benchedAiMonsters = aiTeam.filter((_, index) => index !== activeAiIndex && _.hp > 0);
@@ -189,24 +199,24 @@ const BattleArena: React.FC = () => {
     // 1. Self-Preservation Check
     const hpPercent = activeAiMonster.hp / activeAiMonster.max_hp;
     if (hpPercent < 0.25 && benchedAiMonsters.length > 0) {
-        console.log("AI: HP is low, considering a swap.");
-        const healthyBenchMonsterIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (m.hp / m.max_hp) > 0.5 && m.hp > 0);
-        if (healthyBenchMonsterIndex !== -1) {
-            console.log(`AI: Decided to SWAP to ${aiTeam[healthyBenchMonsterIndex].name}.`);
-            return { action: 'swap', newIndex: healthyBenchMonsterIndex };
-        }
+      console.log("AI: HP is low, considering a swap.");
+      const healthyBenchMonsterIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (m.hp / m.max_hp) > 0.5 && m.hp > 0);
+      if (healthyBenchMonsterIndex !== -1) {
+        console.log(`AI: Decided to SWAP to ${aiTeam[healthyBenchMonsterIndex].name}.`);
+        return { action: 'swap', newIndex: healthyBenchMonsterIndex };
+      }
     }
 
     // 2. Tactical Disadvantage Check
     const playerAffinity = activePlayerMonster.monster.affinity;
     const isAtDisadvantage = activeAiMonster.weaknesses && activeAiMonster.weaknesses.includes(playerAffinity);
     if (isAtDisadvantage && benchedAiMonsters.length > 0) {
-        console.log("AI: Is at a tactical disadvantage, considering a swap.");
-        const betterMatchupIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (!m.weaknesses || !m.weaknesses.includes(playerAffinity)) && m.hp > 0);
-        if (betterMatchupIndex !== -1) {
-            console.log(`AI: Decided to SWAP to ${aiTeam[betterMatchupIndex].name}.`);
-            return { action: 'swap', newIndex: betterMatchupIndex };
-        }
+      console.log("AI: Is at a tactical disadvantage, considering a swap.");
+      const betterMatchupIndex = aiTeam.findIndex((m, i) => i !== activeAiIndex && (!m.weaknesses || !m.weaknesses.includes(playerAffinity)) && m.hp > 0);
+      if (betterMatchupIndex !== -1) {
+        console.log(`AI: Decided to SWAP to ${aiTeam[betterMatchupIndex].name}.`);
+        return { action: 'swap', newIndex: betterMatchupIndex };
+      }
     }
 
     // 3. Default to Attack
@@ -217,16 +227,15 @@ const BattleArena: React.FC = () => {
     const affordableAbilities = aiAbilities.filter(
       ability => ability.ability_type === 'ACTIVE' && activeAiMonster.mp >= ability.mp_cost
     );
-
     console.log(`AI: Affordable abilities:`, affordableAbilities.map(a => `${a.name} (${a.mp_cost} MP)`));
 
     if (affordableAbilities.length > 0) {
-        const selectedAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
-        console.log(`AI: Chose affordable ability: ${selectedAbility.name}.`);
-        return { action: 'attack', ability: selectedAbility };
+      const selectedAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+      console.log(`AI: Chose affordable ability: ${selectedAbility.name}.`);
+      return { action: 'attack', ability: selectedAbility };
     } else {
-        console.error("AI: CRITICAL - No affordable abilities found!");
-        return { action: 'attack', ability: null };
+      console.error("AI: CRITICAL - No affordable abilities found!");
+      return { action: 'attack', ability: null };
     }
   };
 
@@ -270,8 +279,8 @@ const BattleArena: React.FC = () => {
           abilitiesMap[monster.id] = [];
         }
       }
-      setAiMonsterAbilities(abilitiesMap);
 
+      setAiMonsterAbilities(abilitiesMap);
       setBattleLog([`Battle is about to begin! Select your starting monster.`]);
       setBattleMode('lead-select');
       setTurn('pre-battle');
@@ -285,12 +294,13 @@ const BattleArena: React.FC = () => {
 
   const selectLeadMonster = (index: number) => {
     setActivePlayerIndex(index);
+
     // AI randomly selects its lead
     const randomAiIndex = Math.floor(Math.random() * aiTeam.length);
     setActiveAiIndex(randomAiIndex);
 
     setBattleLog(prev => [
-      ...prev, 
+      ...prev,
       `${playerTeam[index].monster.name} will start for you!`,
       `Your opponent sends out ${aiTeam[randomAiIndex].name}!`
     ]);
@@ -348,11 +358,9 @@ const BattleArena: React.FC = () => {
 
     // Build battle log message
     let logMessage = `${activePlayerMonster.monster.name} used ${ability.name}! `;
-
     if (damageResult.isCritical) {
       logMessage += "A Critical Hit! ";
     }
-
     logMessage += `Dealt ${damageResult.damage} damage to ${activeAiMonster.name}.`;
 
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
@@ -450,11 +458,9 @@ const BattleArena: React.FC = () => {
 
     // Build AI attack log message
     let aiLogMessage = `${activeAiMonster.name} used ${selectedAbility.name}! `;
-
     if (aiDamageResult.isCritical) {
       aiLogMessage += "A Critical Hit! ";
     }
-
     aiLogMessage += `Dealt ${aiDamageResult.damage} damage to ${activePlayerMonster.monster.name}.`;
 
     const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
@@ -539,7 +545,7 @@ const BattleArena: React.FC = () => {
                   userMonster={userMonster}
                   size="small"
                 />
-                <Button 
+                <Button
                   onClick={() => selectLeadMonster(index)}
                   className="w-full mt-4"
                   disabled={userMonster.hp <= 0}
@@ -626,7 +632,7 @@ const BattleArena: React.FC = () => {
                         userMonster={monster}
                         size="small"
                       />
-                      <Button 
+                      <Button
                         onClick={() => handleSwapMonster(originalIndex)}
                         className="w-full mt-2"
                         size="sm"
@@ -674,8 +680,8 @@ const BattleArena: React.FC = () => {
             </p>
           ) : (
             <p className="text-lg font-semibold">
-              {turn === 'player' 
-                ? "Your Turn - Attack or Swap!" 
+              {turn === 'player'
+                ? "Your Turn - Attack or Swap!"
                 : `${activeAiMonster.name} is thinking...`}
             </p>
           )}

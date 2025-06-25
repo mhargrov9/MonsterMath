@@ -208,37 +208,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })(req, res, next);
   });
 
-  // Developer Tools - Add Battle Tokens - WITH AUTHENTICATION TEMPORARILY BYPASSED FOR DEBUGGING
-  app.post("/api/dev/add-tokens", async (req: any, res) => {
+  // Developer Tools - Add Battle Tokens
+  app.post("/api/dev/add-tokens", isAuthenticated, async (req: any, res) => {
     try {
-      console.log('ROUTE: /api/dev/add-tokens endpoint hit');
-      console.log('ROUTE: Request headers:', req.headers);
-      console.log('ROUTE: Request body:', req.body);
-
-      const userId = 'local_1750003872665_ijacq19mc'; // HARDCODED FOR DEBUGGING - TEMPORARY
+      const userId = req.user.claims.sub;
       const { amount = 5 } = req.body;
 
-      console.log('ROUTE: /api/dev/add-tokens hit for userId:', userId);
-      console.log('ROUTE: Token amount to add:', amount);
-      console.log('ROUTE: Using hardcoded userId for debugging');
-      console.log('ROUTE: About to call storage.addBattleTokens...');
-
       const user = await storage.addBattleTokens(userId, amount);
-
-      console.log('ROUTE: storage.addBattleTokens returned:', user);
-      console.log('ROUTE: User battleTokens property:', user?.battleTokens);
-      console.log('ROUTE: About to send response...');
-
-      const response = { message: `${amount} battle tokens added.`, user };
-      console.log('ROUTE: Final response object:', response);
-
-      res.json(response);
+      res.json({ 
+        message: `${amount} battle tokens added.`, 
+        user,
+        battleTokens: user.battleTokens 
+      });
 
     } catch (error) {
-      console.log('ROUTE: Error in /api/dev/add-tokens:', error);
-      console.log('ROUTE: Error type:', typeof error);
-      console.log('ROUTE: Error message:', (error as Error)?.message);
-      console.log('ROUTE: Error stack:', (error as Error)?.stack);
       handleError(error, res, "Failed to add battle tokens");
     }
   });
@@ -559,4 +542,3 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
-//comment

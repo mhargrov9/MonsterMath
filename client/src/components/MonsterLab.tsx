@@ -1,279 +1,199 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import MonsterCard from "./MonsterCard";
-import ArenaSubscriptionGate from "./ArenaSubscriptionGate";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Users, Zap, Shield } from "lucide-react";
-import UpgradeChoice from "./UpgradeChoice";
-import VeoMonster from "./VeoMonster";
-import LabSubscriptionGate from "./LabSubscriptionGate";
-import BattleSlotUpgrade from "./BattleSlotUpgrade";
-import { Monster, UserMonster, GameUser } from "@/types/game";
-import { useEffect } from "react";
+import { Zap, Shield } from "lucide-react";
+
+// Types (simplified for this component)
+interface Monster {
+  id: number;
+  name: string;
+  hp: number;
+  max_hp: number;
+  power: number;
+  defense: number;
+  speed: number;
+  mp: number;
+  max_mp: number;
+  affinity: string;
+  image_url?: string;
+  resistances: string[];
+  weaknesses: string[];
+  level: number;
+  goldCost: number;
+}
+
+interface UserMonster {
+  id: number;
+  user_id: number;
+  monster_id: number;
+  monster: Monster;
+  level: number;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  power: number;
+  defense: number;
+  speed: number;
+  evolutionStage: number;
+  upgradeChoices?: any;
+  monsterId: number;
+}
 
 const MAX_LEVEL = 10; // Maximum level for monsters
 
-function isUnauthorizedError(error: any): boolean {
-  return error?.message?.includes('Unauthorized') || error?.status === 401;
-}
-
 export default function MonsterLab() {
-  const { toast } = useToast();
-  const [selectedMonster, setSelectedMonster] = useState<UserMonster | null>(null);
-  const [showUpgradeChoice, setShowUpgradeChoice] = useState(false);
-  const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
-  const [blockedMonster, setBlockedMonster] = useState<UserMonster | null>(null);
+  // Define the state for monsters, loading, and errors
+  const [userMonsters, setUserMonsters] = useState<UserMonster[]>([]);
+  const [monsters, setMonsters] = useState<Monster[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
   const [animatingCards, setAnimatingCards] = useState<Record<number, boolean>>({});
+  const [purchasingMonster, setPurchasingMonster] = useState<number | null>(null);
+  const [upgradingMonster, setUpgradingMonster] = useState<number | null>(null);
 
-  // Force cache refresh on component mount to ensure fresh data
+  // Fetch user monsters when the component mounts
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-  }, []);
+    const fetchData = async () => {
+      try {
+        // Fetch both monsters and user monsters
+        const [monstersResponse, userMonstersResponse] = await Promise.all([
+          fetch('/api/monsters'),
+          fetch('/api/user/monsters')
+        ]);
 
-  // Developer Tools - Add Battle Tokens - WITH EXTENSIVE DEBUGGING
-  const addTokensMutation = useMutation({
-    mutationFn: () => {
-      console.log('DEV BUTTON: About to call apiRequest for /api/dev/add-tokens');
-      return apiRequest("POST", "/api/dev/add-tokens", { amount: 5 });
-    },
-    onSuccess: (data) => {
-      console.log('DEV BUTTON: API call successful, response:', data);
-      console.log('DEV BUTTON: Response type:', typeof data);
-      console.log('DEV BUTTON: Response keys:', data ? Object.keys(data) : 'no keys');
-      toast({ title: "Success", description: "5 Battle Tokens added!" });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    },
-    onError: (error: Error) => {
-      console.log('DEV BUTTON: API call failed, error:', error);
-      console.log('DEV BUTTON: Error message:', error.message);
-      console.log('DEV BUTTON: Error stack:', error.stack);
-      console.log('DEV BUTTON: Error name:', error.name);
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
-    queryKey: ["/api/monsters"],
-  });
-
-  const { data: userMonsters = [], isLoading: userMonstersLoading } = useQuery<UserMonster[]>({
-    queryKey: ["/api/user/monsters"],
-    staleTime: 0, // Force fresh data
-    refetchOnMount: true,
-  });
-
-  const { data: user } = useQuery<GameUser>({
-    queryKey: ["/api/auth/user"],
-  });
-
-  const purchaseMutation = useMutation({
-    mutationFn: async (monsterId: number) => {
-      return await apiRequest("POST", "/api/monsters/purchase", { monsterId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "Monster Purchased!",
-        description: "Your new monster has been added to your collection.",
-      });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-
-      toast({
-        title: "Purchase Failed",
-        description: error.message || "Failed to purchase monster",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const upgradeMutation = useMutation({
-    mutationFn: async (userMonsterId: number) => {
-      return await apiRequest("POST", "/api/monsters/upgrade", { userMonsterId });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "Monster Upgraded!",
-        description: "Your monster has grown stronger!",
-      });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
-
-      // Handle free trial limit - show subscription gate
-      if (error.message === "FREE_TRIAL_LIMIT") {
-        // Find the monster that triggered the limit from the mutation context
-        const triggerMonsterId = (error as any)?.context?.userMonsterId;
-        const monster = userMonsters.find(um => um.id === triggerMonsterId);
-
-        if (monster) {
-          setBlockedMonster(monster);
-          setShowSubscriptionGate(true);
+        if (!monstersResponse.ok) {
+          throw new Error('Failed to fetch available monsters');
         }
-        return;
+        if (!userMonstersResponse.ok) {
+          throw new Error('Failed to fetch user monsters');
+        }
+
+        const monstersData = await monstersResponse.json();
+        const userMonstersData = await userMonstersResponse.json();
+
+        setMonsters(monstersData);
+        setUserMonsters(userMonstersData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      toast({
-        title: "Upgrade Failed",
-        description: error.message || "Failed to upgrade monster",
-        variant: "destructive",
-      });
-    },
-  });
+    fetchData();
+  }, []); // Empty dependency array means this runs once on mount
 
-  const applyUpgradeMutation = useMutation({
-    mutationFn: async (upgradeData: any) => {
-      return await apiRequest("POST", "/api/monsters/apply-upgrade", upgradeData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setShowUpgradeChoice(false);
-      setSelectedMonster(null);
-      toast({
-        title: "Upgrade Applied!",
-        description: "Your monster has evolved with new abilities!",
+  // Add this handler function inside the MonsterLab component
+  const handleAddTokens = async () => {
+    try {
+      const response = await fetch('/api/dev/add-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 5 }),
       });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add tokens');
       }
-
-      toast({
-        title: "Upgrade Failed",
-        description: error.message || "Failed to apply upgrade",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleSpecialUpgrade = (userMonster: UserMonster) => {
-    // Check if monster is at Level 3 (free trial limit)
-    if (userMonster.level >= 3) {
-      setBlockedMonster(userMonster);
-      setShowSubscriptionGate(true);
-      return;
+      console.log("Tokens added:", result);
+      // You can add a success toast/alert here
+      alert("5 battle tokens added successfully!");
+      // Optionally, refetch user data to show updated token count if displayed on this page
+    } catch (error) {
+      console.error("Error adding tokens:", error);
+      alert(error instanceof Error ? error.message : 'An unknown error occurred');
     }
-
-    setSelectedMonster(userMonster);
-    setShowUpgradeChoice(true);
   };
 
-  const handleCloseSubscriptionGate = () => {
-    setShowSubscriptionGate(false);
-    setBlockedMonster(null);
+  const handlePurchaseMonster = async (monsterId: number) => {
+    setPurchasingMonster(monsterId);
+    try {
+      const response = await fetch('/api/monsters/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monsterId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to purchase monster');
+      }
+
+      const newMonster = await response.json();
+      // Refresh user monsters list
+      const userMonstersResponse = await fetch('/api/user/monsters');
+      if (userMonstersResponse.ok) {
+        const updatedUserMonsters = await userMonstersResponse.json();
+        setUserMonsters(updatedUserMonsters);
+      }
+
+      alert("Monster purchased successfully!");
+    } catch (error) {
+      console.error("Error purchasing monster:", error);
+      alert(error instanceof Error ? error.message : 'Failed to purchase monster');
+    } finally {
+      setPurchasingMonster(null);
+    }
   };
 
-  const handleUpgradeChoice = (upgradeOption: any) => {
-    if (!selectedMonster) return;
+  const handleUpgradeMonster = async (userMonsterId: number) => {
+    setUpgradingMonster(userMonsterId);
+    setAnimatingCards(prev => ({ ...prev, [userMonsterId]: true }));
 
-    applyUpgradeMutation.mutate({
-      userMonsterId: selectedMonster.id,
-      upgradeKey: upgradeOption.upgradeKey,
-      upgradeValue: upgradeOption.upgradeValue,
-      statBoosts: upgradeOption.statBoosts,
-      goldCost: upgradeOption.goldCost,
-      diamondCost: upgradeOption.diamondCost
-    });
+    try {
+      const response = await fetch('/api/monsters/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userMonsterId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upgrade monster');
+      }
+
+      // Refresh user monsters list
+      const userMonstersResponse = await fetch('/api/user/monsters');
+      if (userMonstersResponse.ok) {
+        const updatedUserMonsters = await userMonstersResponse.json();
+        setUserMonsters(updatedUserMonsters);
+      }
+
+      alert("Monster upgraded successfully!");
+    } catch (error) {
+      console.error("Error upgrading monster:", error);
+      alert(error instanceof Error ? error.message : 'Failed to upgrade monster');
+    } finally {
+      setUpgradingMonster(null);
+      setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonsterId]: false })), 2000);
+    }
   };
 
-  if (monstersLoading || userMonstersLoading) {
-    return <div className="p-6">Loading monster lab...</div>;
+  // Add rendering logic for loading and error states
+  if (isLoading) {
+    return <div className="text-center p-8">Loading your monsters...</div>;
   }
 
-  if (showUpgradeChoice && selectedMonster) {
-    return (
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Upgrade {selectedMonster.monster.name}</h2>
-          <Button variant="outline" onClick={() => setShowUpgradeChoice(false)}>
-            Back to Lab
-          </Button>
-        </div>
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
-            <CardContent className="flex flex-col items-center space-y-4">
-              <VeoMonster
-                monsterId={selectedMonster.monsterId}
-                evolutionStage={selectedMonster.evolutionStage}
-                upgradeChoices={selectedMonster.upgradeChoices || {}}
-                size="large"
-              />
-              <div className="text-center">
-                <h3 className="font-semibold">{selectedMonster.monster.name}</h3>
-                <p className="text-sm text-muted-foreground">Level {selectedMonster.level} • Stage {selectedMonster.evolutionStage}</p>
-                <div className="flex gap-4 mt-2">
-                  <Badge variant="destructive"><Zap className="w-3 h-3 mr-1" />{selectedMonster.power}</Badge>
-                  <Badge variant="outline"><Shield className="w-3 h-3 mr-1" />{selectedMonster.defense}</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <UpgradeChoice
-            userMonster={selectedMonster}
-            onUpgrade={handleUpgradeChoice}
-            userGold={user?.gold || 0}
-            userDiamonds={user?.diamonds || 0}
-          />
-        </div>
-      </div>
-    );
+  if (error) {
+    return <div className="text-center p-8 text-red-500">Error: {error}</div>;
   }
 
+  // Main component render
   return (
-    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+    <div className="relative p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      {/* Dev Button - positioned absolutely */}
+      <Button onClick={handleAddTokens} className="absolute top-4 right-4 z-10">
+        Dev: Add 5 Tokens
+      </Button>
+
       <div className="flex justify-between items-center">
         <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            console.log('DEV BUTTON: Button clicked, mutation pending:', addTokensMutation.isPending);
-            addTokensMutation.mutate();
-          }}
-          disabled={addTokensMutation.isPending}
-        >
-          {addTokensMutation.isPending ? "Adding..." : "Dev: Add 5 Tokens"}
-        </Button>
+        {/* Space reserved for the absolute positioned button */}
+        <div className="w-32"></div>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
@@ -288,11 +208,11 @@ export default function MonsterLab() {
                   size="medium"
                 />
                 <Button
-                  onClick={() => purchaseMutation.mutate(monster.id)}
-                  disabled={purchaseMutation.isPending}
+                  onClick={() => handlePurchaseMonster(monster.id)}
+                  disabled={purchasingMonster === monster.id}
                   className="shadow-lg w-full max-w-xs touch-manipulation min-h-[48px]"
                 >
-                  {purchaseMutation.isPending ? "Purchasing..." : `Buy ${monster.goldCost}g`}
+                  {purchasingMonster === monster.id ? "Purchasing..." : `Buy ${monster.goldCost}g`}
                 </Button>
               </div>
             ))}
@@ -323,39 +243,29 @@ export default function MonsterLab() {
                     showUpgradeAnimation={animatingCards[userMonster.id] || false}
                     size="medium"
                   />
-
                   {!(flippedCards[userMonster.id] || false) && (
                     <div className="flex flex-col gap-2 w-full max-w-xs">
                       {userMonster.level < MAX_LEVEL ? (
                         <Button
                           size="sm"
-                          onClick={() => {
-                            // Check if monster is at Level 3 (free trial limit)
-                            if (userMonster.level >= 3) {
-                              setBlockedMonster(userMonster);
-                              setShowSubscriptionGate(true);
-                              return;
-                            }
-
-                            setAnimatingCards(prev => ({ ...prev, [userMonster.id]: true }));
-                            upgradeMutation.mutate(userMonster.id);
-                            setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonster.id]: false })), 2000);
-                          }}
-                          disabled={upgradeMutation.isPending}
+                          onClick={() => handleUpgradeMonster(userMonster.id)}
+                          disabled={upgradingMonster === userMonster.id}
                           className="shadow-lg w-full touch-manipulation min-h-[44px]"
                         >
-                          {upgradeMutation.isPending ? "Upgrading..." : "Level Up (200g)"}
+                          {upgradingMonster === userMonster.id ? "Upgrading..." : "Level Up (200g)"}
                         </Button>
                       ) : (
                         <div className="text-center py-2 text-sm text-white/70 font-medium">
                           Max Level Reached
                         </div>
                       )}
-
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleSpecialUpgrade(userMonster)}
+                        onClick={() => {
+                          // Placeholder for special upgrades
+                          alert("Special upgrades coming soon!");
+                        }}
                         className="shadow-lg w-full touch-manipulation min-h-[44px] border-white/20 text-white hover:bg-white/10"
                       >
                         Special Upgrades
@@ -368,14 +278,6 @@ export default function MonsterLab() {
           </div>
         </div>
       </div>
-
-      {/* Subscription Gate Modal */}
-      {showSubscriptionGate && blockedMonster && (
-        <LabSubscriptionGate
-          monsterName={blockedMonster.monster?.name || "Monster"}
-          onClose={handleCloseSubscriptionGate}
-        />
-      )}
     </div>
   );
 }
