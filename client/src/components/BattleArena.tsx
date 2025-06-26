@@ -115,92 +115,61 @@ const BattleArena: React.FC = () => {
     ability: Ability
   ): DamageResult => {
 
-    // Step 1: Determine which of the attacker's stats to use based on the ability.
+    // --- START OF DEBUGGING LOGS ---
+    console.log(`--- DAMAGE CALC: ${'monster' in attackingMonster ? attackingMonster.monster.name : attackingMonster.name} used ${ability.name} ---`);
+
     let scalingStatValue: number;
     const scalingStatName = ability.scaling_stat || 'power';
 
     if ('monster' in attackingMonster) { // This is a UserMonster
         switch (scalingStatName) {
-            case 'defense':
-                scalingStatValue = attackingMonster.defense;
-                break;
-            case 'speed':
-                scalingStatValue = attackingMonster.speed;
-                break;
-            case 'power':
-            default:
-                scalingStatValue = attackingMonster.power;
-                break;
+            case 'defense': scalingStatValue = attackingMonster.defense; break;
+            case 'speed': scalingStatValue = attackingMonster.speed; break;
+            default: scalingStatValue = attackingMonster.power; break;
         }
     } else { // This is a base Monster (for the AI)
         switch (scalingStatName) {
-            case 'defense':
-                scalingStatValue = attackingMonster.defense;
-                break;
-            case 'speed':
-                scalingStatValue = attackingMonster.speed;
-                break;
-            case 'power':
-            default:
-                scalingStatValue = attackingMonster.power;
-                break;
+            case 'defense': scalingStatValue = attackingMonster.defense; break;
+            case 'speed': scalingStatValue = attackingMonster.speed; break;
+            default: scalingStatValue = attackingMonster.power; break;
         }
     }
+    console.log(`1. Attacker Stat (${scalingStatName}):`, scalingStatValue);
 
-    // Step 2: Get defender's stats
     const defenderDefense = 'defense' in defendingMonster ? defendingMonster.defense : defendingMonster.monster.defense;
+    console.log("2. Defender Defense:", defenderDefense);
+
+    const attackPower = scalingStatValue * ability.power_multiplier;
+    console.log("3. Calculated Attack Power (Stat * Multiplier):", attackPower);
+
+    const damageMultiplier = 100 / (100 + defenderDefense);
+    console.log("4. Calculated Damage Multiplier (100 / (100 + Def)):", damageMultiplier);
+
+    let rawDamage = attackPower * damageMultiplier;
+    console.log("5. Raw Damage (Attack Power * Multiplier):", rawDamage);
+
     const defenderResistances = 'resistances' in defendingMonster ? defendingMonster.resistances : defendingMonster.monster.resistances;
     const defenderWeaknesses = 'weaknesses' in defendingMonster ? defendingMonster.weaknesses : defendingMonster.monster.weaknesses;
-
-    // --- NEW, IMPROVED DAMAGE FORMULA ---
-    // Step 3: Calculate base attack power.
-    const attackPower = scalingStatValue * ability.power_multiplier;
-
-    // Step 4: Calculate a damage reduction multiplier from the defender's defense.
-    // This provides better scaling than direct subtraction.
-    const damageMultiplier = 100 / (100 + defenderDefense);
-
-    // Step 5: Calculate the raw damage before other multipliers.
-    let rawDamage = attackPower * damageMultiplier;
-    // --- END OF NEW FORMULA ---
-
-    // Step 6: Apply affinity multiplier
     const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
     rawDamage *= affinityMultiplier;
+    console.log("6. Damage after Affinity (x" + affinityMultiplier + "):", rawDamage);
+    // --- END OF DEBUGGING LOGS ---
 
-    // Step 7: Apply critical hit modifier
     const critChance = 0.05 + (ability.crit_chance_modifier || 0);
     const isCritical = Math.random() < critChance;
     if (isCritical) {
       rawDamage *= 1.5;
     }
 
-    // Step 8: Apply a random variance of +/- 10%
     const variance = 0.9 + Math.random() * 0.2; 
     rawDamage *= variance;
 
-    // Step 9: Round to the nearest integer for the final damage
     const finalDamage = Math.round(Math.max(1, rawDamage));
-
-    // Status Effect Logic (Unchanged)
     let statusEffect: StatusEffect | undefined;
-    if (ability.status_effect_applies &&
-        ability.status_effect_chance &&
-        Math.random() < ability.status_effect_chance) {
-      statusEffect = {
-        effectName: ability.status_effect_applies,
-        duration: ability.status_effect_duration || 0,
-        value: ability.status_effect_value || 0,
-        valueType: ability.status_effect_value_type || 'flat'
-      };
+    if (ability.status_effect_applies && ability.status_effect_chance && Math.random() < ability.status_effect_chance) {
+        statusEffect = { effectName: ability.status_effect_applies, duration: ability.status_effect_duration || 0, value: ability.status_effect_value || 0, valueType: ability.status_effect_value_type || 'flat' };
     }
-
-    return {
-      damage: finalDamage,
-      isCritical,
-      affinityMultiplier,
-      statusEffect
-    };
+    return { damage: finalDamage, isCritical, affinityMultiplier, statusEffect };
   };
 
   const getEffectivenessMessage = (multiplier: number): string => {
@@ -338,7 +307,7 @@ const BattleArena: React.FC = () => {
     logMessage += `Dealt ${damageResult.damage} damage to ${activeAiMonster.name}.`;
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
     if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
-    if (damageResult.statusEffect) logMessage += ` ${activeAiMonster.name} is now affected by ${damageResult.statusEffect.effectName}!`;
+    if (damageResult.statusEffect) logMessage += ` ${activePlayerMonster.monster.name} is now affected by ${damageResult.statusEffect.effectName}!`;
     setBattleLog(prev => [...prev, logMessage]);
 
     if (newAiHp === 0) {
