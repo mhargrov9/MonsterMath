@@ -115,45 +115,32 @@ const BattleArena: React.FC = () => {
     ability: Ability
   ): DamageResult => {
 
-    // --- START OF DEBUGGING LOGS ---
-    console.log(`--- DAMAGE CALC: ${'monster' in attackingMonster ? attackingMonster.monster.name : attackingMonster.name} used ${ability.name} ---`);
-
     let scalingStatValue: number;
     const scalingStatName = ability.scaling_stat || 'power';
 
-    if ('monster' in attackingMonster) { // This is a UserMonster
+    if ('monster' in attackingMonster) { 
         switch (scalingStatName) {
             case 'defense': scalingStatValue = attackingMonster.defense; break;
             case 'speed': scalingStatValue = attackingMonster.speed; break;
             default: scalingStatValue = attackingMonster.power; break;
         }
-    } else { // This is a base Monster (for the AI)
+    } else { 
         switch (scalingStatName) {
             case 'defense': scalingStatValue = attackingMonster.defense; break;
             case 'speed': scalingStatValue = attackingMonster.speed; break;
             default: scalingStatValue = attackingMonster.power; break;
         }
     }
-    console.log(`1. Attacker Stat (${scalingStatName}):`, scalingStatValue);
 
     const defenderDefense = 'defense' in defendingMonster ? defendingMonster.defense : defendingMonster.monster.defense;
-    console.log("2. Defender Defense:", defenderDefense);
-
     const attackPower = scalingStatValue * ability.power_multiplier;
-    console.log("3. Calculated Attack Power (Stat * Multiplier):", attackPower);
-
     const damageMultiplier = 100 / (100 + defenderDefense);
-    console.log("4. Calculated Damage Multiplier (100 / (100 + Def)):", damageMultiplier);
-
     let rawDamage = attackPower * damageMultiplier;
-    console.log("5. Raw Damage (Attack Power * Multiplier):", rawDamage);
 
     const defenderResistances = 'resistances' in defendingMonster ? defendingMonster.resistances : defendingMonster.monster.resistances;
     const defenderWeaknesses = 'weaknesses' in defendingMonster ? defendingMonster.weaknesses : defendingMonster.monster.weaknesses;
     const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
     rawDamage *= affinityMultiplier;
-    console.log("6. Damage after Affinity (x" + affinityMultiplier + "):", rawDamage);
-    // --- END OF DEBUGGING LOGS ---
 
     const critChance = 0.05 + (ability.crit_chance_modifier || 0);
     const isCritical = Math.random() < critChance;
@@ -165,6 +152,7 @@ const BattleArena: React.FC = () => {
     rawDamage *= variance;
 
     const finalDamage = Math.round(Math.max(1, rawDamage));
+
     let statusEffect: StatusEffect | undefined;
     if (ability.status_effect_applies && ability.status_effect_chance && Math.random() < ability.status_effect_chance) {
         statusEffect = { effectName: ability.status_effect_applies, duration: ability.status_effect_duration || 0, value: ability.status_effect_value || 0, valueType: ability.status_effect_value_type || 'flat' };
@@ -520,7 +508,7 @@ const BattleArena: React.FC = () => {
           <div className="flex flex-col items-center">
             <h2 className="text-xl font-semibold mb-2 text-red-400">Opponent's Team</h2>
             <MonsterCard
-              monster={activeAiMonster}
+              monster={aiTeam[activeAiIndex]}
               showAbilities={true}
               size="large"
             />
