@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
 
-import Gigalith_1 from "@assets/Gigalith 1.png";
+// This component seems to have a local asset, we'll leave it in case it's used as a fallback
+import Gigalith_1 from "@assets/Gigalith 1.png"; 
 
 // Client-side image cache to prevent repeated API calls
 const imageCache = new Map<string, string>();
 
+// --- CHANGE 1: UPDATED PROPS ---
+// Corrected the props to accept 'level' and the 'tiny' size.
 interface VeoMonsterProps {
   monsterId: number;
-  evolutionStage: number;
-  upgradeChoices: Record<string, any>;
-  size?: 'small' | 'medium' | 'large';
+  level: number; 
+  size?: 'tiny' | 'small' | 'medium' | 'large';
   animationState?: 'idle' | 'windup' | 'attack' | 'hit' | 'victory' | 'defeat';
   facingDirection?: 'left' | 'right';
 }
 
 export default function VeoMonster({ 
   monsterId, 
-  evolutionStage, 
-  upgradeChoices, 
+  level,
   size = 'medium',
   animationState = 'idle',
   facingDirection = 'right'
@@ -26,7 +27,10 @@ export default function VeoMonster({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- CHANGE 2: ADDED 'tiny' TO DIMENSIONS ---
+  // Added the missing 'tiny' key to prevent the crash.
   const dimensions = {
+    tiny: { width: 120, height: 120 },
     small: { width: 200, height: 200 },
     medium: { width: 320, height: 320 },
     large: { width: 450, height: 450 }
@@ -34,17 +38,20 @@ export default function VeoMonster({
 
   const { width, height } = dimensions[size];
 
+  // --- CHANGE 3: CONSTRUCT upgradeChoices FROM level PROP ---
+  // Create the object the API expects using the 'level' prop we are now receiving.
+  const upgradeChoices = { level };
+
   useEffect(() => {
     generateMonsterImage();
     // Preload common variations to prevent future delays
     preloadCommonVariations();
-  }, [monsterId, upgradeChoices]);
+  }, [monsterId, level]); // Depend on level now
 
   const preloadCommonVariations = async () => {
-    // Preload base level and max level variations silently
     const variations = [
-      { monsterId, upgradeChoices: {} }, // Base level
-      { monsterId, upgradeChoices: { level: 10 } } // Max level
+      { monsterId, upgradeChoices: { level: 1 } },
+      { monsterId, upgradeChoices: { level: 10 } } 
     ];
 
     for (const variation of variations) {
@@ -68,19 +75,17 @@ export default function VeoMonster({
   };
 
   const generateMonsterImage = async () => {
-    // Create cache key based on monster ID and upgrades
     const cacheKey = `${monsterId}-${JSON.stringify(upgradeChoices)}`;
-    
-    // Check if image is already cached
+
     if (imageCache.has(cacheKey)) {
       setImageData(imageCache.get(cacheKey)!);
       setIsLoading(false);
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/generate/monster-image', {
         method: 'POST',
@@ -96,7 +101,6 @@ export default function VeoMonster({
       const data = await response.json();
 
       if (data.success && data.imageData) {
-        // Cache the image data
         imageCache.set(cacheKey, data.imageData);
         setImageData(data.imageData);
       } else {
@@ -112,7 +116,7 @@ export default function VeoMonster({
 
   const getTransform = () => {
     const baseTransform = facingDirection === 'left' ? 'scaleX(-1)' : '';
-    
+
     switch (animationState) {
       case 'windup':
         return `${baseTransform} scale(0.95) rotate(-3deg) translateY(5px)`;
@@ -137,7 +141,7 @@ export default function VeoMonster({
       >
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Generating monster...</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Generating...</p>
         </div>
       </div>
     );
@@ -202,16 +206,16 @@ export default function VeoMonster({
             <span className="text-gray-400">Loading...</span>
           </div>
         )}
-        
+
         {/* Battle Effects Overlay */}
         {animationState === 'attack' && (
           <div className="absolute inset-0 bg-gradient-radial from-orange-400/20 via-transparent to-transparent animate-pulse rounded-lg" />
         )}
-        
+
         {animationState === 'hit' && (
           <div className="absolute inset-0 bg-gradient-radial from-red-500/30 via-transparent to-transparent animate-ping rounded-lg" />
         )}
-        
+
         {animationState === 'victory' && (
           <div className="absolute inset-0 bg-gradient-radial from-yellow-400/20 via-transparent to-transparent animate-pulse rounded-lg" />
         )}
