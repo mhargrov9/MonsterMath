@@ -20,6 +20,7 @@ interface Monster {
   id: number;
   name: string;
   type: string;
+  description?: string; // ADDED: description field
   level?: number;
   power?: number;
   speed?: number;
@@ -58,21 +59,21 @@ interface MonsterCardProps {
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
   showAbilities?: boolean;
-  startExpanded?: boolean; // New prop for default state
-  isToggleable?: boolean;  // New prop for expand/collapse behavior
+  startExpanded?: boolean; 
+  isToggleable?: boolean;  
 }
 
 // --- HELPER FUNCTION ---
 const getAffinityIcon = (affinity: string) => {
-  if (!affinity) return <Sword className="w-4 h-4 text-gray-400" />;
+  if (!affinity) return <Sword className="w-3 h-3 mr-1" />;
   switch (affinity.toLowerCase()) {
-    case 'fire': return <Flame className="w-4 h-4 text-red-500" />;
-    case 'water': return <Droplets className="w-4 h-4 text-blue-500" />;
-    case 'earth': return <Mountain className="w-4 h-4 text-amber-600" />;
-    case 'air': return <Sparkles className="w-4 h-4 text-cyan-400" />;
-    case 'electric': return <Zap className="w-4 h-4 text-yellow-400" />;
-    case 'psychic': return <Brain className="w-4 h-4 text-purple-500" />;
-    case 'physical': default: return <Sword className="w-4 h-4 text-gray-400" />;
+    case 'fire': return <Flame className="w-3 h-3 mr-1 text-red-400" />;
+    case 'water': return <Droplets className="w-3 h-3 mr-1 text-blue-400" />;
+    case 'earth': return <Mountain className="w-3 h-3 mr-1 text-amber-500" />;
+    case 'air': return <Sparkles className="w-3 h-3 mr-1 text-cyan-300" />;
+    case 'electric': return <Zap className="w-3 h-3 mr-1 text-yellow-300" />;
+    case 'psychic': return <Brain className="w-3 h-3 mr-1 text-purple-400" />;
+    case 'physical': default: return <Sword className="w-3 h-3 mr-1 text-gray-300" />;
   }
 };
 
@@ -85,14 +86,12 @@ export default function MonsterCard({
   isPlayerTurn = false,
   onAbilityClick,
   showAbilities = true,
-  startExpanded = false, // Default to collapsed
-  isToggleable = true,    // Default to being toggleable
+  startExpanded = false,
+  isToggleable = true,
 }: MonsterCardProps) {
 
-  // State for the expand/collapse feature, now controlled by props
   const [isExpanded, setIsExpanded] = useState(startExpanded);
 
-  // Sync state if the startExpanded prop changes externally
   useEffect(() => {
     setIsExpanded(startExpanded);
   }, [startExpanded]);
@@ -122,7 +121,6 @@ export default function MonsterCard({
   };
 
   const handleCardClick = () => {
-    // Only allow expanding/collapsing if the card is designated as toggleable
     if (isToggleable) {
       setIsExpanded(!isExpanded);
     }
@@ -131,7 +129,6 @@ export default function MonsterCard({
   return (
     <Card  
       onClick={handleCardClick}
-      // UPDATED: New border color, shadow, and cursor logic
       className={`border-4 bg-gray-800/50 border-cyan-500 text-white shadow-lg ${cardSizeClasses[size]} ${isToggleable && 'cursor-pointer hover:border-yellow-400 transition-colors'}`}
     >
       <CardContent className="p-2 space-y-2">
@@ -163,35 +160,77 @@ export default function MonsterCard({
             </div>
         }
 
-        {/* --- ABILITIES --- Logic is still correct based on isExpanded state */}
-        {showAbilities && isExpanded && (
-          <div className="bg-gray-900/50 p-2 rounded space-y-2 min-h-[100px]">
-            <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
-            {abilitiesLoading ? <p className="text-xs text-gray-400">Loading...</p> : 
-              abilities.map(ability => {
-                const canAfford = battleMode && isPlayerTurn && (displayMp >= ability.mp_cost);
-                const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
-                return (
-                    <div  
-                        key={ability.id}  
-                        className={`p-1 rounded text-xs transition-all ${isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : isClickable && !canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={(e) => {  
-                            if (isClickable && canAfford && onAbilityClick) {
-                                e.stopPropagation();
-                                onAbilityClick(ability);
-                            }
-                        }}
-                    >
-                        <div className="flex items-center gap-2 font-bold">
-                            {getAffinityIcon(ability.affinity)}
-                            <span>{ability.name}</span>
-                            <span className="ml-auto text-blue-400">{ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}</span>
-                        </div>
-                        <p className="text-gray-400 text-[10px] leading-tight pl-6">{ability.description}</p>
+        {/* --- NEW: COMBINED EXPANDED VIEW FOR DETAILS & ABILITIES --- */}
+        {isExpanded && (
+          <div className="mt-2 space-y-3">
+            {/* Description Section */}
+            {baseMonster.description && size !== 'tiny' && (
+              <div className="bg-gray-900/60 p-2 rounded">
+                <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
+              </div>
+            )}
+
+            {/* Resistances & Weaknesses Section */}
+            {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <h5 className="font-bold text-green-400">Resists</h5>
+                  {baseMonster.resistances && baseMonster.resistances.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {baseMonster.resistances.map(res => (
+                        <Badge key={res} variant="secondary" className="capitalize bg-green-900/80 text-green-300 border-green-700/80">
+                          {getAffinityIcon(res)} {res}
+                        </Badge>
+                      ))}
                     </div>
-                );
-              })
-            }
+                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
+                </div>
+                <div>
+                  <h5 className="font-bold text-red-400">Weak to</h5>
+                  {baseMonster.weaknesses && baseMonster.weaknesses.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {baseMonster.weaknesses.map(weak => (
+                        <Badge key={weak} variant="destructive" className="capitalize bg-red-900/80 text-red-300 border-red-700/80">
+                          {getAffinityIcon(weak)} {weak}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
+                </div>
+              </div>
+            )}
+
+            {/* Abilities Section */}
+            {showAbilities && (
+              <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
+                <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
+                {abilitiesLoading ? <p className="text-xs text-gray-400">Loading...</p> : 
+                  abilities.map(ability => {
+                    const canAfford = battleMode && isPlayerTurn && (displayMp >= ability.mp_cost);
+                    const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
+                    return (
+                        <div  
+                            key={ability.id}  
+                            className={`p-1 rounded text-xs transition-all ${isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : isClickable && !canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={(e) => {  
+                                if (isClickable && canAfford && onAbilityClick) {
+                                    e.stopPropagation();
+                                    onAbilityClick(ability);
+                                }
+                            }}
+                        >
+                            <div className="flex items-center gap-2 font-bold">
+                                {getAffinityIcon(ability.affinity)}
+                                <span>{ability.name}</span>
+                                <span className="ml-auto text-blue-400">{ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}</span>
+                            </div>
+                            <p className="text-gray-400 text-[10px] leading-tight pl-6">{ability.description}</p>
+                        </div>
+                    );
+                  })
+                }
+              </div>
+            )}
           </div>
         )}
 
@@ -201,7 +240,6 @@ export default function MonsterCard({
             </div>
         )}
 
-        {/* --- UI CUE FOR EXPANDABLE CARDS --- Now driven by isToggleable prop */}
         {isToggleable && (
           <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center">
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

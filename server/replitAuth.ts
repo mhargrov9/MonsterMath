@@ -1,7 +1,7 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import bcrypt from "bcryptjs"; // CHANGE: Using bcryptjs
+import bcrypt from "bcrypt";
 
 import passport from "passport";
 import session from "express-session";
@@ -76,6 +76,7 @@ export async function setupAuth(app: Express) {
 
   const config = await getOidcConfig();
 
+  // Local Strategy for username/password
   passport.use(new LocalStrategy(
     { usernameField: 'username', passwordField: 'password' },
     async (username: string, password: string, done) => {
@@ -84,12 +85,13 @@ export async function setupAuth(app: Express) {
         if (!user || !user.passwordHash) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-
+        
         const isValid = await bcrypt.compare(password, user.passwordHash);
         if (!isValid) {
           return done(null, false, { message: 'Invalid username or password' });
         }
-
+        
+        // Create session user object for local accounts
         const sessionUser = {
           claims: {
             sub: user.id,
@@ -100,18 +102,15 @@ export async function setupAuth(app: Express) {
           },
           authProvider: 'local'
         };
-
+        
         return done(null, sessionUser);
       } catch (error) {
-        console.error("Error in LocalStrategy:", error);
-        const authError = new Error(
-          error instanceof Error ? error.message : "An unknown error occurred during authentication."
-        );
-        return done(authError);
+        return done(error);
       }
     }
   ));
 
+  // Replit OAuth Strategy
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
@@ -138,8 +137,77 @@ export async function setupAuth(app: Express) {
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  // OAuth login endpoint
+  app.get("/api/login/oauth", (req, res, next) => {
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
+  });
+
+  // Legacy OAuth endpoint for backwards compatibility
+  app.get("/api/login", (req, res, next) => {
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      prompt: "login consent",
+      scope: ["openid", "email", "profile", "offline_access"],
+    })(req, res, next);
+  });
+
+  app.get("/api/callback", (req, res, next) => {
+    passport.authenticate(`replitauth:${req.hostname}`, {
+      successReturnToOrRedirect: "/",
+      failureRedirect: "/api/login",
+    })(req, res, next);
+  });
+
+  app.get("/api/logout", (req, res) => {
+    req.logout(() => {
+      res.redirect(
+        client.buildEndSessionUrl(config, {
+          client_id: process.env.REPL_ID!,
+          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+        }).href
+      );
+    });
+  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-    // ... (rest of function is unchanged)
+  const user = req.user as any;
+
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // For local accounts, skip token expiration checks
+  if (user.authProvider === 'local') {
+    return next();
+  }
+
+  // For OAuth accounts, check token expiration
+  if (!user.expires_at) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now <= user.expires_at) {
+    return next();
+  }
+
+  const refreshToken = user.refresh_token;
+  if (!refreshToken) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const config = await getOidcConfig();
+    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+    updateUserSession(user, tokenResponse);
+    return next();
+  } catch (error) {
+    res.status(401).json({ message: "Unauthorized" });
+    return;
+  }
 };
