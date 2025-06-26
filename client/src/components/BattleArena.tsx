@@ -115,12 +115,10 @@ const BattleArena: React.FC = () => {
     ability: Ability
   ): DamageResult => {
 
-    // --- NEW LOGIC TO HANDLE SCALING STAT ---
     // Step 1: Determine which of the attacker's stats to use based on the ability.
     let scalingStatValue: number;
-    const scalingStatName = ability.scaling_stat || 'power'; // Default to 'power' if not specified
+    const scalingStatName = ability.scaling_stat || 'power';
 
-    // Get the correct stat value from either a UserMonster or a base Monster
     if ('monster' in attackingMonster) { // This is a UserMonster
         switch (scalingStatName) {
             case 'defense':
@@ -148,21 +146,23 @@ const BattleArena: React.FC = () => {
                 break;
         }
     }
-    // --- END OF NEW LOGIC ---
 
     // Step 2: Get defender's stats
     const defenderDefense = 'defense' in defendingMonster ? defendingMonster.defense : defendingMonster.monster.defense;
     const defenderResistances = 'resistances' in defendingMonster ? defendingMonster.resistances : defendingMonster.monster.resistances;
     const defenderWeaknesses = 'weaknesses' in defendingMonster ? defendingMonster.weaknesses : defendingMonster.monster.weaknesses;
 
-    // Step 3: Calculate the raw attack power using the selected scaling stat
-    const attackPower = (scalingStatValue + 50) * ability.power_multiplier;
+    // --- NEW, IMPROVED DAMAGE FORMULA ---
+    // Step 3: Calculate base attack power.
+    const attackPower = scalingStatValue * ability.power_multiplier;
 
-    // Step 4: Subtract defender's defense from the attack power
-    let rawDamage = attackPower - defenderDefense;
+    // Step 4: Calculate a damage reduction multiplier from the defender's defense.
+    // This provides better scaling than direct subtraction.
+    const damageMultiplier = 100 / (100 + defenderDefense);
 
-    // Step 5: Apply a damage floor to ensure at least some damage is always dealt
-    rawDamage = Math.max(rawDamage, attackPower * 0.1);
+    // Step 5: Calculate the raw damage before other multipliers.
+    let rawDamage = attackPower * damageMultiplier;
+    // --- END OF NEW FORMULA ---
 
     // Step 6: Apply affinity multiplier
     const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
