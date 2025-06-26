@@ -1,221 +1,282 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import MonsterCard from "./MonsterCard";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import LabSubscriptionGate from "./LabSubscriptionGate";
-import { Monster, UserMonster, GameUser } from "@/types/game";
+import { Zap, Shield } from "lucide-react";
+
+// Types (simplified for this component)
+interface Monster {
+  id: number;
+  name: string;
+  hp: number;
+  max_hp: number;
+  power: number;
+  defense: number;
+  speed: number;
+  mp: number;
+  max_mp: number;
+  affinity: string;
+  image_url?: string;
+  resistances: string[];
+  weaknesses: string[];
+  level: number;
+  goldCost: number;
+}
+
+interface UserMonster {
+  id: number;
+  user_id: number;
+  monster_id: number;
+  monster: Monster;
+  level: number;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  power: number;
+  defense: number;
+  speed: number;
+  evolutionStage: number;
+  upgradeChoices?: any;
+  monsterId: number;
+}
 
 const MAX_LEVEL = 10; // Maximum level for monsters
 
-// Helper function to check for unauthorized errors
-function isUnauthorizedError(error: any): boolean {
-  return error && error.message && error.message.includes("Unauthorized");
-}
-
 export default function MonsterLab() {
-  const { toast } = useToast();
-  const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
-  const [blockedMonster, setBlockedMonster] = useState<UserMonster | null>(null);
+  // Define the state for monsters, loading, and errors
+  const [userMonsters, setUserMonsters] = useState<UserMonster[]>([]);
+  const [monsters, setMonsters] = useState<Monster[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Record<number, boolean>>({});
+  const [animatingCards, setAnimatingCards] = useState<Record<number, boolean>>({});
+  const [purchasingMonster, setPurchasingMonster] = useState<number | null>(null);
+  const [upgradingMonster, setUpgradingMonster] = useState<number | null>(null);
 
+  // Fetch user monsters when the component mounts
   useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-  }, []);
+    const fetchData = async () => {
+      try {
+        // Fetch both monsters and user monsters
+        const [monstersResponse, userMonstersResponse] = await Promise.all([
+          fetch('/api/monsters'),
+          fetch('/api/user/monsters')
+        ]);
 
-  const { data: monsters = [], isLoading: monstersLoading } = useQuery<Monster[]>({
-    queryKey: ["/api/monsters"],
-  });
-
-  const { data: userMonsters = [], isLoading: userMonstersLoading } = useQuery<UserMonster[]>({
-    queryKey: ["/api/user/monsters"],
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const { data: user } = useQuery<GameUser>({
-    queryKey: ["/api/auth/user"],
-  });
-
-  const purchaseMutation = useMutation({
-    mutationFn: (monsterId: number) => apiRequest("POST", "/api/monsters/purchase", { monsterId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Monster Purchased!", description: "Your new monster is ready in the lab." });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({ title: "Unauthorized", description: "You are logged out.", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
-        return;
-      }
-      toast({ title: "Purchase Failed", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const upgradeMutation = useMutation({
-    mutationFn: (userMonsterId: number) => apiRequest("POST", "/api/monsters/upgrade", { userMonsterId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({ title: "Monster Upgraded!", description: "Your monster has grown stronger!" });
-    },
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({ title: "Unauthorized", description: "You are logged out.", variant: "destructive" });
-        setTimeout(() => { window.location.href = "/api/login"; }, 500);
-        return;
-      }
-      if (error.message === "FREE_TRIAL_LIMIT") {
-        const monster = userMonsters.find(um => um.id === (error as any)?.context?.userMonsterId);
-        if (monster) {
-          setBlockedMonster(monster);
-          setShowSubscriptionGate(true);
+        if (!monstersResponse.ok) {
+          throw new Error('Failed to fetch available monsters');
         }
-        return;
-      }
-      toast({ title: "Upgrade Failed", description: error.message, variant: "destructive" });
-    },
-  });
+        if (!userMonstersResponse.ok) {
+          throw new Error('Failed to fetch user monsters');
+        }
 
-  const handleLevelUp = (monster: UserMonster) => {
-    if (monster.level >= 3 && user?.subscription_status !== 'active') {
-        setBlockedMonster(monster);
-        setShowSubscriptionGate(true);
-        return;
+        const monstersData = await monstersResponse.json();
+        const userMonstersData = await userMonstersResponse.json();
+
+        setMonsters(monstersData);
+        setUserMonsters(userMonstersData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Add this handler function inside the MonsterLab component
+  const handleAddTokens = async () => {
+    try {
+      const response = await fetch('/api/dev/add-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: 5 }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to add tokens');
+      }
+      console.log("Tokens added:", result);
+      // You can add a success toast/alert here
+      alert("5 battle tokens added successfully!");
+      // Optionally, refetch user data to show updated token count if displayed on this page
+    } catch (error) {
+      console.error("Error adding tokens:", error);
+      alert(error instanceof Error ? error.message : 'An unknown error occurred');
     }
-    upgradeMutation.mutate(monster.id);
   };
 
-  const getUpgradeCost = (level: number) => {
-      return 200 + (level - 1) * 50;
+  const handlePurchaseMonster = async (monsterId: number) => {
+    setPurchasingMonster(monsterId);
+    try {
+      const response = await fetch('/api/monsters/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ monsterId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to purchase monster');
+      }
+
+      const newMonster = await response.json();
+      // Refresh user monsters list
+      const userMonstersResponse = await fetch('/api/user/monsters');
+      if (userMonstersResponse.ok) {
+        const updatedUserMonsters = await userMonstersResponse.json();
+        setUserMonsters(updatedUserMonsters);
+      }
+
+      alert("Monster purchased successfully!");
+    } catch (error) {
+      console.error("Error purchasing monster:", error);
+      alert(error instanceof Error ? error.message : 'Failed to purchase monster');
+    } finally {
+      setPurchasingMonster(null);
+    }
+  };
+
+  const handleUpgradeMonster = async (userMonsterId: number) => {
+    setUpgradingMonster(userMonsterId);
+    setAnimatingCards(prev => ({ ...prev, [userMonsterId]: true }));
+
+    try {
+      const response = await fetch('/api/monsters/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userMonsterId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upgrade monster');
+      }
+
+      // Refresh user monsters list
+      const userMonstersResponse = await fetch('/api/user/monsters');
+      if (userMonstersResponse.ok) {
+        const updatedUserMonsters = await userMonstersResponse.json();
+        setUserMonsters(updatedUserMonsters);
+      }
+
+      alert("Monster upgraded successfully!");
+    } catch (error) {
+      console.error("Error upgrading monster:", error);
+      alert(error instanceof Error ? error.message : 'Failed to upgrade monster');
+    } finally {
+      setUpgradingMonster(null);
+      setTimeout(() => setAnimatingCards(prev => ({ ...prev, [userMonsterId]: false })), 2000);
+    }
+  };
+
+  // Add rendering logic for loading and error states
+  if (isLoading) {
+    return <div className="text-center p-8">Loading your monsters...</div>;
   }
 
-  if (monstersLoading || userMonstersLoading) {
-    return <div className="p-6 text-center text-white">Loading Monster Lab...</div>;
+  if (error) {
+    return <div className="text-center p-8 text-red-500">Error: {error}</div>;
   }
 
+  // Main component render
   return (
-    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
+    <div className="relative p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
+      {/* Dev Button - positioned absolutely */}
+      <Button onClick={handleAddTokens} className="absolute top-4 right-4 z-10">
+        Dev: Add 5 Tokens
+      </Button>
+
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Monster Lab 🧪</h2>
+        {/* Space reserved for the absolute positioned button */}
+        <div className="w-32"></div>
+      </div>
+
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Available Monsters */}
         <div>
           <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">Available Monsters</h3>
           <div className="grid grid-cols-1 gap-4 justify-items-center">
             {monsters.map((monster) => (
               <div key={monster.id} className="flex flex-col items-center gap-3 w-full max-w-sm">
-                <MonsterCard monster={monster} size="medium" />
-                <Button onClick={() => purchaseMutation.mutate(monster.id)} disabled={purchaseMutation.isPending} className="shadow-lg w-full max-w-xs touch-manipulation min-h-[48px]">
-                  {purchaseMutation.isPending ? "Purchasing..." : `Buy for ${monster.goldCost}g`}
+                <MonsterCard
+                  monster={monster}
+                  size="medium"
+                />
+                <Button
+                  onClick={() => handlePurchaseMonster(monster.id)}
+                  disabled={purchasingMonster === monster.id}
+                  className="shadow-lg w-full max-w-xs touch-manipulation min-h-[48px]"
+                >
+                  {purchasingMonster === monster.id ? "Purchasing..." : `Buy ${monster.goldCost}g`}
                 </Button>
               </div>
             ))}
           </div>
         </div>
+
+        {/* User's Monsters */}
         <div>
           <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">Your Monsters</h3>
           <div className="grid grid-cols-1 gap-4 justify-items-center">
             {userMonsters.length === 0 ? (
-              <Card className="w-full bg-gray-800/50 border-gray-700 text-white"><CardContent className="p-6 text-center"><p className="text-gray-400">No monsters yet. Purchase one to get started!</p></CardContent></Card>
+              <Card className="w-full">
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground">No monsters yet. Purchase one to get started!</p>
+                </CardContent>
+              </Card>
             ) : (
               userMonsters.map((userMonster) => (
                 <div key={userMonster.id} className="flex flex-col items-center gap-3 w-full max-w-sm">
-                  <MonsterCard monster={userMonster.monster} userMonster={userMonster} size="medium" />
-                  <div className="w-full max-w-xs">
-                    {userMonster.level < MAX_LEVEL ? (
-                      <Button onClick={() => handleLevelUp(userMonster)} disabled={upgradeMutation.isPending} className="w-full">
-                        {upgradeMutation.isPending ? "Upgrading..." : `Level Up (${getUpgradeCost(userMonster.level)}g)`}
+                  <MonsterCard
+                    monster={userMonster.monster}
+                    userMonster={userMonster}
+                    isFlipped={flippedCards[userMonster.id] || false}
+                    onFlip={() => setFlippedCards(prev => ({
+                      ...prev,
+                      [userMonster.id]: !prev[userMonster.id]
+                    }))}
+                    showUpgradeAnimation={animatingCards[userMonster.id] || false}
+                    size="medium"
+                  />
+                  {!(flippedCards[userMonster.id] || false) && (
+                    <div className="flex flex-col gap-2 w-full max-w-xs">
+                      {userMonster.level < MAX_LEVEL ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpgradeMonster(userMonster.id)}
+                          disabled={upgradingMonster === userMonster.id}
+                          className="shadow-lg w-full touch-manipulation min-h-[44px]"
+                        >
+                          {upgradingMonster === userMonster.id ? "Upgrading..." : "Level Up (200g)"}
+                        </Button>
+                      ) : (
+                        <div className="text-center py-2 text-sm text-white/70 font-medium">
+                          Max Level Reached
+                        </div>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          // Placeholder for special upgrades
+                          alert("Special upgrades coming soon!");
+                        }}
+                        className="shadow-lg w-full touch-manipulation min-h-[44px] border-white/20 text-white hover:bg-white/10"
+                      >
+                        Special Upgrades
                       </Button>
-                    ) : (
-                      <div className="text-center py-2 text-sm text-white/70 font-medium">Max Level</div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
         </div>
-      </div>
-      {showSubscriptionGate && blockedMonster && (
-        <LabSubscriptionGate monsterName={blockedMonster.monster?.name || "Monster"} onClose={() => setShowSubscriptionGate(false)} />
-      )}
-    </div>
-  );
-}
-
-interface BattleTeamSelectorProps {
-  onBattleStart: (selectedMonsters: UserMonster[], aiOpponent: any) => void;
-}
-
-export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
-  const [selectedMonsters, setSelectedMonsters] = useState<UserMonster[]>([]);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
-  }, []);
-
-  const { data: userMonsters = [], isLoading: loadingMonsters } = useQuery<UserMonster[]>({
-    queryKey: ["/api/user/monsters"],
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const availableMonsters = userMonsters.filter(m => m.hp > 0);
-
-  const generateOpponentMutation = useMutation({
-    mutationFn: async () => {
-      if (selectedMonsters.length === 0) throw new Error("Please select at least one monster.");
-      const playerTPL = selectedMonsters.reduce((acc, m) => acc + m.level, 0);
-      return apiRequest("POST", "/api/battle/generate-opponent", { tpl: playerTPL });
-    },
-    onSuccess: (data) => {
-      onBattleStart(selectedMonsters, data);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Battle Generation Failed", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const handleMonsterSelect = (monster: UserMonster) => {
-    setSelectedMonsters(prev =>
-      prev.some(m => m.id === monster.id)
-        ? prev.filter(m => m.id !== monster.id)
-        : [...prev, monster]
-    );
-  };
-
-  if (loadingMonsters) {
-    return <div className="p-6 text-center text-white">Loading your monsters...</div>;
-  }
-
-  return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
-      <Card className="bg-gray-800/50 border-gray-700 text-white">
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-2">Assemble Your Battle Team</h2>
-          <p className="text-gray-400 mb-4">Select which monsters to bring into battle.</p>
-          <Button onClick={() => generateOpponentMutation.mutate()} disabled={selectedMonsters.length === 0 || generateOpponentMutation.isPending}>
-            {generateOpponentMutation.isPending ? "Finding Opponent..." : "Start Battle"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {availableMonsters.map(userMonster => {
-          const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
-          return (
-            <div
-              key={userMonster.id}
-              className={`cursor-pointer transition-all duration-200 rounded-xl ${isSelected ? 'ring-4 ring-green-500' : 'ring-2 ring-transparent hover:ring-blue-500'}`}
-              onClick={() => handleMonsterSelect(userMonster)}
-            >
-              <MonsterCard monster={userMonster.monster} userMonster={userMonster} size="small" />
-            </div>
-          );
-        })}
       </div>
     </div>
   );
