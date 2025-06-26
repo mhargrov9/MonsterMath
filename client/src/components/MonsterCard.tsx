@@ -1,46 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Eye, Flame, Snowflake, Brain, Sword, Mountain, Sparkles, Target } from 'lucide-react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
 
 // --- TYPE DEFINITIONS ---
-// Simplified for this component's needs
-interface Monster {
-  id: number;
-  name: string;
-  type: string;
-  basePower: number;
-  baseSpeed: number;
-  baseDefense: number;
-  baseHp?: number;
-  baseMp?: number;
-  description?: string;
-  resistances?: string[];
-  weaknesses?: string[];
-  level?: number; 
-}
-
-interface UserMonster {
-  id: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  hp?: number;
-  maxHp?: number;
-  mp?: number;
-  maxMp?: number;
-  evolutionStage: number;
-  upgradeChoices: Record<string, any>;
-  isShattered?: boolean;
-}
-
 interface Ability {
     id: number;
     name: string;
@@ -50,25 +17,48 @@ interface Ability {
     mp_cost: number;
 }
 
-interface MonsterCardProps {
+interface Monster {
+  id: number;
+  name: string;
+  type: string;
+  level: number;
+  power: number;
+  speed: number;
+  defense: number;
+  hp: number;
+  max_hp: number;
+  mp: number;
+  max_mp: number;
+  resistances: string[];
+  weaknesses: string[];
+}
+
+interface UserMonster {
+  id: number;
+  level: number;
+  power: number;
+  speed: number;
+  defense: number;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
   monster: Monster;
-  userMonster?: UserMonster;
+}
+
+interface MonsterCardProps {
+  monster: Monster | UserMonster; // Can be either a flat AI monster or a nested UserMonster
+  userMonster?: UserMonster; // Specifically for player monsters to get unique data
   size?: 'tiny' | 'small' | 'medium' | 'large';
   battleMode?: boolean;
   isPlayerTurn?: boolean;
-  battleMp?: number;
-  battleHp?: number;
-  onAbilityClick?: (ability: any) => void;
+  onAbilityClick?: (ability: Ability) => void;
   showAbilities?: boolean;
 }
 
-
-// --- HELPER FUNCTIONS ---
-
-// NEW: This function reliably gets an icon based on the ability's AFFINITY
+// --- HELPER FUNCTION ---
 const getAffinityIcon = (affinity: string) => {
-  if (!affinity) return <Sword className="w-4 h-4 text-gray-400" />; 
-
+  if (!affinity) return <Sword className="w-4 h-4 text-gray-400" />;
   switch (affinity.toLowerCase()) {
     case 'fire': return <Flame className="w-4 h-4 text-red-500" />;
     case 'water': return <Droplets className="w-4 h-4 text-blue-500" />;
@@ -76,40 +66,38 @@ const getAffinityIcon = (affinity: string) => {
     case 'air': return <Sparkles className="w-4 h-4 text-cyan-400" />;
     case 'electric': return <Zap className="w-4 h-4 text-yellow-400" />;
     case 'psychic': return <Brain className="w-4 h-4 text-purple-500" />;
-    case 'physical': return <Sword className="w-4 h-4 text-gray-400" />;
-    case 'ice': return <Snowflake className="w-4 h-4 text-blue-300" />;
-    default: return <div className="w-4 h-4 bg-gray-500 rounded-sm" />;
+    case 'physical':
+    default:
+      return <Sword className="w-4 h-4 text-gray-400" />;
   }
 };
 
-
 // --- MAIN COMPONENT ---
-
 export default function MonsterCard({
-  monster,
+  monster: monsterProp, // Renaming prop to avoid conflict
   userMonster,
   size = 'medium',
   battleMode = false,
   isPlayerTurn = false,
-  battleMp,
-  battleHp,
   onAbilityClick,
   showAbilities = true
 }: MonsterCardProps) {
 
-  const { toast } = useToast();
+  // --- DERIVE DISPLAY STATS ---
+  // This new logic robustly handles both AI monsters and Player monsters
+  const baseMonster = 'monster' in monsterProp ? monsterProp.monster : monsterProp;
+  const currentStats = 'monster' in monsterProp ? monsterProp : baseMonster;
 
-  // Fetch abilities for this monster
   const { data: abilities = [], isLoading: abilitiesLoading } = useQuery<Ability[]>({
-    queryKey: [`/api/monster-abilities/${monster.id}`],
-    enabled: !!monster.id, // Only run query if monster.id exists
+    queryKey: [`/api/monster-abilities/${baseMonster.id}`],
+    enabled: !!baseMonster.id,
   });
 
-  const level = battleMode ? monster.level : userMonster?.level;
-  const currentHp = battleMode ? battleHp : userMonster?.hp;
-  const maxHp = userMonster?.maxHp || monster.baseHp;
-  const displayMp = battleMode ? battleMp : userMonster?.mp;
-  const maxMp = userMonster?.maxMp || monster.baseMp;
+  const level = currentStats.level;
+  const currentHp = battleMode ? ('monster' in monsterProp ? userMonster?.hp : currentStats.hp) : ('monster' in monsterProp ? userMonster?.hp : currentStats.hp);
+  const maxHp = 'monster' in monsterProp ? userMonster?.maxHp : currentStats.max_hp;
+  const displayMp = battleMode ? ('monster' in monsterProp ? userMonster?.mp : currentStats.mp) : ('monster' in monsterProp ? userMonster?.mp : currentStats.mp);
+  const maxMp = 'monster' in monsterProp ? userMonster?.maxMp : currentStats.max_mp;
 
   const cardSizeClasses = {
     tiny: 'w-32',
@@ -123,13 +111,13 @@ export default function MonsterCard({
       <CardContent className="p-2 space-y-2">
         {/* Header */}
         <div className="flex justify-between items-center">
-          <h2 className="text-md font-bold truncate">{monster.name}</h2>
+          <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
           <Badge variant="secondary">LV. {level}</Badge>
         </div>
 
         {/* Image */}
-        <div className="bg-gray-900/50 rounded h-32 flex items-center justify-center">
-            <VeoMonster monsterId={monster.id} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />
+        <div className="bg-gray-900/50 rounded h-32 flex items-center justify-center overflow-hidden">
+            <VeoMonster monsterId={baseMonster.id} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />
         </div>
 
         {/* HP and MP Bars */}
@@ -146,11 +134,13 @@ export default function MonsterCard({
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-1 text-center text-xs">
-            <div className="bg-gray-700/50 rounded p-1"><Zap className="w-3 h-3 mx-auto text-red-400"/> {userMonster?.power || monster.basePower}</div>
-            <div className="bg-gray-700/50 rounded p-1"><Shield className="w-3 h-3 mx-auto text-blue-400"/> {userMonster?.defense || monster.baseDefense}</div>
-            <div className="bg-gray-700/50 rounded p-1"><Gauge className="w-3 h-3 mx-auto text-green-400"/> {userMonster?.speed || monster.baseSpeed}</div>
-        </div>
+        { size !== 'tiny' &&
+            <div className="grid grid-cols-3 gap-1 text-center text-xs">
+                <div className="bg-gray-700/50 rounded p-1"><Zap className="w-3 h-3 mx-auto text-red-400"/> {currentStats.power}</div>
+                <div className="bg-gray-700/50 rounded p-1"><Shield className="w-3 h-3 mx-auto text-blue-400"/> {currentStats.defense}</div>
+                <div className="bg-gray-700/50 rounded p-1"><Gauge className="w-3 h-3 mx-auto text-green-400"/> {currentStats.speed}</div>
+            </div>
+        }
 
         {/* Abilities */}
         {showAbilities && (
@@ -182,6 +172,13 @@ export default function MonsterCard({
              })
             }
           </div>
+        )}
+
+        {/* Ready Status for bench cards */}
+        {size === 'tiny' && (
+            <div className="text-center mt-1">
+                <Badge variant={currentHp > 0 ? "secondary" : "destructive"}>{currentHp > 0 ? 'Ready' : 'Fainted'}</Badge>
+            </div>
         )}
       </CardContent>
     </Card>
