@@ -1,9 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake } from 'lucide-react';
+import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -86,6 +85,9 @@ export default function MonsterCard({
   showAbilities = true
 }: MonsterCardProps) {
 
+  // State for the expand/collapse feature
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const baseMonster = 'monster' in monsterProp ? monsterProp.monster : monsterProp;
 
   const { data: abilities = [], isLoading: abilitiesLoading } = useQuery<Ability[]>({
@@ -93,8 +95,6 @@ export default function MonsterCard({
     enabled: !!baseMonster.id,
   });
 
-  // --- NEW ROBUST STAT DERIVATION ---
-  // This logic now correctly handles all data sources
   const level = userMonster?.level ?? baseMonster.level ?? 1;
   const power = userMonster?.power ?? baseMonster.power ?? baseMonster.basePower ?? 0;
   const defense = userMonster?.defense ?? baseMonster.defense ?? baseMonster.baseDefense ?? 0;
@@ -112,8 +112,18 @@ export default function MonsterCard({
     large: 'w-80'
   };
 
+  const handleCardClick = () => {
+    // Only allow expanding/collapsing outside of battle mode
+    if (!battleMode) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   return (
-    <Card className={`border-4 bg-gray-800/50 border-gray-700 text-white ${cardSizeClasses[size]}`}>
+    <Card 
+      onClick={handleCardClick}
+      className={`border-4 bg-gray-800/50 border-gray-700 text-white ${cardSizeClasses[size]} ${!battleMode && 'cursor-pointer hover:border-yellow-400 transition-colors'}`}
+    >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
           <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
@@ -143,7 +153,8 @@ export default function MonsterCard({
             </div>
         }
 
-        {showAbilities && (
+        {/* --- ABILITIES ARE NOW CONDITIONALLY RENDERED --- */}
+        {showAbilities && isExpanded && (
           <div className="bg-gray-900/50 p-2 rounded space-y-2 min-h-[100px]">
             <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
             {abilitiesLoading ? <p className="text-xs text-gray-400">Loading...</p> : 
@@ -154,7 +165,12 @@ export default function MonsterCard({
                     <div 
                         key={ability.id} 
                         className={`p-1 rounded text-xs transition-all ${isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : isClickable && !canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={() => { if (isClickable && canAfford && onAbilityClick) onAbilityClick(ability); }}
+                        onClick={(e) => { 
+                            if (isClickable && canAfford && onAbilityClick) {
+                                e.stopPropagation(); // Prevent card from collapsing when clicking an ability
+                                onAbilityClick(ability);
+                            }
+                        }}
                     >
                         <div className="flex items-center gap-2 font-bold">
                             {getAffinityIcon(ability.affinity)}
@@ -173,6 +189,14 @@ export default function MonsterCard({
             <div className="text-center mt-1">
                 <Badge variant={currentHp > 0 ? "secondary" : "destructive"}>{currentHp > 0 ? 'Ready' : 'Fainted'}</Badge>
             </div>
+        )}
+
+        {/* --- UI CUE FOR EXPANDABLE CARDS --- */}
+        {!battleMode && (
+          <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center">
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span>{isExpanded ? 'Collapse' : 'Details'}</span>
+          </div>
         )}
       </CardContent>
     </Card>
