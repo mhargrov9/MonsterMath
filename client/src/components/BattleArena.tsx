@@ -572,66 +572,57 @@ const BattleArena: React.FC = () => {
         <h1 className="text-3xl font-bold text-center mb-8">Battle Arena</h1>
 
         {/* Active Monsters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 items-start">
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-4 text-blue-600">Your Active Monster</h2>
+            <h2 className="text-xl font-semibold mb-4 text-blue-400">Your Active Monster</h2>
             <MonsterCard
-              monster={{
-                ...activePlayerMonster.monster,
-                hp: activePlayerMonster.hp,
-                max_hp: activePlayerMonster.maxHp,
-                mp: activePlayerMonster.mp,
-                max_mp: activePlayerMonster.maxMp,
-                power: activePlayerMonster.power,
-                defense: activePlayerMonster.defense,
-                speed: activePlayerMonster.speed,
-                level: activePlayerMonster.level
-              }}
+              monster={activePlayerMonster}
+              userMonster={activePlayerMonster}
               onAbilityClick={handlePlayerAbility}
               battleMode={true}
               isPlayerTurn={turn === 'player' && !needsToSwap}
-              battleMp={activePlayerMonster.mp}
-              battleHp={activePlayerMonster.hp}
+              // --- CHANGE 1: START EXPANDED AND DO NOT ALLOW COLLAPSING ---
+              startExpanded={true}
+              isToggleable={false}
             />
           </div>
 
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-4 text-red-600">Opponent's Active Monster</h2>
+            <h2 className="text-xl font-semibold mb-4 text-red-400">Opponent's Active Monster</h2>
             <MonsterCard
               monster={activeAiMonster}
               onAbilityClick={() => {}}
               showAbilities={true}
-              battleHp={activeAiMonster.hp}
+              // This card will use the default props: startExpanded={false}, isToggleable={true}
             />
           </div>
         </div>
 
-        {/* Bench Management */}
+        {/* Player's Bench */}
         {benchedMonsters.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-semibold mb-4 text-center">Your Bench</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {benchedMonsters.map((monster, benchIndex) => {
-                const originalIndex = playerTeam.findIndex(m => m.id === monster.id);
+            <div className="flex flex-wrap justify-center gap-4">
+              {playerTeam.map((monster, index) => {
+                if (index === activePlayerIndex) return null; // Don't show active monster on bench
                 return (
-                  <Card key={monster.id} className="cursor-pointer hover:shadow-lg transition-shadow">
-                    <CardContent className="p-2">
-                      <MonsterCard
-                        monster={monster.monster}
-                        userMonster={monster}
-                        size="small"
-                      />
-                      <Button
-                        onClick={() => handleSwapMonster(originalIndex)}
-                        className="w-full mt-2"
-                        size="sm"
-                        disabled={turn !== 'player' || monster.hp <= 0 || battleEnded}
-                        variant={needsToSwap && monster.hp > 0 ? "default" : "outline"}
-                      >
-                        {monster.hp <= 0 ? 'Fainted' : needsToSwap ? 'Send Out!' : 'Swap In'}
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div key={monster.id} className="text-center">
+                    <MonsterCard
+                      monster={monster}
+                      userMonster={monster}
+                      size="small"
+                      // This card will use the default props: startExpanded={false}, isToggleable={true}
+                    />
+                    <Button
+                      onClick={() => handleSwapMonster(index)}
+                      className="w-full mt-2"
+                      size="sm"
+                      disabled={turn !== 'player' || monster.hp <= 0 || battleEnded}
+                      variant={needsToSwap && monster.hp > 0 ? "default" : "outline"}
+                    >
+                      {monster.hp <= 0 ? 'Fainted' : needsToSwap ? 'Send Out!' : 'Swap In'}
+                    </Button>
+                  </div>
                 );
               })}
             </div>
@@ -641,28 +632,19 @@ const BattleArena: React.FC = () => {
         {/* Opponent's Bench */}
         {aiTeam.length > 1 && (
           <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-4 text-center text-red-600">Opponent's Bench</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <h3 className="text-lg font-semibold mb-4 text-center text-red-400">Opponent's Bench</h3>
+            <div className="flex flex-wrap justify-center gap-4">
               {aiTeam.map((monster, index) => {
-                // Only show monsters that are not the active AI monster
-                if (index === activeAiIndex) return null;
-                
+                if (index === activeAiIndex) return null; // Don't show active monster on bench
                 return (
-                  <Card key={monster.id} className="opacity-80">
-                    <CardContent className="p-2">
-                      <MonsterCard
-                        monster={monster}
-                        size="small"
-                        battleHp={monster.hp}
-                        showAbilities={false}
-                      />
-                      <div className="text-center mt-2 text-sm">
-                        <span className={`font-medium ${monster.hp <= 0 ? 'text-red-500' : 'text-gray-600'}`}>
-                          {monster.hp <= 0 ? 'Fainted' : 'Ready'}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <MonsterCard
+                      key={monster.id}
+                      monster={monster}
+                      size="small"
+                      // --- CHANGE 2: ALLOW AI BENCH CARDS TO BE EXPANDED ---
+                      showAbilities={true} 
+                      // This card will use default props: startExpanded={false}, isToggleable={true}
+                    />
                 );
               })}
             </div>
@@ -670,14 +652,14 @@ const BattleArena: React.FC = () => {
         )}
 
         {/* Battle Log */}
-        <div className="bg-gray-100 p-4 rounded-lg mb-4">
-          <h3 className="text-lg font-semibold mb-2">Battle Log</h3>
-          <div className="h-40 overflow-y-auto bg-white p-3 rounded border">
+        <div className="bg-gray-900/50 p-4 rounded-lg mb-4 text-white border border-gray-700">
+          <h3 className="text-lg font-semibold mb-2 border-b border-gray-600 pb-1">Battle Log</h3>
+          <div className="h-40 overflow-y-auto bg-gray-800/60 p-3 rounded">
             {battleLog.length === 0 ? (
-              <p className="text-gray-500 italic">Battle will begin soon...</p>
+              <p className="text-gray-400 italic">The battle is starting...</p>
             ) : (
               battleLog.map((log, index) => (
-                <p key={index} className="mb-1 text-sm">{log}</p>
+                <p key={index} className="mb-1 text-sm font-mono">{`> ${log}`}</p>
               ))
             )}
           </div>
@@ -690,13 +672,13 @@ const BattleArena: React.FC = () => {
               <p className="text-2xl font-bold mb-4">
                 {winner === 'player' ? '🎉 Victory! 🎉' : '💀 Defeat 💀'}
               </p>
-              <Button onClick={resetBattle} className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+              <Button onClick={resetBattle}>
                 New Battle
               </Button>
             </div>
           ) : needsToSwap ? (
-            <p className="text-lg font-semibold text-red-600">
-              Your monster is down! Choose a replacement from your bench!
+            <p className="text-lg font-semibold text-red-500 animate-pulse">
+              Your monster has fainted! Choose a replacement!
             </p>
           ) : (
             <p className="text-lg font-semibold">

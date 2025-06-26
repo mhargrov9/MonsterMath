@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
@@ -58,6 +58,8 @@ interface MonsterCardProps {
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
   showAbilities?: boolean;
+  startExpanded?: boolean; // New prop for default state
+  isToggleable?: boolean;  // New prop for expand/collapse behavior
 }
 
 // --- HELPER FUNCTION ---
@@ -82,11 +84,18 @@ export default function MonsterCard({
   battleMode = false,
   isPlayerTurn = false,
   onAbilityClick,
-  showAbilities = true
+  showAbilities = true,
+  startExpanded = false, // Default to collapsed
+  isToggleable = true,    // Default to being toggleable
 }: MonsterCardProps) {
 
-  // State for the expand/collapse feature
-  const [isExpanded, setIsExpanded] = useState(false);
+  // State for the expand/collapse feature, now controlled by props
+  const [isExpanded, setIsExpanded] = useState(startExpanded);
+
+  // Sync state if the startExpanded prop changes externally
+  useEffect(() => {
+    setIsExpanded(startExpanded);
+  }, [startExpanded]);
 
   const baseMonster = 'monster' in monsterProp ? monsterProp.monster : monsterProp;
 
@@ -113,16 +122,17 @@ export default function MonsterCard({
   };
 
   const handleCardClick = () => {
-    // Only allow expanding/collapsing outside of battle mode
-    if (!battleMode) {
+    // Only allow expanding/collapsing if the card is designated as toggleable
+    if (isToggleable) {
       setIsExpanded(!isExpanded);
     }
   };
 
   return (
-    <Card 
+    <Card  
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 border-gray-700 text-white ${cardSizeClasses[size]} ${!battleMode && 'cursor-pointer hover:border-yellow-400 transition-colors'}`}
+      // UPDATED: New border color, shadow, and cursor logic
+      className={`border-4 bg-gray-800/50 border-cyan-500 text-white shadow-lg ${cardSizeClasses[size]} ${isToggleable && 'cursor-pointer hover:border-yellow-400 transition-colors'}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
@@ -153,21 +163,21 @@ export default function MonsterCard({
             </div>
         }
 
-        {/* --- ABILITIES ARE NOW CONDITIONALLY RENDERED --- */}
+        {/* --- ABILITIES --- Logic is still correct based on isExpanded state */}
         {showAbilities && isExpanded && (
           <div className="bg-gray-900/50 p-2 rounded space-y-2 min-h-[100px]">
             <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
             {abilitiesLoading ? <p className="text-xs text-gray-400">Loading...</p> : 
-             abilities.map(ability => {
+              abilities.map(ability => {
                 const canAfford = battleMode && isPlayerTurn && (displayMp >= ability.mp_cost);
                 const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
                 return (
-                    <div 
-                        key={ability.id} 
+                    <div  
+                        key={ability.id}  
                         className={`p-1 rounded text-xs transition-all ${isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : isClickable && !canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={(e) => { 
+                        onClick={(e) => {  
                             if (isClickable && canAfford && onAbilityClick) {
-                                e.stopPropagation(); // Prevent card from collapsing when clicking an ability
+                                e.stopPropagation();
                                 onAbilityClick(ability);
                             }
                         }}
@@ -180,7 +190,7 @@ export default function MonsterCard({
                         <p className="text-gray-400 text-[10px] leading-tight pl-6">{ability.description}</p>
                     </div>
                 );
-             })
+              })
             }
           </div>
         )}
@@ -191,11 +201,11 @@ export default function MonsterCard({
             </div>
         )}
 
-        {/* --- UI CUE FOR EXPANDABLE CARDS --- */}
-        {!battleMode && (
+        {/* --- UI CUE FOR EXPANDABLE CARDS --- Now driven by isToggleable prop */}
+        {isToggleable && (
           <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center">
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            <span>{isExpanded ? 'Collapse' : 'Details'}</span>
+            <span className="ml-1">{isExpanded ? 'Collapse' : 'Details'}</span>
           </div>
         )}
       </CardContent>
