@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake, ChevronDown, ChevronUp } from 'lucide-react';
+import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake, ChevronDown, ChevronUp, Biohazard } from 'lucide-react'; // Added Biohazard
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 
 // --- TYPE DEFINITIONS ---
 interface Ability {
@@ -20,7 +19,7 @@ interface Monster {
   id: number;
   name: string;
   type: string;
-  description?: string; // ADDED: description field
+  description?: string;
   level?: number;
   power?: number;
   speed?: number;
@@ -73,6 +72,7 @@ const getAffinityIcon = (affinity: string) => {
     case 'air': return <Sparkles className="w-3 h-3 mr-1 text-cyan-300" />;
     case 'electric': return <Zap className="w-3 h-3 mr-1 text-yellow-300" />;
     case 'psychic': return <Brain className="w-3 h-3 mr-1 text-purple-400" />;
+    case 'poison': return <Biohazard className="w-3 h-3 mr-1 text-fuchsia-500" />; // ADDED: Poison icon
     case 'physical': default: return <Sword className="w-3 h-3 mr-1 text-gray-300" />;
   }
 };
@@ -160,17 +160,14 @@ export default function MonsterCard({
             </div>
         }
 
-        {/* --- NEW: COMBINED EXPANDED VIEW FOR DETAILS & ABILITIES --- */}
         {isExpanded && (
           <div className="mt-2 space-y-3">
-            {/* Description Section */}
             {baseMonster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
                 <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
               </div>
             )}
 
-            {/* Resistances & Weaknesses Section */}
             {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
@@ -200,7 +197,6 @@ export default function MonsterCard({
               </div>
             )}
 
-            {/* Abilities Section */}
             {showAbilities && (
               <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
