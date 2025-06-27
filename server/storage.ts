@@ -144,7 +144,8 @@ export class DatabaseStorage implements IStorage {
 
   async getAllMonsters(): Promise<Monster[]> {
     return await db.select().from(monsters).orderBy(asc(monsters.goldCost));
-  }
+  }
+
   async createMonster(monster: InsertMonster): Promise<Monster> {
       const [newMonster] = await db.insert(monsters).values(monster).returning();
       return newMonster;
@@ -234,7 +235,8 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(userMonsters).set({ hp: 0, isShattered: true }).where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId))).returning();
     if (!updated) throw new Error("Monster not found or not owned by user");
     return updated;
-  }
+  }
+
   async repairMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
     const userMonstersWithBase = await db.select().from(userMonsters).leftJoin(monsters, eq(userMonsters.monsterId, monsters.id)).where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
     if (userMonstersWithBase.length === 0) throw new Error("Monster not found or not owned by user");
@@ -408,10 +410,16 @@ export class DatabaseStorage implements IStorage {
       const level = Math.max(1, Math.round(tplPerMonster / 10));
       const hp = monster.baseHp + (monster.hpPerLevel * (level - 1));
       const mp = monster.baseMp + (monster.mpPerLevel * (level - 1));
+
+      // Apply compounding growth for power, defense, and speed
+      const power = Math.floor(monster.basePower * Math.pow(1.1, level - 1));
+      const defense = Math.floor(monster.baseDefense * Math.pow(1.1, level - 1));
+      const speed = Math.floor(monster.baseSpeed * Math.pow(1.1, level - 1));
+
       return {
         id: monster.id, name: monster.name, level: level,
         hp: hp, max_hp: hp, mp: mp, max_mp: mp,
-        power: monster.basePower, defense: monster.baseDefense, speed: monster.baseSpeed,
+        power: power, defense: defense, speed: speed,
         affinity: monster.type, resistances: monster.resistances, weaknesses: monster.weaknesses,
         is_fainted: false
       };
