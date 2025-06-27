@@ -14,13 +14,15 @@ interface Ability {
     affinity: string;
     ability_type: string;
     mp_cost: number;
+    target?: string;
+    healing_power?: number;
 }
 
 interface Monster {
   id: number;
   name: string;
   type: string;
-  description?: string; // ADDED: description field
+  description?: string;
   level?: number;
   power?: number;
   speed?: number;
@@ -60,7 +62,10 @@ interface MonsterCardProps {
   onAbilityClick?: (ability: Ability) => void;
   showAbilities?: boolean;
   startExpanded?: boolean; 
-  isToggleable?: boolean;  
+  isToggleable?: boolean;
+  // NEW PROPS FOR TARGETING
+  isTargeting?: boolean;
+  onCardClick?: () => void;
 }
 
 // --- HELPER FUNCTION ---
@@ -88,6 +93,8 @@ export default function MonsterCard({
   showAbilities = true,
   startExpanded = false,
   isToggleable = true,
+  isTargeting = false,
+  onCardClick,
 }: MonsterCardProps) {
 
   const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -121,15 +128,24 @@ export default function MonsterCard({
   };
 
   const handleCardClick = () => {
+    if (onCardClick) {
+      onCardClick();
+      return;
+    }
     if (isToggleable) {
       setIsExpanded(!isExpanded);
     }
   };
 
+  // Define border color based on state
+  const borderColorClass = isTargeting ? 'border-green-500 animate-pulse' 
+                         : isToggleable ? 'hover:border-yellow-400' 
+                         : 'border-cyan-500';
+
   return (
     <Card  
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 border-cyan-500 text-white shadow-lg ${cardSizeClasses[size]} ${isToggleable && 'cursor-pointer hover:border-yellow-400 transition-colors'}`}
+      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargeting || isToggleable) && 'cursor-pointer'}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
@@ -160,17 +176,14 @@ export default function MonsterCard({
             </div>
         }
 
-        {/* --- NEW: COMBINED EXPANDED VIEW FOR DETAILS & ABILITIES --- */}
         {isExpanded && (
           <div className="mt-2 space-y-3">
-            {/* Description Section */}
             {baseMonster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
                 <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
               </div>
             )}
 
-            {/* Resistances & Weaknesses Section */}
             {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
@@ -200,7 +213,6 @@ export default function MonsterCard({
               </div>
             )}
 
-            {/* Abilities Section */}
             {showAbilities && (
               <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
