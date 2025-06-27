@@ -146,34 +146,39 @@ const BattleArena: React.FC = () => {
         return "";
     };
 
-    const endTurn = (currentTurn: 'player' | 'ai') => {
-        let newLogMessages: string[] = [];
-        let teamToUpdate = [...playerTeam];
-        let teamWasUpdated = false;
+    const endTurn = (currentTurn: 'player' | 'ai', nextPlayerTeam: UserMonster[], nextAiTeam: Monster[]) => {
+        let teamAfterPassives = [...nextPlayerTeam];
+        const newLogMessages: string[] = [];
 
-        // FIX #3: Soothing Aura logic is now correct.
         if (currentTurn === 'player') {
-            const hasSoothingAura = teamToUpdate.some(m => playerMonsterAbilities?.[m.monster.id]?.some(a => a.name === 'Soothing Aura'));
-
-            if (hasSoothingAura) {
-                const activeMonster = teamToUpdate[activePlayerIndex];
+            const auraHolder = teamAfterPassives.find(m => playerMonsterAbilities?.[m.monster.id]?.some(a => a.name === 'Soothing Aura'));
+            if (auraHolder) {
+                const activeMonster = teamAfterPassives[activePlayerIndex];
                 if (activeMonster.hp > 0 && activeMonster.hp < activeMonster.maxHp) {
                     const healingAmount = Math.round(activeMonster.maxHp * 0.03);
                     const newHp = Math.min(activeMonster.maxHp, activeMonster.hp + healingAmount);
                     newLogMessages.push(`A soothing aura restores ${healingAmount} HP for ${activeMonster.monster.name}!`);
-                    teamToUpdate = teamToUpdate.map((m, index) => index === activePlayerIndex ? { ...m, hp: newHp } : m);
-                    teamWasUpdated = true;
+                    teamAfterPassives[activePlayerIndex] = { ...activeMonster, hp: newHp };
                 }
             }
+            teamAfterPassives = teamAfterPassives.map((monster) => {
+                const abilities = playerMonsterAbilities?.[monster.monster.id] || [];
+                const volcanicHeart = abilities.find(a => a.name === 'Volcanic Heart' && a.ability_type === 'PASSIVE');
+                if (volcanicHeart && monster.hp > 0 && Math.random() < 0.15) {
+                    const healingAmount = Math.round(monster.maxHp * 0.05);
+                    const newHp = Math.min(monster.maxHp, monster.hp + healingAmount);
+                    newLogMessages.push(`${monster.monster.name}'s Volcanic Heart glows, restoring ${healingAmount} HP!`);
+                    return { ...monster, hp: newHp };
+                }
+                return monster;
+            });
         }
 
-        if (teamWasUpdated) {
-            setPlayerTeam(teamToUpdate);
-        }
+        setPlayerTeam(teamAfterPassives);
+        setAiTeam(nextAiTeam);
         if (newLogMessages.length > 0) {
             setBattleLog(prev => [...prev, ...newLogMessages]);
         }
-
         setTurn(currentTurn === 'player' ? 'ai' : 'player');
     };
 
@@ -181,22 +186,17 @@ const BattleArena: React.FC = () => {
         if (turn !== 'player' || battleEnded || targetingMode) return;
         const activePlayerMonster = playerTeam[activePlayerIndex];
         if (activePlayerMonster.mp < ability.mp_cost) {
-            setBattleLog(prev => [...prev, "Not enough MP!"]);
-            return;
+            setBattleLog(prev => [...prev, "Not enough MP!"]); return;
         }
         const targetType = ability.target || 'OPPONENT';
         if (targetType === 'ALLY' || targetType === 'SELF') {
-            setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} prepares to use ${ability.name}. Select a target!`]);
-            setTargetingMode({ ability, sourceMonsterId: activePlayerMonster.id });
-            return;
+            setTargetingMode({ ability, sourceMonsterId: activePlayerMonster.id }); return;
         }
         const activeAiMonster = aiTeam[activeAiIndex];
         const damageResult = calculateDamage(activePlayerMonster, activeAiMonster, ability);
         const newAiHp = Math.max(0, activeAiMonster.hp - damageResult.damage);
-        setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, hp: newAiHp } : m));
-        setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - ability.mp_cost } : m));
-
-        // FIX #1: Added effectiveness message to battle log.
+        const updatedAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: newAiHp } : m);
+        const updatedPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - ability.mp_cost } : m);
         let logMessage = `${activePlayerMonster.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`;
         const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
         if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
@@ -204,15 +204,15 @@ const BattleArena: React.FC = () => {
 
         if (newAiHp === 0) {
             setBattleLog(prev => [...prev, `${activeAiMonster.name} has been defeated!`]);
-            const remainingAi = aiTeam.filter(m => m.hp > 0 && m.id !== activeAiMonster.id);
+            const remainingAi = updatedAiTeam.filter(m => m.hp > 0);
             if (remainingAi.length === 0) {
-                setBattleEnded(true); setWinner('player'); return;
+                setBattleEnded(true); setWinner('player'); setPlayerTeam(updatedPlayerTeam); setAiTeam(updatedAiTeam); return;
             }
-            const nextAiIndex = aiTeam.findIndex(m => m.hp > 0 && m.id !== activeAiMonster.id);
+            const nextAiIndex = updatedAiTeam.findIndex(m => m.hp > 0);
             setActiveAiIndex(nextAiIndex);
-            setBattleLog(prev => [...prev, `Your opponent sends out ${aiTeam[nextAiIndex].name}!`]);
+            setBattleLog(prev => [...prev, `Your opponent sends out ${updatedAiTeam[nextAiIndex].name}!`]);
         }
-        endTurn('player');
+        endTurn('player', updatedPlayerTeam, updatedAiTeam);
     };
 
     const handleAiAbility = () => {
@@ -221,55 +221,50 @@ const BattleArena: React.FC = () => {
         const activePlayerMonster = playerTeam[activePlayerIndex];
         const aiAbilities = aiMonsterAbilities[activeAiMonster.id] || [];
         const usableAbilities = aiAbilities.filter(a => a.mp_cost <= activeAiMonster.mp && a.ability_type === 'ACTIVE');
-        if (usableAbilities.length === 0) {
-            endTurn('ai'); return;
-        }
+        if (usableAbilities.length === 0) { endTurn('ai', playerTeam, aiTeam); return; }
         const selectedAbility = usableAbilities[Math.floor(Math.random() * usableAbilities.length)];
         const damageResult = calculateDamage(activeAiMonster, activePlayerMonster, selectedAbility);
         const newPlayerHp = Math.max(0, activePlayerMonster.hp - damageResult.damage);
-        setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, hp: newPlayerHp } : m));
-        setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - selectedAbility.mp_cost } : m));
-
-        // FIX #1: Added effectiveness message to battle log.
+        const updatedPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: newPlayerHp } : m);
+        const updatedAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - selectedAbility.mp_cost } : m);
         let logMessage = `${activeAiMonster.name} used ${selectedAbility.name}, dealing ${damageResult.damage} damage!`;
         const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
         if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
         setBattleLog(prev => [...prev, logMessage]);
-
         if (newPlayerHp === 0) {
             setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} has been defeated!`]);
-            const remainingPlayer = playerTeam.filter(m => m.hp > 0 && m.id !== activePlayerMonster.id);
+            const remainingPlayer = updatedPlayerTeam.filter(m => m.hp > 0);
             if (remainingPlayer.length === 0) {
-                setBattleEnded(true); setWinner('ai'); return;
+                setBattleEnded(true); setWinner('ai'); setPlayerTeam(updatedPlayerTeam); setAiTeam(updatedAiTeam); return;
             }
         }
-        endTurn('ai');
+        endTurn('ai', updatedPlayerTeam, updatedAiTeam);
     };
 
-    // FIX #2: Rewritten to guarantee the UI re-renders on heal.
+    // FIX #1: The definitive fix for the healing UI bug.
     const handleTargetSelection = (targetIndex: number) => {
         if (!targetingMode) return;
         const { ability, sourceMonsterId } = targetingMode;
-        const sourceMonster = playerTeam.find(m => m.id === sourceMonsterId);
-        if (!sourceMonster) { setTargetingMode(null); return; }
 
         let teamAfterAction = [...playerTeam];
+        const sourceMonster = teamAfterAction.find(m => m.id === sourceMonsterId);
         const targetMonster = teamAfterAction[targetIndex];
+
+        if (!sourceMonster || !targetMonster) { setTargetingMode(null); return; }
+
         const healingAmount = ability.healing_power || 0;
         const newHp = Math.min(targetMonster.maxHp, targetMonster.hp + healingAmount);
 
-        // Perform all state changes on the temporary array first
-        teamAfterAction = teamAfterAction.map(monster => {
-            if (monster.id === targetMonster.id) return { ...monster, hp: newHp };
-            if (monster.id === sourceMonsterId) return { ...monster, mp: monster.mp - ability.mp_cost };
-            return monster;
+        setBattleLog(prev => [...prev, `${sourceMonster.monster.name} used ${ability.name}, healing ${targetMonster.monster.name} for ${healingAmount} HP!`]);
+
+        teamAfterAction = teamAfterAction.map(m => {
+            if (m.id === targetMonster.id) return { ...m, hp: newHp };
+            if (m.id === sourceMonsterId) return { ...m, mp: m.mp - ability.mp_cost };
+            return m;
         });
 
-        // Then, update the state with the new array
-        setPlayerTeam(teamAfterAction);
-        setBattleLog(prev => [...prev, `${sourceMonster.monster.name} used ${ability.name}, healing ${targetMonster.monster.name} for ${healingAmount} HP!`]);
         setTargetingMode(null);
-        endTurn('player');
+        endTurn('player', teamAfterAction, aiTeam);
     };
 
     const handleSwapMonster = (newIndex: number) => {
@@ -278,7 +273,7 @@ const BattleArena: React.FC = () => {
         if (newActiveMonster.hp <= 0) return;
         setBattleLog(prev => [...prev, `You withdraw ${playerTeam[activePlayerIndex].monster.name} and send out ${newActiveMonster.monster.name}!`]);
         setActivePlayerIndex(newIndex);
-        endTurn('player');
+        endTurn('player', playerTeam, aiTeam);
     };
 
     useEffect(() => {
@@ -344,6 +339,7 @@ const BattleArena: React.FC = () => {
                     <div className="flex flex-col items-center">
                         <h2 className="text-xl font-semibold mb-2 text-cyan-400">Your Team</h2>
                         <MonsterCard
+                            key={activePlayerMonster.hp} // Force re-render on HP change
                             monster={activePlayerMonster.monster} userMonster={activePlayerMonster}
                             onAbilityClick={handlePlayerAbility} battleMode={true}
                             isPlayerTurn={turn === 'player' && !targetingMode} startExpanded={true}
@@ -357,7 +353,7 @@ const BattleArena: React.FC = () => {
                                     const originalIndex = playerTeam.findIndex(p => p.id === monster.id);
                                     return (
                                         <div key={monster.id} className="text-center">
-                                            <MonsterCard monster={monster.monster} userMonster={monster} size="tiny" isToggleable={true} isTargetable={!!targetingMode} onCardClick={targetingMode ? () => handleTargetSelection(originalIndex) : undefined} />
+                                            <MonsterCard monster={monster.monster} userMonster={monster} size="tiny" isToggleable={!targetingMode} isTargetable={!!targetingMode} onCardClick={targetingMode ? () => handleTargetSelection(originalIndex) : undefined} />
                                             <Button onClick={() => handleSwapMonster(originalIndex)} disabled={!!targetingMode || turn !== 'player' || monster.hp <= 0} size="sm" className="mt-1 w-full">Swap</Button>
                                         </div>
                                     );
