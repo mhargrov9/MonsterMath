@@ -71,7 +71,6 @@ interface StatusEffect {
   valueType: string;
 }
 
-// NEW: Interface for effects currently active on a monster
 interface ActiveStatusEffect {
   name: string;
   duration: number;
@@ -97,8 +96,6 @@ const BattleArena: React.FC = () => {
   const [battleEnded, setBattleEnded] = useState(false);
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
   const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Record<number, Ability[]>>({});
-
-  // NEW: State to track status effects for each monster
   const [playerStatusEffects, setPlayerStatusEffects] = useState<Map<number, ActiveStatusEffect[]>>(new Map());
   const [aiStatusEffects, setAiStatusEffects] = useState<Map<number, ActiveStatusEffect[]>>(new Map());
 
@@ -165,6 +162,7 @@ const BattleArena: React.FC = () => {
 
     const finalDamage = Math.round(Math.max(1, rawDamage));
 
+    // FIX: Status effect roll is now separate from damage calculation to ensure it always has a chance to apply.
     let statusEffect: StatusEffect | undefined;
     if (ability.status_effect_applies && ability.status_effect_chance && Math.random() < ability.status_effect_chance) {
         statusEffect = { effectName: ability.status_effect_applies, duration: ability.status_effect_duration || 0, value: ability.status_effect_value || 0, valueType: ability.status_effect_value_type || 'flat' };
@@ -178,62 +176,63 @@ const BattleArena: React.FC = () => {
     return "";
   };
 
-  // NEW: Function to process end-of-turn status effects like Poison/Burn
+  // FIX: Upgraded function to handle both damaging and healing end-of-turn effects.
   const processEndOfTurnEffects = (whoseTurnEnded: 'player' | 'ai') => {
     let newLogMessages: string[] = [];
-    if (whoseTurnEnded === 'player') {
-      const activePlayerMonster = playerTeam[activePlayerIndex];
-      const effects = playerStatusEffects.get(activePlayerMonster.id) || [];
-      if (effects.length > 0) {
-        let totalDamage = 0;
-        const remainingEffects = effects.map(effect => {
-          if (effect.name.toLowerCase() === 'burn' || effect.name.toLowerCase() === 'poison') {
-            const dotDamage = Math.round(activePlayerMonster.maxHp * effect.value); // Value is the % damage
-            totalDamage += dotDamage;
-            newLogMessages.push(`${activePlayerMonster.monster.name} is hurt by ${effect.name}! It took ${dotDamage} damage.`);
-          }
-          return { ...effect, duration: effect.duration - 1 };
-        }).filter(effect => effect.duration > 0);
 
-        if (totalDamage > 0) {
-            const newHp = Math.max(0, activePlayerMonster.hp - totalDamage);
-            setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, hp: newHp } : m));
-        }
-        setPlayerStatusEffects(prev => {
-            const newMap = new Map(prev);
-            if (remainingEffects.length > 0) newMap.set(activePlayerMonster.id, remainingEffects);
-            else newMap.delete(activePlayerMonster.id);
-            return newMap;
-        });
-      }
-    } else { // AI's turn ended
-      const activeAiMonster = aiTeam[activeAiIndex];
-      const effects = aiStatusEffects.get(activeAiMonster.id) || [];
-      if (effects.length > 0) {
-        let totalDamage = 0;
-        const remainingEffects = effects.map(effect => {
-          if (effect.name.toLowerCase() === 'burn' || effect.name.toLowerCase() === 'poison') {
-            const dotDamage = Math.round(activeAiMonster.max_hp * effect.value);
-            totalDamage += dotDamage;
-            newLogMessages.push(`${activeAiMonster.name} is hurt by ${effect.name}! It took ${dotDamage} damage.`);
-          }
-          return { ...effect, duration: effect.duration - 1 };
-        }).filter(effect => effect.duration > 0);
+    // Determine whose effects to process
+    const isPlayer = whoseTurnEnded === 'player';
+    const activeMonster = isPlayer ? playerTeam[activePlayerIndex] : aiTeam[activeAiIndex];
+    const statusEffects = isPlayer ? playerStatusEffects.get(activeMonster.id) || [] : aiStatusEffects.get(activeMonster.id) || [];
+    const maxHp = isPlayer ? activeMonster.maxHp : activeMonster.max_hp;
 
-        if (totalDamage > 0) {
-            const newHp = Math.max(0, activeAiMonster.hp - totalDamage);
-            setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, hp: newHp } : m));
+    if (statusEffects.length > 0) {
+      let totalDamage = 0;
+      let totalHealing = 0;
+
+      const remainingEffects = statusEffects.map(effect => {
+        const effectNameLower = effect.name.toLowerCase();
+
+        // Handle Damage Effects
+        if (effectNameLower === 'burn' || effectNameLower === 'poison') {
+          const dotDamage = Math.round(maxHp * effect.value);
+          totalDamage += dotDamage;
+          newLogMessages.push(`${activeMonster.name || activeMonster.monster.name} is hurt by ${effect.name}! It took ${dotDamage} damage.`);
         }
-        setAiStatusEffects(prev => {
-            const newMap = new Map(prev);
-            if (remainingEffects.length > 0) newMap.set(activeAiMonster.id, remainingEffects);
-            else newMap.delete(activeAiMonster.id);
-            return newMap;
-        });
+
+        // Handle Healing Effects
+        if (effectNameLower === 'regeneration' || effectNameLower === 'soothing aura') {
+          const hotHealing = Math.round(maxHp * effect.value);
+          totalHealing += hotHealing;
+          newLogMessages.push(`${activeMonster.name || activeMonster.monster.name}'s ${effect.name} restores ${hotHealing} HP!`);
+        }
+
+        return { ...effect, duration: effect.duration - 1 };
+      }).filter(effect => effect.duration > 0);
+
+      const netHpChange = totalHealing - totalDamage;
+
+      if (netHpChange !== 0) {
+        const newHp = Math.max(0, Math.min(maxHp, activeMonster.hp + netHpChange));
+        if (isPlayer) {
+          setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, hp: newHp } : m));
+        } else {
+          setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, hp: newHp } : m));
+        }
       }
+
+      // Update the status effect map
+      const effectMapUpdater = isPlayer ? setPlayerStatusEffects : setAiStatusEffects;
+      effectMapUpdater(prev => {
+        const newMap = new Map(prev);
+        if (remainingEffects.length > 0) newMap.set(activeMonster.id, remainingEffects);
+        else newMap.delete(activeMonster.id);
+        return newMap;
+      });
     }
+
     if (newLogMessages.length > 0) {
-        setBattleLog(prev => [...prev, ...newLogMessages]);
+      setBattleLog(prev => [...prev, ...newLogMessages]);
     }
   };
 
@@ -303,7 +302,6 @@ const BattleArena: React.FC = () => {
       setBattleMode('lead-select');
       setTurn('pre-battle');
 
-      // NEW: Reset status effects at the start of a new battle
       setPlayerStatusEffects(new Map());
       setAiStatusEffects(new Map());
 
@@ -345,13 +343,12 @@ const BattleArena: React.FC = () => {
     const activePlayerMonster = playerTeam[activePlayerIndex];
     const activeAiMonster = aiTeam[activeAiIndex];
 
-    // NEW: Check for turn-skipping status effects at the start of the turn
     const playerEffects = playerStatusEffects.get(activePlayerMonster.id) || [];
     for (const effect of playerEffects) {
       if (effect.name.toLowerCase() === 'drowsiness' || effect.name.toLowerCase() === 'paralysis' || effect.name.toLowerCase() === 'frozen') {
-        if (Math.random() < effect.value) { // Use the database-driven chance
+        if (Math.random() < effect.value) {
           setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} is ${effect.name} and couldn't move!`]);
-          processEndOfTurnEffects('player'); // Still process end-of-turn effects
+          processEndOfTurnEffects('player');
           setTurn('ai');
           return;
         }
@@ -386,7 +383,6 @@ const BattleArena: React.FC = () => {
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
     if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
 
-    // UPDATED: Apply and log status effects
     if (damageResult.statusEffect) {
       logMessage += ` ${activeAiMonster.name} is now affected by ${damageResult.statusEffect.effectName}!`;
       setAiStatusEffects(prev => {
@@ -419,26 +415,25 @@ const BattleArena: React.FC = () => {
       }
     }
 
-    // NEW: Process end-of-turn effects for the player
     processEndOfTurnEffects('player');
-    if (Math.max(0, activeAiMonster.hp - 0) > 0) { // Check if AI monster fainted from status effect
+    if (Math.max(0, updatedAiTeam[activeAiIndex].hp) > 0) {
         setTurn('ai');
     }
   };
 
   const handleSwapMonster = (newIndex: number) => {
     if (newIndex === activePlayerIndex || turn !== 'player' || battleEnded) return;
+    const currentActiveMonster = playerTeam[activePlayerIndex];
     const newActiveMonster = playerTeam[newIndex];
     if (newActiveMonster.hp <= 0) {
       setBattleLog(prev => [...prev, `${newActiveMonster.monster.name} is unable to battle!`]);
       return;
     }
 
-    // NEW: Process end-of-turn effects for the monster being swapped out
     processEndOfTurnEffects('player');
 
     setActivePlayerIndex(newIndex);
-    setBattleLog(prev => [...prev, `You called back ${playerTeam[activePlayerIndex].monster.name} and sent out ${newActiveMonster.monster.name}!`]);
+    setBattleLog(prev => [...prev, `You called back ${currentActiveMonster.monster.name} and sent out ${newActiveMonster.monster.name}!`]);
     setTurn('ai');
   };
 
@@ -447,7 +442,6 @@ const BattleArena: React.FC = () => {
     const activeAiMonster = aiTeam[activeAiIndex];
     const activePlayerMonster = playerTeam[activePlayerIndex];
 
-    // NEW: Check for turn-skipping status effects
     const aiEffects = aiStatusEffects.get(activeAiMonster.id) || [];
     for (const effect of aiEffects) {
         if (effect.name.toLowerCase() === 'drowsiness' || effect.name.toLowerCase() === 'paralysis' || effect.name.toLowerCase() === 'frozen') {
@@ -462,7 +456,6 @@ const BattleArena: React.FC = () => {
 
     const action = decideAiAction();
     if (action.action === 'swap') {
-        // NEW: Process end-of-turn effects for the monster being swapped out
         processEndOfTurnEffects('ai');
         setActiveAiIndex(action.newIndex);
         setBattleLog(prev => [...prev, `The opponent withdraws ${activeAiMonster.name} and sends out ${aiTeam[action.newIndex].name}!`]);
@@ -500,7 +493,6 @@ const BattleArena: React.FC = () => {
     const aiEffectivenessMsg = getEffectivenessMessage(aiDamageResult.affinityMultiplier);
     if (aiEffectivenessMsg) aiLogMessage += ` ${aiEffectivenessMsg}`;
 
-    // UPDATED: Apply and log status effects
     if (aiDamageResult.statusEffect) {
       aiLogMessage += ` ${activePlayerMonster.monster.name} is now affected by ${aiDamageResult.statusEffect.effectName}!`;
       setPlayerStatusEffects(prev => {
@@ -533,20 +525,20 @@ const BattleArena: React.FC = () => {
       }
     }
 
-    // NEW: Process end-of-turn effects for the AI
     processEndOfTurnEffects('ai');
-    if (Math.max(0, activePlayerMonster.hp - 0) > 0) {
+    if (Math.max(0, updatedPlayerTeam[activePlayerIndex].hp) > 0) {
         setTurn('player');
     }
   };
 
   useEffect(() => {
     if (turn === 'ai' && !battleEnded) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         handleAiAbility();
       }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [turn, battleEnded, activeAiIndex]); // Added activeAiIndex to dependencies
+  }, [turn, battleEnded, activeAiIndex]); 
 
   const resetBattle = () => {
     setBattleMode('team-select');
@@ -578,8 +570,8 @@ const BattleArena: React.FC = () => {
           {playerTeam.map((userMonster, index) => (
               <div key={userMonster.id}>
                 <MonsterCard
-                  monster={userMonster.monster} // Pass the base monster object
-                  userMonster={userMonster} // Pass the user monster object
+                  monster={userMonster.monster}
+                  userMonster={userMonster}
                   size="medium"
                 />
                 <Button
@@ -613,9 +605,7 @@ const BattleArena: React.FC = () => {
 
     return (
       <div className="max-w-7xl mx-auto p-4">
-        {/* Active Monsters Area */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4 items-start">
-          {/* Player Side */}
           <div className="flex flex-col items-center">
             <h2 className="text-xl font-semibold mb-2 text-cyan-400">Your Team</h2>
             <MonsterCard
@@ -628,7 +618,6 @@ const BattleArena: React.FC = () => {
               isToggleable={false}
               size="large"
             />
-            {/* Player Bench */}
             {benchedPlayerMonsters.length > 0 && (
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
                   {playerTeam.map((monster, index) => {
@@ -656,7 +645,6 @@ const BattleArena: React.FC = () => {
             )}
           </div>
 
-          {/* AI Side */}
           <div className="flex flex-col items-center">
             <h2 className="text-xl font-semibold mb-2 text-red-400">Opponent's Team</h2>
             <MonsterCard
@@ -664,7 +652,6 @@ const BattleArena: React.FC = () => {
               showAbilities={true}
               size="large"
             />
-            {/* AI Bench */}
             {aiTeam.length > 1 && (
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
                   {aiTeam.map((monster, index) => {
@@ -683,7 +670,6 @@ const BattleArena: React.FC = () => {
           </div>
         </div>
 
-        {/* Battle Log & Status */}
         <div className="mt-4 max-w-3xl mx-auto">
           <div className="bg-gray-900/50 p-4 rounded-lg mb-4 text-white border border-gray-700">
             <h3 className="text-lg font-semibold mb-2 border-b border-gray-600 pb-1">Battle Log</h3>
