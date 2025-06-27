@@ -108,11 +108,9 @@ const BattleArena: React.FC = () => {
         return 1.0;
     };
 
-    // FIX: Restored the full, correct damage calculation logic.
     const calculateDamage = (attackingMonster: Monster | UserMonster, defendingMonster: Monster | UserMonster, ability: Ability): DamageResult => {
         let scalingStatValue: number;
         const scalingStatName = ability.scaling_stat || 'power';
-
         const getStat = (monster: Monster | UserMonster, stat: string) => {
             const monsterStats = 'monster' in monster ? monster : monster;
             switch (stat.toLowerCase()) {
@@ -121,26 +119,20 @@ const BattleArena: React.FC = () => {
                 default: return monsterStats.power;
             }
         };
-
         scalingStatValue = getStat(attackingMonster, scalingStatName);
         const defenderDefense = getStat(defendingMonster, 'defense');
-        const attackPower = scalingStatValue * (ability.power_multiplier || 0);
+        const attackPower = scalingStatValue * (ability.power_multiplier || 0.5);
         const damageMultiplier = 100 / (100 + defenderDefense);
         let rawDamage = attackPower * damageMultiplier;
-
         const defenderResistances = 'monster' in defendingMonster ? defendingMonster.monster.resistances : defendingMonster.resistances;
         const defenderWeaknesses = 'monster' in defendingMonster ? defendingMonster.monster.weaknesses : defendingMonster.weaknesses;
         const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
         rawDamage *= affinityMultiplier;
-
         const isCritical = Math.random() < 0.05;
         if (isCritical) rawDamage *= 1.5;
-
         const variance = 0.9 + Math.random() * 0.2;
         rawDamage *= variance;
-
         const finalDamage = Math.round(Math.max(1, rawDamage));
-
         let statusEffect: { name: string, duration: number, value: number } | undefined;
         if (ability.status_effect_applies && (ability.status_effect_chance || 0) > Math.random()) {
             statusEffect = { name: ability.status_effect_applies, duration: ability.status_effect_duration || 0, value: ability.status_effect_value || 0 };
@@ -148,25 +140,40 @@ const BattleArena: React.FC = () => {
         return { damage: finalDamage, isCritical, affinityMultiplier, statusEffect };
     };
 
+    const getEffectivenessMessage = (multiplier: number): string => {
+        if (multiplier > 1.0) return "It's super effective!";
+        if (multiplier < 1.0) return "It's not very effective...";
+        return "";
+    };
+
     const endTurn = (currentTurn: 'player' | 'ai') => {
+        let newLogMessages: string[] = [];
+        let teamToUpdate = [...playerTeam];
+        let teamWasUpdated = false;
+
+        // FIX #3: Soothing Aura logic is now correct.
         if (currentTurn === 'player') {
-            let teamAfterPassives = [...playerTeam];
-            const newLogMessages: string[] = [];
-            teamAfterPassives.forEach((monster, index) => {
-                const abilities = playerMonsterAbilities?.[monster.monster.id] || [];
-                const soothingAura = abilities.find(a => a.name === 'Soothing Aura' && a.ability_type === 'PASSIVE');
-                if (soothingAura && monster.hp > 0 && monster.hp < monster.maxHp) {
-                    const healingAmount = Math.round(monster.maxHp * 0.03);
-                    const newHp = Math.min(monster.maxHp, monster.hp + healingAmount);
-                    newLogMessages.push(`${monster.monster.name}'s Soothing Aura restores ${healingAmount} HP!`);
-                    teamAfterPassives[index] = { ...monster, hp: newHp };
+            const hasSoothingAura = teamToUpdate.some(m => playerMonsterAbilities?.[m.monster.id]?.some(a => a.name === 'Soothing Aura'));
+
+            if (hasSoothingAura) {
+                const activeMonster = teamToUpdate[activePlayerIndex];
+                if (activeMonster.hp > 0 && activeMonster.hp < activeMonster.maxHp) {
+                    const healingAmount = Math.round(activeMonster.maxHp * 0.03);
+                    const newHp = Math.min(activeMonster.maxHp, activeMonster.hp + healingAmount);
+                    newLogMessages.push(`A soothing aura restores ${healingAmount} HP for ${activeMonster.monster.name}!`);
+                    teamToUpdate = teamToUpdate.map((m, index) => index === activePlayerIndex ? { ...m, hp: newHp } : m);
+                    teamWasUpdated = true;
                 }
-            });
-            if (newLogMessages.length > 0) {
-                setPlayerTeam(teamAfterPassives);
-                setBattleLog(prev => [...prev, ...newLogMessages]);
             }
         }
+
+        if (teamWasUpdated) {
+            setPlayerTeam(teamToUpdate);
+        }
+        if (newLogMessages.length > 0) {
+            setBattleLog(prev => [...prev, ...newLogMessages]);
+        }
+
         setTurn(currentTurn === 'player' ? 'ai' : 'player');
     };
 
@@ -188,7 +195,13 @@ const BattleArena: React.FC = () => {
         const newAiHp = Math.max(0, activeAiMonster.hp - damageResult.damage);
         setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, hp: newAiHp } : m));
         setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - ability.mp_cost } : m));
-        setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
+
+        // FIX #1: Added effectiveness message to battle log.
+        let logMessage = `${activePlayerMonster.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`;
+        const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
+        if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
+        setBattleLog(prev => [...prev, logMessage]);
+
         if (newAiHp === 0) {
             setBattleLog(prev => [...prev, `${activeAiMonster.name} has been defeated!`]);
             const remainingAi = aiTeam.filter(m => m.hp > 0 && m.id !== activeAiMonster.id);
@@ -216,7 +229,13 @@ const BattleArena: React.FC = () => {
         const newPlayerHp = Math.max(0, activePlayerMonster.hp - damageResult.damage);
         setPlayerTeam(prev => prev.map((m, i) => i === activePlayerIndex ? { ...m, hp: newPlayerHp } : m));
         setAiTeam(prev => prev.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - selectedAbility.mp_cost } : m));
-        setBattleLog(prev => [...prev, `${activeAiMonster.name} used ${selectedAbility.name}, dealing ${damageResult.damage} damage!`]);
+
+        // FIX #1: Added effectiveness message to battle log.
+        let logMessage = `${activeAiMonster.name} used ${selectedAbility.name}, dealing ${damageResult.damage} damage!`;
+        const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
+        if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
+        setBattleLog(prev => [...prev, logMessage]);
+
         if (newPlayerHp === 0) {
             setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} has been defeated!`]);
             const remainingPlayer = playerTeam.filter(m => m.hp > 0 && m.id !== activePlayerMonster.id);
@@ -227,24 +246,27 @@ const BattleArena: React.FC = () => {
         endTurn('ai');
     };
 
+    // FIX #2: Rewritten to guarantee the UI re-renders on heal.
     const handleTargetSelection = (targetIndex: number) => {
         if (!targetingMode) return;
         const { ability, sourceMonsterId } = targetingMode;
         const sourceMonster = playerTeam.find(m => m.id === sourceMonsterId);
-        if(!sourceMonster) { setTargetingMode(null); return; }
+        if (!sourceMonster) { setTargetingMode(null); return; }
 
-        let teamAfterHeal = [...playerTeam];
-        const targetMonster = teamAfterHeal[targetIndex];
+        let teamAfterAction = [...playerTeam];
+        const targetMonster = teamAfterAction[targetIndex];
         const healingAmount = ability.healing_power || 0;
         const newHp = Math.min(targetMonster.maxHp, targetMonster.hp + healingAmount);
 
-        teamAfterHeal = teamAfterHeal.map(monster => {
+        // Perform all state changes on the temporary array first
+        teamAfterAction = teamAfterAction.map(monster => {
             if (monster.id === targetMonster.id) return { ...monster, hp: newHp };
             if (monster.id === sourceMonsterId) return { ...monster, mp: monster.mp - ability.mp_cost };
             return monster;
         });
 
-        setPlayerTeam(teamAfterHeal);
+        // Then, update the state with the new array
+        setPlayerTeam(teamAfterAction);
         setBattleLog(prev => [...prev, `${sourceMonster.monster.name} used ${ability.name}, healing ${targetMonster.monster.name} for ${healingAmount} HP!`]);
         setTargetingMode(null);
         endTurn('player');
