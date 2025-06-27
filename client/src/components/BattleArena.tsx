@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MonsterCard from './MonsterCard';
 import { BattleTeamSelector } from './BattleTeamSelector.tsx';
 import { Button } from '@/components/ui/button';
@@ -241,7 +241,6 @@ const BattleArena: React.FC = () => {
         endTurn('ai', updatedPlayerTeam, updatedAiTeam);
     };
 
-    // FIX #1: The definitive fix for the healing UI bug.
     const handleTargetSelection = (targetIndex: number) => {
         if (!targetingMode) return;
         const { ability, sourceMonsterId } = targetingMode;
@@ -257,10 +256,24 @@ const BattleArena: React.FC = () => {
 
         setBattleLog(prev => [...prev, `${sourceMonster.monster.name} used ${ability.name}, healing ${targetMonster.monster.name} for ${healingAmount} HP!`]);
 
-        teamAfterAction = teamAfterAction.map(m => {
-            if (m.id === targetMonster.id) return { ...m, hp: newHp };
-            if (m.id === sourceMonsterId) return { ...m, mp: m.mp - ability.mp_cost };
-            return m;
+        // --- BUG FIX ---
+        // Refactored this block to correctly handle self-targeting.
+        // It now ensures both HP changes and MP costs are applied correctly,
+        // even when the source and target monster are the same.
+        teamAfterAction = teamAfterAction.map(monster => {
+            let updatedMonster = { ...monster };
+
+            // Apply healing if it's the target
+            if (monster.id === targetMonster.id) {
+                updatedMonster.hp = newHp;
+            }
+
+            // Apply MP cost if it's the source
+            if (monster.id === sourceMonsterId) {
+                updatedMonster.mp = monster.mp - ability.mp_cost;
+            }
+
+            return updatedMonster;
         });
 
         setTargetingMode(null);
@@ -320,6 +333,14 @@ const BattleArena: React.FC = () => {
 
     const resetBattle = () => setBattleMode('team-select');
 
+    const battleLogRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (battleLogRef.current) {
+            battleLogRef.current.scrollTop = battleLogRef.current.scrollHeight;
+        }
+    }, [battleLog]);
+
     if (battleMode === 'team-select') return <div className="max-w-6xl mx-auto p-6"><h1 className="text-3xl font-bold text-center mb-8">Battle Arena</h1><BattleTeamSelector onBattleStart={handleBattleStart} /></div>;
     if (battleMode === 'lead-select') return <div className="max-w-6xl mx-auto p-6"><h1 className="text-3xl font-bold text-center mb-8">Choose Your Lead Monster</h1><div className="flex flex-wrap justify-center gap-6">{playerTeam.map((userMonster, index) => (<div key={userMonster.id}><MonsterCard monster={userMonster.monster} userMonster={userMonster} size="medium" /><Button onClick={() => selectLeadMonster(index)} className="w-full mt-4" disabled={userMonster.hp <= 0}>{userMonster.hp <= 0 ? 'Fainted' : 'Choose as Lead'}</Button></div>))}</div></div>;
 
@@ -339,7 +360,7 @@ const BattleArena: React.FC = () => {
                     <div className="flex flex-col items-center">
                         <h2 className="text-xl font-semibold mb-2 text-cyan-400">Your Team</h2>
                         <MonsterCard
-                            key={activePlayerMonster.hp} // Force re-render on HP change
+                            key={activePlayerMonster.hp + activePlayerMonster.mp} // Force re-render on HP or MP change
                             monster={activePlayerMonster.monster} userMonster={activePlayerMonster}
                             onAbilityClick={handlePlayerAbility} battleMode={true}
                             isPlayerTurn={turn === 'player' && !targetingMode} startExpanded={true}
@@ -376,7 +397,7 @@ const BattleArena: React.FC = () => {
                 <div className="mt-4 max-w-3xl mx-auto">
                     <div className="bg-gray-900/50 p-4 rounded-lg mb-4 text-white border border-gray-700">
                         <h3 className="text-lg font-semibold mb-2 border-b border-gray-600 pb-1">Battle Log</h3>
-                        <div className="h-40 overflow-y-auto bg-gray-800/60 p-3 rounded font-mono text-sm" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
+                        <div className="h-40 overflow-y-auto bg-gray-800/60 p-3 rounded font-mono text-sm" ref={battleLogRef}>
                             {battleLog.map((log, index) => <p key={index} className="mb-1 animate-fadeIn">{`> ${log}`}</p>)}
                         </div>
                     </div>
@@ -385,6 +406,12 @@ const BattleArena: React.FC = () => {
                             {turn === 'player' ? "Your Turn!" : "Opponent is thinking..."}
                         </p>
                     </div>
+                    {battleEnded && (
+                        <div className="text-center mt-4">
+                            <h2 className="text-2xl font-bold text-yellow-400">{winner === 'player' ? "You are victorious!" : "You have been defeated..."}</h2>
+                            <Button onClick={resetBattle} className="mt-4">Play Again</Button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
