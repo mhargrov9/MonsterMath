@@ -1,0 +1,41 @@
+Primal Rift: Complete Development Brief v15
+Last Updated: June 27, 2025
+Project Overview & Team Structure
+•	Project Lead: Gemini AI (Handles game balance, architecture, and provides code rewrites). 
+•	Developer: You, the human developer (Handles implementation, testing, and final code integration). 
+•	Process: A direct collaboration where Gemini provides architectural guidance and code, and the Developer implements and tests. 
+Core Collaboration Protocol
+This protocol is a top priority and must be followed for all tasks.
+1.	Diagnosis & Request: Gemini will diagnose a problem or define the next step and request a specific file.
+2.	Code Provision: The Developer will provide 100% of the code for the requested file.
+3.	Rewrite: Gemini will rewrite the code as necessary and provide 100% of the rewritten code for the file.
+4.	Implementation: The Developer will delete the old code entirely and replace it with the new version.
+5.	Testing & Feedback: The Developer will test the new code and report the results (success, new bugs, screenshots, etc.) back to Gemini.
+Development Environment & Architectural Principles
+•	Platform: Replit (web-based IDE) 
+•	Framework: React + TypeScript 
+•	Database: PostgreSQL with Drizzle ORM 
+•	Architectural Principles:
+o	Database-Driven: All dynamic game content (stats, abilities, etc.) must be fetched from the database. Hardcoded game-balance constants are forbidden. 
+o	Separation of Concerns: Client-side code is for presentation, server-side is for data and logic. 
+o	Professional & Scalable Code: All systems must be built with professional, "by the book" practices, designed to be scalable for hundreds of monsters and thousands of users. A data-driven approach is strongly preferred over hard-coded checks.
+SESSION 15 ACHIEVEMENTS (SINCE V14)
+•	Structural Refactor: Resolved a persistent 404 Not Found error by separating the MonsterLab and BattleTeamSelector components into their own dedicated files (MonsterLab.tsx and BattleTeamSelector.tsx), correcting the project's structure to align with professional standards.
+•	Subscription Gate Implementation: Fixed a critical bug in the BattleTeamSelector.tsx error handling logic. The "out of battle tokens" gate now correctly triggers and displays the polished subscription interest popup instead of failing silently. The Monster Lab gate was also confirmed to be working as intended.
+•	Battle System Restoration: After a series of regressions, the core battle flow has been restored. The application now correctly transitions from team selection to lead monster selection and into the combat UI without crashing.
+•	UI & Logic Fixes:
+o	Fixed a bug that was preventing benched monsters from being displayed.
+o	Implemented the AI's turn logic in handleAiAbility so it no longer skips its turn.
+o	Fixed a bug causing NaN damage by restoring the full calculateDamage logic.
+Key System Calculations
+•	Damage Calculation Formula: The official damage formula, located in BattleArena.tsx, is: attackPower = scalingStatValue * ability.power_multiplier, followed by a percentage reduction from defense. 
+•	Stat Scaling on Level-Up: Located in storage.ts. Power/Speed/Defense use compounding growth (
+* 1.1), while HP/MP use linear growth. 
+•	Confirmed Data Values: "Basic Attack" has a power_multiplier of 0.5. 
+CURRENT PROJECT STATUS & NEXT STEP
+•	Current Status: The application is stable and the main battle loop is functional. Players can select a team, start a battle, and exchange attacks with the AI. The benches for both teams are now correctly displayed. However, the last test revealed a new, critical bug.
+•	IMMEDIATE NEXT STEP / CURRENT PROBLEM: All damage dealt by both the player and the AI is exactly 1.
+o	Symptom: As seen in the last battle log, every attack results in "dealing 1 damage!"
+o	Analysis: This indicates that the power_multiplier for the abilities being used is likely null or 0 in the database. The calculateDamage function is correctly handling this bad data by defaulting to a minimum damage of 1, but it makes the game unplayable. This is a data issue in the database that we must work around in the code for now.
+•	Task for Gemini CLI: The immediate next task is to patch the calculateDamage function in BattleArena.tsx to handle null or 0 power_multiplier values from the database. This will make the battle playable so that we can continue testing the remaining battle mechanics (healing, status effects, etc.). The next file required will be client/src/components/BattleArena.tsx.
+

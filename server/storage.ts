@@ -25,7 +25,7 @@ import {
 } from "@shared/schema";
 
 import { db } from "./db";
-import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
+import { eq, and, ne, sql, desc, asc, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -42,6 +42,7 @@ export interface IStorage {
   createMonster(monster: InsertMonster): Promise<Monster>;
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
   getMonsterAbilities(monsterId: number): Promise<any[]>;
+  getMonsterAbilitiesBatch(monsterIds: number[]): Promise<Record<number, any[]>>;
   purchaseMonster(userId: string, monsterId: number): Promise<UserMonster>;
   upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   applyMonsterUpgrade(
@@ -253,6 +254,28 @@ export class DatabaseStorage implements IStorage {
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
+      throw error;
+    }
+  }
+
+  async getMonsterAbilitiesBatch(monsterIds: number[]): Promise<Record<number, any[]>> {
+    try {
+      if (monsterIds.length === 0) return {};
+      const result = await db.select().from(abilities)
+        .innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id))
+        .where(inArray(monsterAbilities.monster_id, monsterIds));
+
+      const abilitiesMap: Record<number, any[]> = {};
+      for (const { abilities, monster_abilities } of result) {
+        const monsterId = monster_abilities.monster_id;
+        if (!abilitiesMap[monsterId]) {
+          abilitiesMap[monsterId] = [];
+        }
+        abilitiesMap[monsterId].push({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity });
+      }
+      return abilitiesMap;
+    } catch (error) {
+      console.error('Database error in getMonsterAbilitiesBatch:', error);
       throw error;
     }
   }

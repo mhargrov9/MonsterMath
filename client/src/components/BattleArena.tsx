@@ -84,17 +84,19 @@ const BattleArena: React.FC = () => {
     const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Record<number, Ability[]>>({});
     const [targetingMode, setTargetingMode] = useState<TargetingMode>(null);
 
+    const playerMonsterIds = playerTeam.map(um => um.monster.id);
     const { data: playerMonsterAbilities } = useQuery<Record<number, Ability[]>>({
-        queryKey: ['playerAbilities', playerTeam.map(um => um.monster.id)],
+        queryKey: ['playerAbilities', playerMonsterIds],
         queryFn: async () => {
-            const abilitiesMap: Record<number, Ability[]> = {};
-            for (const um of playerTeam) {
-                try {
-                    const response = await fetch(`/api/monster-abilities/${um.monster.id}`);
-                    if (response.ok) abilitiesMap[um.monster.id] = await response.json();
-                } catch (e) { console.error(e); }
+            if (playerMonsterIds.length === 0) return {};
+            try {
+                const response = await fetch(`/api/monster-abilities-batch?ids=${playerMonsterIds.join(',')}`);
+                if (response.ok) return await response.json();
+                throw new Error('Failed to fetch player monster abilities');
+            } catch (e) {
+                console.error(e);
+                return {};
             }
-            return abilitiesMap;
         },
         enabled: playerTeam.length > 0,
     });
@@ -111,7 +113,7 @@ const BattleArena: React.FC = () => {
         const getStat = (monster: Monster | UserMonster, stat: string) => ('monster' in monster ? monster[stat as keyof UserMonster] : monster[stat as keyof Monster]) as number || 0;
         const scalingStatValue = getStat(attackingMonster, ability.scaling_stat || 'power');
         const defenderDefense = getStat(defendingMonster, 'defense');
-        const attackPower = scalingStatValue * (ability.power_multiplier || 0);
+        const attackPower = scalingStatValue * (ability.power_multiplier || 1.0); // Temporarily default to 1.0 for testing if power_multiplier is null or 0
         const damage = Math.round(Math.max(1, attackPower * (100 / (100 + defenderDefense))));
         return { damage, isCritical: false, affinityMultiplier: 1, statusEffect: undefined };
     };
@@ -251,12 +253,20 @@ const BattleArena: React.FC = () => {
         setIsLoading(true);
         setPlayerTeam(selectedTeam);
         setAiTeam(generatedOpponent.scaledMonsters);
+        const aiMonsterIds = generatedOpponent.scaledMonsters.map((m: Monster) => m.id);
         const abilitiesMap: Record<number, Ability[]> = {};
-        for (const monster of generatedOpponent.scaledMonsters) {
+        if (aiMonsterIds.length > 0) {
             try {
-                const response = await fetch(`/api/monster-abilities/${monster.id}`);
-                if (response.ok) abilitiesMap[monster.id] = await response.json();
-            } catch (error) { abilitiesMap[monster.id] = []; }
+                const response = await fetch(`/api/monster-abilities-batch?ids=${aiMonsterIds.join(',')}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    Object.assign(abilitiesMap, data);
+                } else {
+                    console.error('Failed to fetch AI monster abilities batch');
+                }
+            } catch (error) {
+                console.error(error);
+            }
         }
         setAiMonsterAbilities(abilitiesMap);
         setBattleLog([`Battle is about to begin! Select your starting monster.`]);
