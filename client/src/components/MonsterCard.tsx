@@ -63,7 +63,6 @@ interface MonsterCardProps {
   showAbilities?: boolean;
   startExpanded?: boolean; 
   isToggleable?: boolean;
-  // FIX: New props for targeting system
   isTargetable?: boolean;
   onCardClick?: () => void;
 }
@@ -127,9 +126,9 @@ export default function MonsterCard({
     large: 'w-80'
   };
 
-  const handleCardClick = () => {
-    // FIX: Prioritize onCardClick for targeting actions
+  const handleCardClick = (e: React.MouseEvent) => {
     if (onCardClick) {
+      e.stopPropagation();
       onCardClick();
       return;
     }
@@ -138,7 +137,6 @@ export default function MonsterCard({
     }
   };
 
-  // FIX: Define border color based on state, including targetable state
   const borderColorClass = isTargetable ? 'border-green-500 animate-pulse' 
                          : isToggleable ? 'hover:border-yellow-400' 
                          : 'border-cyan-500';
