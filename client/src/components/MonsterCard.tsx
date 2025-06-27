@@ -63,8 +63,8 @@ interface MonsterCardProps {
   showAbilities?: boolean;
   startExpanded?: boolean; 
   isToggleable?: boolean;
-  // NEW PROPS FOR TARGETING
-  isTargeting?: boolean;
+  // FIX: New props for targeting system
+  isTargetable?: boolean;
   onCardClick?: () => void;
 }
 
@@ -93,7 +93,7 @@ export default function MonsterCard({
   showAbilities = true,
   startExpanded = false,
   isToggleable = true,
-  isTargeting = false,
+  isTargetable = false,
   onCardClick,
 }: MonsterCardProps) {
 
@@ -128,6 +128,7 @@ export default function MonsterCard({
   };
 
   const handleCardClick = () => {
+    // FIX: Prioritize onCardClick for targeting actions
     if (onCardClick) {
       onCardClick();
       return;
@@ -137,15 +138,15 @@ export default function MonsterCard({
     }
   };
 
-  // Define border color based on state
-  const borderColorClass = isTargeting ? 'border-green-500 animate-pulse' 
+  // FIX: Define border color based on state, including targetable state
+  const borderColorClass = isTargetable ? 'border-green-500 animate-pulse' 
                          : isToggleable ? 'hover:border-yellow-400' 
                          : 'border-cyan-500';
 
   return (
     <Card  
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargeting || isToggleable) && 'cursor-pointer'}`}
+      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargetable || isToggleable) && 'cursor-pointer'}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">

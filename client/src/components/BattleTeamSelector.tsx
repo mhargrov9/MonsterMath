@@ -62,15 +62,14 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
     },
   });
 
-  // FIX: Added robust error handling to the mutation itself.
   const spendTokenMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("/api/battle/spend-token", { method: "POST" });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: "An unknown error occurred while spending a token." }));
-        throw new Error(errorData.message);
-      }
-      return response.json();
+        const response = await apiRequest("/api/battle/spend-token", { method: "POST" });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ message: "An unknown error occurred while spending a token." }));
+            throw new Error(errorData.message);
+        }
+        return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
@@ -97,7 +96,6 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       return;
     }
     setIsGeneratingOpponent(true);
-
     try {
       await spendTokenMutation.mutateAsync();
       await generateOpponentMutation.mutateAsync();
@@ -114,7 +112,6 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   if (loadingMonsters) {
     return <div className="text-center p-8">Loading your monsters...</div>;
   }
-
   if (availableMonsters.length === 0) {
     return (
        <Card className="w-full max-w-4xl mx-auto"><CardContent className="p-6 text-center">
