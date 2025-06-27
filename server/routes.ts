@@ -260,26 +260,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // New batched endpoint for monster abilities
-  app.get("/api/monster-abilities-batch", isAuthenticated, async (req: any, res) => {
-    try {
-      const idsParam = req.query.ids as string;
-      if (!idsParam) {
-        return res.status(400).json({ message: "Missing 'ids' query parameter" });
-      }
-
-      const monsterIds = idsParam.split(',').map(id => parseInt(id)).filter(id => !isNaN(id));
-      if (monsterIds.length === 0) {
-        return res.status(400).json({ message: "No valid monster IDs provided" });
-      }
-
-      const abilitiesMap = await storage.getMonsterAbilitiesBatch(monsterIds);
-      res.json(abilitiesMap);
-    } catch (error) {
-      handleError(error, res, "Failed to fetch monster abilities in batch");
-    }
-  });
-
   app.post("/api/monsters/purchase", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

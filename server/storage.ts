@@ -25,7 +25,7 @@ import {
 } from "@shared/schema";
 
 import { db } from "./db";
-import { eq, and, ne, sql, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -42,7 +42,6 @@ export interface IStorage {
   createMonster(monster: InsertMonster): Promise<Monster>;
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
   getMonsterAbilities(monsterId: number): Promise<any[]>;
-  getMonsterAbilitiesBatch(monsterIds: number[]): Promise<Record<number, any[]>>;
   purchaseMonster(userId: string, monsterId: number): Promise<UserMonster>;
   upgradeMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   applyMonsterUpgrade(
@@ -250,41 +249,10 @@ export class DatabaseStorage implements IStorage {
   async getMonsterAbilities(monsterId: number) {
     try {
       const result = await db.select().from(abilities).innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id)).where(eq(monsterAbilities.monster_id, monsterId));
-      const processedAbilities = result.map(({ abilities, monster_abilities }) => ({
-        ...abilities,
-        power_multiplier: parseFloat(abilities.power_multiplier as any) || 0, // Ensure it's a number
-        affinity: monster_abilities.override_affinity || abilities.affinity
-      }));
+      const processedAbilities = result.map(({ abilities, monster_abilities }) => ({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity }));
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
-      throw error;
-    }
-  }
-
-  async getMonsterAbilitiesBatch(monsterIds: number[]): Promise<Record<number, any[]>> {
-    try {
-      if (monsterIds.length === 0) return {};
-      const result = await db.select().from(abilities)
-        .innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id))
-        .where(inArray(monsterAbilities.monster_id, monsterIds));
-
-      const abilitiesMap: Record<number, any[]> = {};
-      for (const { abilities, monster_abilities } of result) {
-        const monsterId = monster_abilities.monster_id;
-        if (!abilitiesMap[monsterId]) {
-          abilitiesMap[monsterId] = [];
-        }
-        const powerMultiplier = parseFloat(abilities.power_multiplier as any);
-        abilitiesMap[monsterId].push({
-          ...abilities,
-          power_multiplier: isNaN(powerMultiplier) ? 0 : powerMultiplier, // Ensure it's a number, default to 0 if NaN
-          affinity: monster_abilities.override_affinity || abilities.affinity
-        });
-      }
-      return abilitiesMap;
-    } catch (error) {
-      console.error('Database error in getMonsterAbilitiesBatch:', error);
       throw error;
     }
   }
@@ -410,16 +378,10 @@ export class DatabaseStorage implements IStorage {
       const level = Math.max(1, Math.round(tplPerMonster / 10));
       const hp = monster.baseHp + (monster.hpPerLevel * (level - 1));
       const mp = monster.baseMp + (monster.mpPerLevel * (level - 1));
-
-      // Apply compounding growth for power, defense, and speed
-      const power = Math.floor(monster.basePower * Math.pow(1.1, level - 1));
-      const defense = Math.floor(monster.baseDefense * Math.pow(1.1, level - 1));
-      const speed = Math.floor(monster.baseSpeed * Math.pow(1.1, level - 1));
-
       return {
         id: monster.id, name: monster.name, level: level,
         hp: hp, max_hp: hp, mp: mp, max_mp: mp,
-        power: power, defense: defense, speed: speed,
+        power: monster.basePower, defense: monster.baseDefense, speed: monster.baseSpeed,
         affinity: monster.type, resistances: monster.resistances, weaknesses: monster.weaknesses,
         is_fainted: false
       };

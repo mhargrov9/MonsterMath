@@ -70,6 +70,7 @@ type TargetingMode = {
   sourceMonsterId: number;
 } | null;
 
+
 const BattleArena: React.FC = () => {
     const [battleMode, setBattleMode] = useState<'team-select' | 'lead-select' | 'combat'>('team-select');
     const [isLoading, setIsLoading] = useState(false);
@@ -84,19 +85,17 @@ const BattleArena: React.FC = () => {
     const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Record<number, Ability[]>>({});
     const [targetingMode, setTargetingMode] = useState<TargetingMode>(null);
 
-    const playerMonsterIds = playerTeam.map(um => um.monster.id);
     const { data: playerMonsterAbilities } = useQuery<Record<number, Ability[]>>({
-        queryKey: ['playerAbilities', playerMonsterIds],
+        queryKey: ['playerAbilities', playerTeam.map(um => um.monster.id)],
         queryFn: async () => {
-            if (playerMonsterIds.length === 0) return {};
-            try {
-                const response = await fetch(`/api/monster-abilities-batch?ids=${playerMonsterIds.join(',')}`);
-                if (response.ok) return await response.json();
-                throw new Error('Failed to fetch player monster abilities');
-            } catch (e) {
-                console.error(e);
-                return {};
+            const abilitiesMap: Record<number, Ability[]> = {};
+            for (const um of playerTeam) {
+                try {
+                    const response = await fetch(`/api/monster-abilities/${um.monster.id}`);
+                    if (response.ok) abilitiesMap[um.monster.id] = await response.json();
+                } catch (e) { console.error(e); }
             }
+            return abilitiesMap;
         },
         enabled: playerTeam.length > 0,
     });
@@ -109,41 +108,65 @@ const BattleArena: React.FC = () => {
         return 1.0;
     };
 
+    // FIX: Restored the full, correct damage calculation logic.
     const calculateDamage = (attackingMonster: Monster | UserMonster, defendingMonster: Monster | UserMonster, ability: Ability): DamageResult => {
-        const getStat = (monster: Monster | UserMonster, stat: string) => ('monster' in monster ? monster[stat as keyof UserMonster] : monster[stat as keyof Monster]) as number || 0;
-        const scalingStatValue = getStat(attackingMonster, ability.scaling_stat || 'power');
+        let scalingStatValue: number;
+        const scalingStatName = ability.scaling_stat || 'power';
+
+        const getStat = (monster: Monster | UserMonster, stat: string) => {
+            const monsterStats = 'monster' in monster ? monster : monster;
+            switch (stat.toLowerCase()) {
+                case 'defense': return monsterStats.defense;
+                case 'speed': return monsterStats.speed;
+                default: return monsterStats.power;
+            }
+        };
+
+        scalingStatValue = getStat(attackingMonster, scalingStatName);
         const defenderDefense = getStat(defendingMonster, 'defense');
         const attackPower = scalingStatValue * (ability.power_multiplier || 0);
-        const damage = Math.round(Math.max(1, attackPower * (100 / (100 + defenderDefense))));
-        return { damage, isCritical: false, affinityMultiplier: 1, statusEffect: undefined };
+        const damageMultiplier = 100 / (100 + defenderDefense);
+        let rawDamage = attackPower * damageMultiplier;
+
+        const defenderResistances = 'monster' in defendingMonster ? defendingMonster.monster.resistances : defendingMonster.resistances;
+        const defenderWeaknesses = 'monster' in defendingMonster ? defendingMonster.monster.weaknesses : defendingMonster.weaknesses;
+        const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
+        rawDamage *= affinityMultiplier;
+
+        const isCritical = Math.random() < 0.05;
+        if (isCritical) rawDamage *= 1.5;
+
+        const variance = 0.9 + Math.random() * 0.2;
+        rawDamage *= variance;
+
+        const finalDamage = Math.round(Math.max(1, rawDamage));
+
+        let statusEffect: { name: string, duration: number, value: number } | undefined;
+        if (ability.status_effect_applies && (ability.status_effect_chance || 0) > Math.random()) {
+            statusEffect = { name: ability.status_effect_applies, duration: ability.status_effect_duration || 0, value: ability.status_effect_value || 0 };
+        }
+        return { damage: finalDamage, isCritical, affinityMultiplier, statusEffect };
     };
 
-    // FIX #4: Centralized end-of-turn logic to handle passives like Soothing Aura
     const endTurn = (currentTurn: 'player' | 'ai') => {
-        let newLogMessages: string[] = [];
-        let finalPlayerTeam = [...playerTeam];
-
         if (currentTurn === 'player') {
-            playerTeam.forEach((monster) => {
+            let teamAfterPassives = [...playerTeam];
+            const newLogMessages: string[] = [];
+            teamAfterPassives.forEach((monster, index) => {
                 const abilities = playerMonsterAbilities?.[monster.monster.id] || [];
                 const soothingAura = abilities.find(a => a.name === 'Soothing Aura' && a.ability_type === 'PASSIVE');
-                if (soothingAura) {
-                    const monsterInTeam = finalPlayerTeam.find(m => m.id === monster.id);
-                    if (monsterInTeam && monsterInTeam.hp > 0 && monsterInTeam.hp < monsterInTeam.maxHp) {
-                        const healingAmount = Math.round(monsterInTeam.maxHp * 0.03);
-                        const newHp = Math.min(monsterInTeam.maxHp, monsterInTeam.hp + healingAmount);
-                        newLogMessages.push(`${monster.monster.name}'s Soothing Aura restores ${healingAmount} HP!`);
-                        finalPlayerTeam = finalPlayerTeam.map(m => m.id === monster.id ? { ...m, hp: newHp } : m);
-                    }
+                if (soothingAura && monster.hp > 0 && monster.hp < monster.maxHp) {
+                    const healingAmount = Math.round(monster.maxHp * 0.03);
+                    const newHp = Math.min(monster.maxHp, monster.hp + healingAmount);
+                    newLogMessages.push(`${monster.monster.name}'s Soothing Aura restores ${healingAmount} HP!`);
+                    teamAfterPassives[index] = { ...monster, hp: newHp };
                 }
             });
+            if (newLogMessages.length > 0) {
+                setPlayerTeam(teamAfterPassives);
+                setBattleLog(prev => [...prev, ...newLogMessages]);
+            }
         }
-
-        if(newLogMessages.length > 0) {
-            setPlayerTeam(finalPlayerTeam);
-            setBattleLog(prev => [...prev, ...newLogMessages]);
-        }
-
         setTurn(currentTurn === 'player' ? 'ai' : 'player');
     };
 
@@ -168,7 +191,7 @@ const BattleArena: React.FC = () => {
         setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
         if (newAiHp === 0) {
             setBattleLog(prev => [...prev, `${activeAiMonster.name} has been defeated!`]);
-             const remainingAi = aiTeam.filter(m => m.hp > 0 && m.id !== activeAiMonster.id);
+            const remainingAi = aiTeam.filter(m => m.hp > 0 && m.id !== activeAiMonster.id);
             if (remainingAi.length === 0) {
                 setBattleEnded(true); setWinner('player'); return;
             }
@@ -196,28 +219,23 @@ const BattleArena: React.FC = () => {
         setBattleLog(prev => [...prev, `${activeAiMonster.name} used ${selectedAbility.name}, dealing ${damageResult.damage} damage!`]);
         if (newPlayerHp === 0) {
             setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} has been defeated!`]);
-             const remainingPlayer = playerTeam.filter(m => m.hp > 0 && m.id !== activePlayerMonster.id);
+            const remainingPlayer = playerTeam.filter(m => m.hp > 0 && m.id !== activePlayerMonster.id);
             if (remainingPlayer.length === 0) {
-                 setBattleEnded(true); setWinner('ai'); return;
+                setBattleEnded(true); setWinner('ai'); return;
             }
         }
         endTurn('ai');
     };
 
-    // FIX #1: More robust state update for healing
     const handleTargetSelection = (targetIndex: number) => {
         if (!targetingMode) return;
         const { ability, sourceMonsterId } = targetingMode;
+        const sourceMonster = playerTeam.find(m => m.id === sourceMonsterId);
+        if(!sourceMonster) { setTargetingMode(null); return; }
+
         let teamAfterHeal = [...playerTeam];
-        const sourceMonster = teamAfterHeal.find(m => m.id === sourceMonsterId);
         const targetMonster = teamAfterHeal[targetIndex];
-
-        if (!sourceMonster || !targetMonster) {
-            setTargetingMode(null);
-            return;
-        }
-
-        let healingAmount = ability.healing_power || 0;
+        const healingAmount = ability.healing_power || 0;
         const newHp = Math.min(targetMonster.maxHp, targetMonster.hp + healingAmount);
 
         teamAfterHeal = teamAfterHeal.map(monster => {
@@ -234,10 +252,9 @@ const BattleArena: React.FC = () => {
 
     const handleSwapMonster = (newIndex: number) => {
         if (turn !== 'player' || battleEnded || targetingMode) return;
-        const currentActiveMonster = playerTeam[activePlayerIndex];
         const newActiveMonster = playerTeam[newIndex];
         if (newActiveMonster.hp <= 0) return;
-        setBattleLog(prev => [...prev, `You withdraw ${currentActiveMonster.monster.name} and send out ${newActiveMonster.monster.name}!`]);
+        setBattleLog(prev => [...prev, `You withdraw ${playerTeam[activePlayerIndex].monster.name} and send out ${newActiveMonster.monster.name}!`]);
         setActivePlayerIndex(newIndex);
         endTurn('player');
     };
@@ -253,20 +270,12 @@ const BattleArena: React.FC = () => {
         setIsLoading(true);
         setPlayerTeam(selectedTeam);
         setAiTeam(generatedOpponent.scaledMonsters);
-        const aiMonsterIds = generatedOpponent.scaledMonsters.map((m: Monster) => m.id);
         const abilitiesMap: Record<number, Ability[]> = {};
-        if (aiMonsterIds.length > 0) {
+        for (const monster of generatedOpponent.scaledMonsters) {
             try {
-                const response = await fetch(`/api/monster-abilities-batch?ids=${aiMonsterIds.join(',')}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    Object.assign(abilitiesMap, data);
-                } else {
-                    console.error('Failed to fetch AI monster abilities batch');
-                }
-            } catch (error) {
-                console.error(error);
-            }
+                const response = await fetch(`/api/monster-abilities/${monster.id}`);
+                if (response.ok) abilitiesMap[monster.id] = await response.json();
+            } catch (error) { abilitiesMap[monster.id] = []; }
         }
         setAiMonsterAbilities(abilitiesMap);
         setBattleLog([`Battle is about to begin! Select your starting monster.`]);
@@ -326,9 +335,7 @@ const BattleArena: React.FC = () => {
                                     const originalIndex = playerTeam.findIndex(p => p.id === monster.id);
                                     return (
                                         <div key={monster.id} className="text-center">
-                                            {/* FIX #3 & #2: Bench cards are toggleable and targetable */}
                                             <MonsterCard monster={monster.monster} userMonster={monster} size="tiny" isToggleable={true} isTargetable={!!targetingMode} onCardClick={targetingMode ? () => handleTargetSelection(originalIndex) : undefined} />
-                                            {/* FIX #5: Swap button is back and functional */}
                                             <Button onClick={() => handleSwapMonster(originalIndex)} disabled={!!targetingMode || turn !== 'player' || monster.hp <= 0} size="sm" className="mt-1 w-full">Swap</Button>
                                         </div>
                                     );
