@@ -144,8 +144,7 @@ export class DatabaseStorage implements IStorage {
 
   async getAllMonsters(): Promise<Monster[]> {
     return await db.select().from(monsters).orderBy(asc(monsters.goldCost));
-  }
-
+  }
   async createMonster(monster: InsertMonster): Promise<Monster> {
       const [newMonster] = await db.insert(monsters).values(monster).returning();
       return newMonster;
@@ -235,8 +234,7 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(userMonsters).set({ hp: 0, isShattered: true }).where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId))).returning();
     if (!updated) throw new Error("Monster not found or not owned by user");
     return updated;
-  }
-
+  }
   async repairMonster(userId: string, userMonsterId: number): Promise<UserMonster> {
     const userMonstersWithBase = await db.select().from(userMonsters).leftJoin(monsters, eq(userMonsters.monsterId, monsters.id)).where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId)));
     if (userMonstersWithBase.length === 0) throw new Error("Monster not found or not owned by user");
@@ -250,7 +248,11 @@ export class DatabaseStorage implements IStorage {
   async getMonsterAbilities(monsterId: number) {
     try {
       const result = await db.select().from(abilities).innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id)).where(eq(monsterAbilities.monster_id, monsterId));
-      const processedAbilities = result.map(({ abilities, monster_abilities }) => ({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity }));
+      const processedAbilities = result.map(({ abilities, monster_abilities }) => ({
+        ...abilities,
+        power_multiplier: parseFloat(abilities.power_multiplier as any) || 0, // Ensure it's a number
+        affinity: monster_abilities.override_affinity || abilities.affinity
+      }));
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
@@ -271,7 +273,12 @@ export class DatabaseStorage implements IStorage {
         if (!abilitiesMap[monsterId]) {
           abilitiesMap[monsterId] = [];
         }
-        abilitiesMap[monsterId].push({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity });
+        const powerMultiplier = parseFloat(abilities.power_multiplier as any);
+        abilitiesMap[monsterId].push({
+          ...abilities,
+          power_multiplier: isNaN(powerMultiplier) ? 0 : powerMultiplier, // Ensure it's a number, default to 0 if NaN
+          affinity: monster_abilities.override_affinity || abilities.affinity
+        });
       }
       return abilitiesMap;
     } catch (error) {

@@ -113,7 +113,7 @@ const BattleArena: React.FC = () => {
         const getStat = (monster: Monster | UserMonster, stat: string) => ('monster' in monster ? monster[stat as keyof UserMonster] : monster[stat as keyof Monster]) as number || 0;
         const scalingStatValue = getStat(attackingMonster, ability.scaling_stat || 'power');
         const defenderDefense = getStat(defendingMonster, 'defense');
-        const attackPower = scalingStatValue * (ability.power_multiplier || 1.0); // Temporarily default to 1.0 for testing if power_multiplier is null or 0
+        const attackPower = scalingStatValue * (ability.power_multiplier || 0);
         const damage = Math.round(Math.max(1, attackPower * (100 / (100 + defenderDefense))));
         return { damage, isCritical: false, affinityMultiplier: 1, statusEffect: undefined };
     };
