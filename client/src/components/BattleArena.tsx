@@ -47,10 +47,17 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-    const baseStat = 'monster' in monster ? monster[statName] : (monster as any)[statName] || 0;
-    const effects = activeEffects.filter(e => e.targetMonsterId === monster.id && e.modifier.stat === statName);
-    const flatVal = effects.filter(e => e.modifier.type === 'FLAT').reduce((s, e) => s + e.modifier.value, baseStat);
-    return Math.round(effects.filter(e => e.modifier.type === 'PERCENTAGE').reduce((s, e) => s * (1 + e.modifier.value / 100), flatVal));
+    // This function can be expanded with activeEffects later
+    if ('monster' in monster) { // It's a UserMonster
+        return monster[statName];
+    }
+    // It's a base Monster for the AI
+    const baseStatMap = {
+        power: 'basePower',
+        defense: 'baseDefense',
+        speed: 'baseSpeed'
+    };
+    return (monster as any)[baseStatMap[statName]] || 0;
   };
 
   const getAffinityMultiplier = (attackAffinity: string | undefined, defender: Monster): number => {
@@ -197,8 +204,10 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
     const playerTeamWithFullHealth = selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp }));
     setPlayerTeam(playerTeamWithFullHealth);
-    const aiTeamWithFullHealth = generatedOpponent.scaledMonsters.map((m: Monster) => ({ ...m, abilities: m.abilities || [] }));
-    setAiTeam(aiTeamWithFullHealth);
+
+    // The opponent data from the server now includes abilities, so we can use it directly.
+    setAiTeam(generatedOpponent.scaledMonsters);
+
     setBattleLog([`Battle is about to begin! Select your starting monster.`]);
     setBattleMode('lead-select');
     setIsLoading(false);

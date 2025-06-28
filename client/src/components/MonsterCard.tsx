@@ -58,17 +58,11 @@ interface MonsterCardProps {
   monster: Monster;
   userMonster?: UserMonster;
   size?: 'tiny' | 'small' | 'medium' | 'large';
-  battleMode?: boolean;
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
-  showAbilities?: boolean;
   startExpanded?: boolean;
   isToggleable?: boolean;
-  isTargetable?: boolean;
-  onCardClick?: () => void;
-  isFlipped?: boolean;
-  onFlip?: () => void;
-  showUpgradeAnimation?: boolean;
+  onCardClick?: () => void; // <-- ADDED: A dedicated prop for parent-controlled clicks
 }
 
 // --- HELPER FUNCTION ---
@@ -90,17 +84,11 @@ export default function MonsterCard({
   monster: monsterProp,
   userMonster,
   size = 'medium',
-  battleMode = false,
   isPlayerTurn = false,
   onAbilityClick,
-  showAbilities = true,
   startExpanded = false,
   isToggleable = true,
-  isTargetable = false,
-  onCardClick,
-  isFlipped,
-  onFlip,
-  showUpgradeAnimation
+  onCardClick, // <-- ADDED
 }: MonsterCardProps) {
 
   const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -124,21 +112,26 @@ export default function MonsterCard({
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    if (onCardClick) { e.stopPropagation(); onCardClick(); return; }
-    if (onFlip) { onFlip(); return; }
-    if (isToggleable) { setIsExpanded(!isExpanded); }
+    // UPDATED LOGIC: Prioritize the onCardClick from the parent if it exists.
+    if (onCardClick) {
+        e.stopPropagation();
+        onCardClick();
+        return;
+    }
+    // Fallback to internal toggle logic if no parent handler is provided.
+    if (isToggleable) { 
+        e.stopPropagation();
+        setIsExpanded(!isExpanded); 
+    }
   };
 
-  const borderColorClass = isTargetable ? 'border-green-500 animate-pulse'
-    : isToggleable || onFlip ? 'hover:border-yellow-400'
-    : 'border-cyan-500';
-
-  const finalIsExpanded = onFlip ? isFlipped : isExpanded;
+  const borderColorClass = onCardClick ? 'hover:border-green-500' : isToggleable ? 'hover:border-yellow-400' : 'border-cyan-500';
+  const cursorClass = onCardClick || isToggleable ? 'cursor-pointer' : '';
 
   return (
     <Card
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargetable || isToggleable || onFlip) && 'cursor-pointer'}`}
+      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
@@ -165,42 +158,19 @@ export default function MonsterCard({
                 <div className="bg-gray-700/50 rounded p-1"><Gauge className="w-3 h-3 mx-auto text-green-400"/> {speed}</div>
             </div>
         }
-        {finalIsExpanded && (
+        {isExpanded && (
           <div className="mt-2 space-y-3">
             {baseMonster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
                 <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
               </div>
             )}
-            {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <h5 className="font-bold text-green-400">Resists</h5>
-                  {baseMonster.resistances && baseMonster.resistances.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.resistances.map(res => (<Badge key={res} variant="secondary" className="capitalize bg-green-900/80 text-green-300 border-green-700/80">{getAffinityIcon(res)} {res}</Badge>))}</div>
-                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
-                </div>
-                <div>
-                  <h5 className="font-bold text-red-400">Weak to</h5>
-                  {baseMonster.weaknesses && baseMonster.weaknesses.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.weaknesses.map(weak => (<Badge key={weak} variant="destructive" className="capitalize bg-red-900/80 text-red-300 border-red-700/80">{getAffinityIcon(weak)} {weak}</Badge>))}</div>
-                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
-                </div>
-              </div>
-            )}
-            {showAbilities && (
-              <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
+            <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
                 {abilities.length === 0 ? <p className="text-xs text-gray-400 italic">No abilities to display.</p> : 
                   abilities.map(ability => {
-                    // --- DIAGNOSTIC LOGGING ---
                     const canAfford = displayMp >= (ability.mp_cost || 0);
                     const isClickable = onAbilityClick && ability.ability_type === 'ACTIVE' && isPlayerTurn;
-                    if(onAbilityClick) { // Only log for the player's active monster
-                        console.log(`[ABILITY_CHECK] Ability: ${ability.name}, IsPlayerTurn: ${isPlayerTurn}, CanAfford: ${canAfford} (MP: ${displayMp}/${ability.mp_cost}), IsClickable: ${isClickable}`);
-                    }
-                    // --- END DIAGNOSTIC ---
-
                     const effectiveClass = isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : onAbilityClick ? 'opacity-50 cursor-not-allowed' : '';
 
                     return (
@@ -224,14 +194,13 @@ export default function MonsterCard({
                     );
                   })
                 }
-              </div>
-            )}
+            </div>
           </div>
         )}
-        {(isToggleable || onFlip) && (
-          <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center">
-            {finalIsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            <span className="ml-1">{finalIsExpanded ? 'Collapse' : 'Details'}</span>
+        {isToggleable && (
+          <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center" onClick={(e) => {e.stopPropagation(); setIsExpanded(!isExpanded);}}>
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span className="ml-1">{isExpanded ? 'Collapse' : 'Details'}</span>
           </div>
         )}
       </CardContent>

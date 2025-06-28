@@ -21,14 +21,12 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Step 1: Fetch the base list of user monsters. This query is simple and reliable.
   const { data: userMonsters, isLoading: loadingMonsters } = useQuery<UserMonster[]>({
     queryKey: ["/api/user/monsters"],
   });
 
-  // Step 2: Once the base monsters are loaded, this effect triggers to fetch their abilities.
   useEffect(() => {
-    if (!userMonsters) return; // Don't run if monsters haven't loaded yet.
+    if (!userMonsters) return;
 
     let isMounted = true;
     const fetchAbilitiesForAll = async () => {
@@ -46,29 +44,25 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
         })
       );
 
-      // Check if component is still mounted before setting state.
       if (isMounted) {
-        // Step 3: Inject the fetched abilities into the monster data.
         const populatedMonsters = userMonsters.map(um => ({
           ...um,
           monster: { ...um.monster, abilities: abilitiesMap[um.monster.id] || [] },
         }));
-        // Step 4: Update our final state variable with the complete data.
         setMonstersWithAbilities(populatedMonsters);
       }
     };
 
     fetchAbilitiesForAll();
 
-    return () => { isMounted = false; }; // Cleanup function
-  }, [userMonsters]); // This effect depends on the initial monster list.
+    return () => { isMounted = false; };
+  }, [userMonsters]);
 
   const { data: battleSlotsData } = useQuery<{ battleSlots: number }>({
     queryKey: ["/api/user/battle-slots"],
   });
 
-  const battleSlots = battleSlotsData?.battleSlots || 2;
-  // The component's display is now driven by this fully-populated state variable.
+  const battleSlots = battleSlotsData?.battleSlots || 7; // Temporarily increased for testing
   const availableMonsters = monstersWithAbilities.filter((m) => m.hp > 0);
   const currentTPL = selectedMonsters.reduce((total, m) => total + m.level, 0);
 
@@ -120,7 +114,6 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
 
   if (loadingMonsters) return <div className="text-center p-8">Loading your monsters...</div>;
 
-  // This check now correctly waits for all data to be processed.
   if (!loadingMonsters && availableMonsters.length === 0) {
     return (
        <Card className="w-full max-w-4xl mx-auto"><CardContent className="p-6 text-center"><h3 className="text-xl font-bold mb-4">No Available Monsters</h3><p className="text-muted-foreground">You need healthy monsters to enter battle.</p></CardContent></Card>
@@ -155,8 +148,14 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
             {availableMonsters.map((userMonster) => {
               const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
               return (
-                <div key={userMonster.id} onClick={() => handleMonsterSelect(userMonster)} className={`cursor-pointer transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : 'hover:ring-2 ring-blue-300'}`}>
-                  <MonsterCard monster={userMonster.monster} userMonster={userMonster} size="small" />
+                <div key={userMonster.id} className={`transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : ''}`}>
+                  <MonsterCard 
+                    monster={userMonster.monster} 
+                    userMonster={userMonster} 
+                    size="small"
+                    onCardClick={() => handleMonsterSelect(userMonster)} // <-- PASSING THE HANDLER DIRECTLY
+                    isToggleable={false} // Prevent card from toggling itself
+                  />
                 </div>
               );
             })}

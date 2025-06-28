@@ -253,16 +253,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonsterAbilities(monsterId: number) {
-    console.log(`[DEBUG] Fetching abilities for monsterId: ${monsterId}`);
     try {
       const result = await db.select().from(abilities).innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id)).where(eq(monsterAbilities.monster_id, monsterId));
-
-      console.log(`[DEBUG] Raw DB result for monsterId ${monsterId}:`, result);
-
       const processedAbilities = result.map(({ abilities, monster_abilities }) => ({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity }));
-
-      console.log(`[DEBUG] Processed abilities for monsterId ${monsterId}:`, processedAbilities);
-
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
@@ -311,8 +304,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBattleHistory(userId: string): Promise<(Battle & { attacker: User; defender: User })[]> {
-    // This function needs more complex logic to join users table twice, which is complex in Drizzle.
-    // Returning as-is for now.
     const results = await db.select().from(battles).where(sql`${battles.attackerId} = ${userId} OR ${battles.defenderId} = ${userId}`).orderBy(desc(battles.battleAt)).limit(10);
     return results as any;
   }
@@ -380,26 +371,38 @@ export class DatabaseStorage implements IStorage {
     if (monsterPool.length === 0) {
       throw new Error("There are no monsters in the database to generate a team.");
     }
+
     const actualTeamSize = Math.min(3, monsterPool.length);
     const selectedTeamIndexes = new Set<number>();
     while (selectedTeamIndexes.size < actualTeamSize) {
       selectedTeamIndexes.add(Math.floor(Math.random() * monsterPool.length));
     }
+
     const teamMonsters = Array.from(selectedTeamIndexes).map(index => monsterPool[index]);
     const tplPerMonster = Math.floor(tpl / actualTeamSize);
-    const scaledMonsters = teamMonsters.map(monster => {
+
+    // Use Promise.all to fetch abilities for all selected monsters concurrently
+    const scaledMonstersWithAbilities = await Promise.all(teamMonsters.map(async (monster) => {
       const level = Math.max(1, Math.round(tplPerMonster / 10));
       const hp = monster.baseHp + (monster.hpPerLevel * (level - 1));
       const mp = monster.baseMp + (monster.mpPerLevel * (level - 1));
+
+      // Fetch abilities for the current monster
+      const monsterAbilities = await this.getMonsterAbilities(monster.id);
+
       return {
-        id: monster.id, name: monster.name, level: level,
-        hp: hp, max_hp: hp, mp: mp, max_mp: mp,
-        power: monster.basePower, defense: monster.baseDefense, speed: monster.baseSpeed,
-        affinity: monster.type, resistances: monster.resistances, weaknesses: monster.weaknesses,
-        is_fainted: false
+        ...monster, // Spread the base monster properties
+        level: level,
+        hp: hp,
+        maxHp: hp, // Use max_hp for consistency
+        mp: mp,
+        maxMp: mp, // Use max_mp for consistency
+        is_fainted: false,
+        abilities: monsterAbilities, // Embed the fetched abilities
       };
-    });
-    return { name: "AI Challenger", scaledMonsters, tpl };
+    }));
+
+    return { name: "AI Challenger", scaledMonsters: scaledMonstersWithAbilities, tpl };
   }
 
   async getUserBattleSlots(userId: string): Promise<number> {
@@ -461,7 +464,6 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // NEW: Award Rank XP to a user
   async awardRankXp(userId: string, xp: number): Promise<User> {
     const [updated] = await db
       .update(users)
@@ -472,14 +474,12 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // NEW: Get a user's current rank details
   async getUserRank(userId: string): Promise<{ currentRank: Rank | null, nextRank: Rank | null, userXp: number }> {
     const user = await this.getUser(userId);
     if (!user) throw new Error("User not found");
 
     const userXp = user.rank_xp;
 
-    // Get the highest rank the user has achieved
     const [currentRank] = await db
       .select()
       .from(ranks)
@@ -487,7 +487,6 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(ranks.xp_required))
       .limit(1);
 
-    // Get the next rank the user can achieve
     const [nextRank] = await db
       .select()
       .from(ranks)
@@ -503,7 +502,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllAiTrainers(): Promise<AiTeam[]> {
-    // This had a bug, referencing a column that doesn't exist. Removing the where clause.
     return await db.select().from(aiTeams).orderBy(asc(aiTeams.name));
   }
 
