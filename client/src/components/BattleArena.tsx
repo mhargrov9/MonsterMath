@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import MonsterCard from './MonsterCard';
 import { BattleTeamSelector } from './BattleTeamSelector';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 // --- INTERFACES (Aligned with Onboarding Brief v19) ---
 
-// Describes a single, atomic stat change.
 interface StatModifier {
   stat: 'power' | 'defense' | 'speed' | 'maxHp' | 'maxMp';
   type: 'PERCENTAGE' | 'FLAT';
@@ -15,7 +13,6 @@ interface StatModifier {
   duration?: number;
 }
 
-// An active in-battle effect, tied to a specific monster.
 interface ActiveEffect {
   sourceAbilityId: number;
   sourceMonsterId: number;
@@ -44,7 +41,7 @@ interface Ability {
   status_effect_applies?: string;
   status_effect_chance?: number;
   status_effect_duration?: number;
-  stat_modifiers?: StatModifier[]; // NEW: Aligns with schema
+  stat_modifiers?: StatModifier[];
 }
 
 interface Monster {
@@ -63,7 +60,7 @@ interface Monster {
   resistances: string[];
   weaknesses: string[];
   level: number;
-  abilities?: Ability[];
+  abilities: Ability[]; // Made non-optional as we will ensure it's populated
 }
 
 interface UserMonster {
@@ -92,16 +89,18 @@ type TargetingMode = {
   sourceMonsterId: number;
 } | null;
 
-// A simple hook to get the current user's ID
-const useUserId = () => {
-    const { data: user } = useQuery<{ id: string, rank_xp: number }>({ queryKey: ['user'] });
-    return user;
+const useUser = () => {
+    return useQuery<{ id: string, rank_xp: number }>({ 
+        queryKey: ['user'],
+        // This query is managed globally, so we don't need a fetcher here
+        // as long as it's fetched somewhere else on app load.
+    }).data;
 };
 
 
 const BattleArena: React.FC = () => {
   const queryClient = useQueryClient();
-  const user = useUserId();
+  const user = useUser();
 
   // Core Battle State
   const [battleMode, setBattleMode] = useState<'team-select' | 'lead-select' | 'combat'>('team-select');
@@ -114,26 +113,8 @@ const BattleArena: React.FC = () => {
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleEnded, setBattleEnded] = useState(false);
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
-  const [aiMonsterAbilities, setAiMonsterAbilities] = useState<Record<number, Ability[]>>({});
   const [targetingMode, setTargetingMode] = useState<TargetingMode>(null);
-
-  // NEW: State to manage all active effects for all monsters in battle.
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
-
-  const { data: playerMonsterAbilities } = useQuery<Record<number, Ability[]>>({
-    queryKey: ['playerAbilities', playerTeam.map(um => um.monster.id)],
-    queryFn: async () => {
-      const abilitiesMap: Record<number, Ability[]> = {};
-      for (const um of playerTeam) {
-        try {
-          const response = await fetch(`/api/monster-abilities/${um.monster.id}`);
-          if (response.ok) abilitiesMap[um.monster.id] = await response.json();
-        } catch (e) { console.error(e); }
-      }
-      return abilitiesMap;
-    },
-    enabled: playerTeam.length > 0,
-  });
 
   // --- Core Calculation Logic (Refactored for New System) ---
 
@@ -141,7 +122,6 @@ const BattleArena: React.FC = () => {
       if ('monster' in monster) { // It's a UserMonster
           return monster[statName];
       }
-      // It's a base Monster for the AI team
       return (monster as any)[statName] || 0;
   }
 
@@ -149,12 +129,10 @@ const BattleArena: React.FC = () => {
     const baseStat = getBaseStat(monster, statName);
     const effectsForMonster = activeEffects.filter(e => e.targetMonsterId === monster.id && e.modifier.stat === statName);
 
-    // 1. Apply FLAT modifiers first
     const flatModifiedStat = effectsForMonster
       .filter(e => e.modifier.type === 'FLAT')
       .reduce((currentStat, effect) => currentStat + effect.modifier.value, baseStat);
 
-    // 2. Apply PERCENTAGE modifiers to the result of the flat modifications
     const finalStat = effectsForMonster
       .filter(e => e.modifier.type === 'PERCENTAGE')
       .reduce((currentStat, effect) => currentStat * (1 + effect.modifier.value / 100), flatModifiedStat);
@@ -174,23 +152,18 @@ const BattleArena: React.FC = () => {
     const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
     const attackingPower = getModifiedStat(attackingMonster, scalingStatName);
     const defendingDefense = getModifiedStat(defendingMonster, 'defense');
-
     const attackPower = attackingPower * (ability.power_multiplier || 0.5);
     const damageMultiplier = 100 / (100 + defendingDefense);
     let rawDamage = attackPower * damageMultiplier;
-
     const defenderResistances = 'monster' in defendingMonster ? defendingMonster.monster.resistances : defendingMonster.resistances;
     const defenderWeaknesses = 'monster' in defendingMonster ? defendingMonster.monster.weaknesses : defendingMonster.weaknesses;
     const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderResistances, defenderWeaknesses);
     rawDamage *= affinityMultiplier;
-
     const isCritical = Math.random() < 0.05;
     if (isCritical) rawDamage *= 1.5;
-
     const variance = 0.9 + Math.random() * 0.2;
     rawDamage *= variance;
     const finalDamage = Math.round(Math.max(1, rawDamage));
-
     return { damage: finalDamage, isCritical, affinityMultiplier };
   };
 
@@ -203,15 +176,12 @@ const BattleArena: React.FC = () => {
   // --- Passive & Effect System (Refactored) ---
 
   const handlePassiveTriggers = (triggerType: Ability['activation_trigger'], targetMonster: UserMonster | Monster) => {
-    const abilities = ('monster' in targetMonster ? playerMonsterAbilities?.[targetMonster.monster.id] : aiMonsterAbilities?.[targetMonster.id]) || [];
-
+    const abilities = 'monster' in targetMonster ? targetMonster.monster.abilities : targetMonster.abilities;
     abilities.forEach(ability => {
       if (ability.ability_type !== 'PASSIVE' || ability.activation_trigger !== triggerType) return;
       if (!ability.stat_modifiers) return;
-
       const monsterIsActive = ('monster' in targetMonster && playerTeam[activePlayerIndex]?.id === targetMonster.id) || (aiTeam[activeAiIndex]?.id === targetMonster.id);
       if (ability.activation_scope === 'ACTIVE' && !monsterIsActive) return;
-
       let conditionMet = false;
       if (ability.trigger_condition_type === 'HP_PERCENT' && ability.trigger_condition_operator === 'LESS_THAN_OR_EQUAL') {
         const currentHpPercent = (targetMonster.hp / targetMonster.max_hp) * 100;
@@ -219,26 +189,18 @@ const BattleArena: React.FC = () => {
           conditionMet = true;
         }
       }
-      // Future-proof: Add other trigger condition types here
-
       const effectsFromThisAbility = activeEffects.filter(e => e.sourceAbilityId === ability.id && e.targetMonsterId === targetMonster.id);
-
       if (conditionMet && effectsFromThisAbility.length === 0) {
-        // Apply all modifiers from this one ability
-        const newEffects: ActiveEffect[] = [];
-        ability.stat_modifiers.forEach(modifier => {
-          newEffects.push({
-            sourceAbilityId: ability.id,
-            sourceMonsterId: targetMonster.id,
-            targetMonsterId: targetMonster.id,
-            modifier: modifier,
-            turnsRemaining: modifier.duration || Infinity,
-          });
-        });
+        const newEffects: ActiveEffect[] = ability.stat_modifiers.map(modifier => ({
+          sourceAbilityId: ability.id,
+          sourceMonsterId: targetMonster.id,
+          targetMonsterId: targetMonster.id,
+          modifier: modifier,
+          turnsRemaining: modifier.duration || Infinity,
+        }));
         setActiveEffects(prev => [...prev, ...newEffects]);
         setBattleLog(prev => [...prev, `${targetMonster.name}'s ${ability.name} triggered!`]);
       } else if (!conditionMet && effectsFromThisAbility.length > 0) {
-        // Remove all effects from this one ability
         setActiveEffects(prev => prev.filter(e => e.sourceAbilityId !== ability.id || e.targetMonsterId !== targetMonster.id));
         setBattleLog(prev => [...prev, `${targetMonster.name}'s ${ability.name} wore off.`]);
       }
@@ -246,28 +208,19 @@ const BattleArena: React.FC = () => {
   };
 
   const endTurn = (currentTurn: 'player' | 'ai', nextPlayerTeam: UserMonster[], nextAiTeam: Monster[]) => {
-    // End of Turn Phase: Decrease effect durations and remove expired ones.
     const updatedEffects = activeEffects.map(effect => ({
       ...effect,
       turnsRemaining: effect.turnsRemaining - 1,
     })).filter(effect => effect.turnsRemaining > 0);
-
     setActiveEffects(updatedEffects);
-
-    // TODO: Apply healing/damage over time effects here
-
     setPlayerTeam(nextPlayerTeam);
     setAiTeam(nextAiTeam);
-
-    // Finally, pass control to the other combatant
     setTurn(currentTurn === 'player' ? 'ai' : 'player');
   };
 
-    // --- Battle Completion ---
   const handleBattleCompletion = async (winner: 'player' | 'ai') => {
       setBattleEnded(true);
       setWinner(winner);
-
       if (winner === 'player' && user?.id) {
           try {
               const currentXp = user.rank_xp;
@@ -280,7 +233,7 @@ const BattleArena: React.FC = () => {
               if (response.ok) {
                   const result = await response.json();
                   setBattleLog(prev => [...prev, `Gained ${result.newXpTotal - currentXp} XP!`]);
-                  queryClient.invalidateQueries({ queryKey: ['user'] }); // Refetch user data
+                  queryClient.invalidateQueries({ queryKey: ['user'] });
               }
           } catch (error) {
               console.error("Failed to award rank XP:", error);
@@ -299,13 +252,11 @@ const BattleArena: React.FC = () => {
     if (activePlayerMonster.mp < ability.mp_cost) {
         setBattleLog(prev => [...prev, "Not enough MP!"]); return;
     }
-
     const activeAiMonster = aiTeam[activeAiIndex];
     const damageResult = calculateDamage(activePlayerMonster, activeAiMonster, ability);
     const newAiHp = Math.max(0, activeAiMonster.hp - damageResult.damage);
     const updatedAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: newAiHp } : m);
     let updatedPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - ability.mp_cost } : m);
-
     let logMessage = `${activePlayerMonster.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`;
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
     if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
@@ -334,29 +285,21 @@ const BattleArena: React.FC = () => {
     if (turn !== 'ai' || battleEnded) return;
     const activeAiMonster = aiTeam[activeAiIndex];
     const activePlayerMonster = playerTeam[activePlayerIndex];
-    const aiAbilities = aiMonsterAbilities[activeAiMonster.id] || [];
-    const usableAbilities = aiAbilities.filter(a => activeAiMonster.mp >= a.mp_cost && a.ability_type === 'ACTIVE');
-
+    const usableAbilities = activeAiMonster.abilities.filter(a => activeAiMonster.mp >= a.mp_cost && a.ability_type === 'ACTIVE');
     if (usableAbilities.length === 0) { endTurn('ai', playerTeam, aiTeam); return; }
-
     const selectedAbility = usableAbilities[Math.floor(Math.random() * usableAbilities.length)];
     const damageResult = calculateDamage(activeAiMonster, activePlayerMonster, selectedAbility);
     const newPlayerHp = Math.max(0, activePlayerMonster.hp - damageResult.damage);
-
     let updatedPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: newPlayerHp } : m);
     const updatedAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - selectedAbility.mp_cost } : m);
-
     let logMessage = `${activeAiMonster.name} used ${selectedAbility.name}, dealing ${damageResult.damage} damage!`;
     const effectivenessMsg = getEffectivenessMessage(damageResult.affinityMultiplier);
     if (effectivenessMsg) logMessage += ` ${effectivenessMsg}`;
     setBattleLog(prev => [...prev, logMessage]);
-
-    // Check passives for the defending player monster after damage is dealt
     const defenderWithNewHp = updatedPlayerTeam.find(m => m.id === activePlayerMonster.id);
     if (defenderWithNewHp) {
       handlePassiveTriggers('ON_HP_THRESHOLD', defenderWithNewHp);
     }
-
     if (newPlayerHp === 0) {
       setBattleLog(prev => [...prev, `${activePlayerMonster.monster.name} has been defeated!`]);
       const remainingPlayer = updatedPlayerTeam.filter(m => m.hp > 0);
@@ -370,8 +313,6 @@ const BattleArena: React.FC = () => {
     endTurn('ai', updatedPlayerTeam, updatedAiTeam);
   };
 
-  // NOTE: Target selection for healing/buffing allies is simplified for this pass.
-  const handleTargetSelection = (targetIndex: number) => { /* ... */ };
   const handleSwapMonster = (newIndex: number) => { /* ... */ };
 
   // --- Battle Setup and Flow ---
@@ -380,21 +321,49 @@ const BattleArena: React.FC = () => {
       const timer = setTimeout(handleAiAbility, 1500);
       return () => clearTimeout(timer);
     }
-  }, [turn, battleEnded, activeAiIndex, playerTeam, activePlayerIndex]);
+  }, [turn, battleEnded]);
 
   const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
     setIsLoading(true);
-    setActiveEffects([]); // Reset effects at start of battle
-    setPlayerTeam(selectedTeam);
-    setAiTeam(generatedOpponent.scaledMonsters);
+
+    // Step 1: Collect all unique monster IDs from both teams.
+    const allMonsterIds = [
+        ...selectedTeam.map(um => um.monster.id),
+        ...generatedOpponent.scaledMonsters.map((m: Monster) => m.id)
+    ];
+    const uniqueMonsterIds = [...new Set(allMonsterIds)];
+
+    // Step 2: Fetch all abilities for all unique monsters.
     const abilitiesMap: Record<number, Ability[]> = {};
-    for (const monster of generatedOpponent.scaledMonsters) {
-      try {
-        const response = await fetch(`/api/monster-abilities/${monster.id}`);
-        if (response.ok) abilitiesMap[monster.id] = await response.json();
-      } catch (error) { abilitiesMap[monster.id] = []; }
-    }
-    setAiMonsterAbilities(abilitiesMap);
+    await Promise.all(uniqueMonsterIds.map(async (id) => {
+        try {
+            const response = await fetch(`/api/monster-abilities/${id}`);
+            if (response.ok) {
+                abilitiesMap[id] = await response.json();
+            }
+        } catch (e) {
+            console.error(`Failed to fetch abilities for monster ${id}`, e);
+            abilitiesMap[id] = [];
+        }
+    }));
+
+    // Step 3: Inject the fetched abilities into the monster data.
+    const playerTeamWithAbilities = selectedTeam.map(userMonster => ({
+        ...userMonster,
+        monster: {
+            ...userMonster.monster,
+            abilities: abilitiesMap[userMonster.monster.id] || []
+        }
+    }));
+    const aiTeamWithAbilities = generatedOpponent.scaledMonsters.map((monster: Monster) => ({
+        ...monster,
+        abilities: abilitiesMap[monster.id] || []
+    }));
+
+    // Step 4: Set all state at once with the complete data.
+    setPlayerTeam(playerTeamWithAbilities);
+    setAiTeam(aiTeamWithAbilities);
+    setActiveEffects([]);
     setBattleLog([`Battle is about to begin! Select your starting monster.`]);
     setBattleMode('lead-select');
     setTurn('pre-battle');
@@ -430,7 +399,22 @@ const BattleArena: React.FC = () => {
   // --- Render Logic ---
 
   if (battleMode === 'team-select') return <div className="max-w-6xl mx-auto p-6"><h1 className="text-3xl font-bold text-center mb-8">Battle Arena</h1><BattleTeamSelector onBattleStart={handleBattleStart} /></div>;
-  if (battleMode === 'lead-select') return <div className="max-w-6xl mx-auto p-6"><h1 className="text-3xl font-bold text-center mb-8">Choose Your Lead Monster</h1><div className="flex flex-wrap justify-center gap-6">{playerTeam.map((userMonster, index) => (<div key={userMonster.id}><MonsterCard monster={{...userMonster.monster, abilities: playerMonsterAbilities?.[userMonster.monster.id] || []}} userMonster={userMonster} size="medium" /><Button onClick={() => selectLeadMonster(index)} className="w-full mt-4" disabled={userMonster.hp <= 0}>{userMonster.hp <= 0 ? 'Fainted' : 'Choose as Lead'}</Button></div>))}</div></div>;
+
+  if (battleMode === 'lead-select') return (
+    <div className="max-w-6xl mx-auto p-6">
+        <h1 className="text-3xl font-bold text-center mb-8">Choose Your Lead Monster</h1>
+        <div className="flex flex-wrap justify-center gap-6">
+            {playerTeam.map((userMonster, index) => (
+                <div key={userMonster.id}>
+                    <MonsterCard monster={userMonster.monster} userMonster={userMonster} size="medium" />
+                    <Button onClick={() => selectLeadMonster(index)} className="w-full mt-4" disabled={userMonster.hp <= 0}>
+                        {userMonster.hp <= 0 ? 'Fainted' : 'Choose as Lead'}
+                    </Button>
+                </div>
+            ))}
+        </div>
+    </div>
+  );
 
   if (battleMode === 'combat') {
     if (isLoading || playerTeam.length === 0 || aiTeam.length === 0) return <div className="text-center p-8">Loading battle...</div>;
@@ -441,69 +425,49 @@ const BattleArena: React.FC = () => {
     if (!activePlayerMonster || !activeAiMonster) return <div className="text-center p-8">Setting up combatants...</div>;
 
     const benchedPlayerMonsters = playerTeam.filter((_, index) => index !== activePlayerIndex);
-    const benchedAiMonsters = aiTeam.filter((_, index) => index !== activeAiIndex);
 
     return (
       <div className="max-w-7xl mx-auto p-4">
-        {targetingMode && (<div className="text-center p-2 mb-4 bg-green-900/50 rounded-lg animate-pulse"><p className="text-lg font-semibold text-green-300">Choose a target for {targetingMode.ability.name}!</p></div>)}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-4 items-start">
-            <div className="flex flex-col items-center">
-                <h2 className="text-xl font-semibold mb-2 text-cyan-400">Your Team</h2>
-                <MonsterCard
-                    monster={{...activePlayerMonster.monster, abilities: playerMonsterAbilities?.[activePlayerMonster.monster.id] || []}} 
-                    userMonster={activePlayerMonster}
-                    onAbilityClick={handlePlayerAbility} 
-                    battleMode={true}
-                    isPlayerTurn={turn === 'player' && !targetingMode && !battleEnded} 
-                    startExpanded={true}
-                    isToggleable={false} size="large"
-                    isTargetable={!!targetingMode}
-                    onCardClick={targetingMode ? () => handleTargetSelection(activePlayerIndex) : undefined}
-                />
-                {benchedPlayerMonsters.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mt-2">
-                        {benchedPlayerMonsters.map((monster) => {
-                            const originalIndex = playerTeam.findIndex(p => p.id === monster.id);
-                            return (
-                                <div key={monster.id} className="text-center">
-                                    <MonsterCard monster={{...monster.monster, abilities: playerMonsterAbilities?.[monster.monster.id] || []}} userMonster={monster} size="tiny" isToggleable={!targetingMode} isTargetable={!!targetingMode} onCardClick={targetingMode ? () => handleTargetSelection(originalIndex) : undefined} />
-                                    <Button onClick={() => handleSwapMonster(originalIndex)} disabled={!!targetingMode || turn !== 'player' || monster.hp <= 0} size="sm" className="mt-1 w-full">Swap</Button>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
-            <div className="flex flex-col items-center">
-                <h2 className="text-xl font-semibold mb-2 text-red-400">Opponent's Team</h2>
-                <MonsterCard monster={{...activeAiMonster, abilities: aiMonsterAbilities?.[activeAiMonster.id] || []}} userMonster={activeAiMonster} showAbilities={true} size="large" isToggleable={true}/>
-                {benchedAiMonsters.length > 0 && (
-                    <div className="flex flex-wrap justify-center gap-2 mt-2">
-                        {benchedAiMonsters.map((monster) => (
-                            <MonsterCard key={monster.id} monster={{...monster, abilities: aiMonsterAbilities?.[monster.id] || []}} userMonster={monster} size="tiny" isToggleable={true}/>
-                        ))}
-                    </div>
-                )}
-            </div>
+        <div className="flex justify-center mb-4">
+            <MonsterCard monster={activeAiMonster} size="large" />
         </div>
-        <div className="mt-4 max-w-3xl mx-auto">
-            <div className="bg-gray-900/50 p-4 rounded-lg mb-4 text-white border border-gray-700">
-                <h3 className="text-lg font-semibold mb-2 border-b border-gray-600 pb-1">Battle Log</h3>
-                <div className="h-40 overflow-y-auto bg-gray-800/60 p-3 rounded font-mono text-sm" ref={battleLogRef}>
+        <div className="flex justify-center mt-4">
+             <MonsterCard 
+                monster={activePlayerMonster.monster} 
+                userMonster={activePlayerMonster}
+                onAbilityClick={handlePlayerAbility}
+                isPlayerTurn={turn === 'player' && !targetingMode && !battleEnded}
+                size="large"
+             />
+        </div>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-900/80 backdrop-blur-sm border-t border-gray-700">
+            <div className="max-w-4xl mx-auto grid grid-cols-3 gap-4 items-end">
+                <div className="flex gap-2">
+                    {benchedPlayerMonsters.map(monster => {
+                         const originalIndex = playerTeam.findIndex(p => p.id === monster.id);
+                         return (
+                            <div key={monster.id} className="text-center">
+                                <MonsterCard monster={monster.monster} userMonster={monster} size="tiny" />
+                                <Button onClick={() => handleSwapMonster(originalIndex)} disabled={!!targetingMode || turn !== 'player' || monster.hp <= 0 || battleEnded} size="sm" className="mt-1 w-full text-xs">Swap</Button>
+                            </div>
+                         )
+                    })}
+                </div>
+                <div className="bg-gray-800/60 p-3 rounded h-32 overflow-y-auto font-mono text-sm" ref={battleLogRef}>
                     {battleLog.map((log, index) => <p key={index} className="mb-1 animate-fadeIn">{`> ${log}`}</p>)}
+                     {battleEnded && (
+                        <div className="text-center mt-4">
+                            <h2 className="text-lg font-bold text-yellow-400">{winner === 'player' ? "You are victorious!" : "You have been defeated..."}</h2>
+                            <Button onClick={resetBattle} className="mt-2">Play Again</Button>
+                        </div>
+                    )}
+                </div>
+                 <div className="text-center text-white">
+                    <p className="text-lg font-semibold">
+                       {turn === 'player' && !battleEnded ? "Your Turn!" : battleEnded ? "Battle Over!" : "Opponent is thinking..."}
+                    </p>
                 </div>
             </div>
-            <div className="text-center text-white">
-                <p className="text-lg font-semibold">
-                    {turn === 'player' ? "Your Turn!" : "Opponent is thinking..."}
-                </p>
-            </div>
-            {battleEnded && (
-                <div className="text-center mt-4">
-                    <h2 className="text-2xl font-bold text-yellow-400">{winner === 'player' ? "You are victorious!" : "You have been defeated..."}</h2>
-                    <Button onClick={resetBattle} className="mt-4">Play Again</Button>
-                </div>
-            )}
         </div>
       </div>
     );
