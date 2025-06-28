@@ -2,26 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
-import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, Snowflake, ChevronDown, ChevronUp } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
-// --- TYPE DEFINITIONS ---
+// --- TYPE DEFINITIONS (Aligned with parent components) ---
 interface Ability {
-    id: number;
-    name: string;
-    description: string;
-    affinity: string;
-    ability_type: string;
-    mp_cost: number;
-    target?: string;
-    healing_power?: number;
+  id: number;
+  name: string;
+  description: string;
+  ability_type: 'ACTIVE' | 'PASSIVE';
+  mp_cost: number;
+  affinity: string;
+  power_multiplier?: number;
+  scaling_stat?: string;
+  healing_power?: number;
+  target_scope?: string;
 }
 
 interface Monster {
   id: number;
   name: string;
-  type: string;
+  type?: string;
   description?: string;
   level?: number;
   power?: number;
@@ -38,6 +38,7 @@ interface Monster {
   baseDefense?: number;
   baseHp?: number;
   baseMp?: number;
+  abilities?: Ability[];
 }
 
 interface UserMonster {
@@ -54,17 +55,20 @@ interface UserMonster {
 }
 
 interface MonsterCardProps {
-  monster: Monster | UserMonster;
+  monster: Monster;
   userMonster?: UserMonster;
   size?: 'tiny' | 'small' | 'medium' | 'large';
   battleMode?: boolean;
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
   showAbilities?: boolean;
-  startExpanded?: boolean; 
+  startExpanded?: boolean;
   isToggleable?: boolean;
   isTargetable?: boolean;
   onCardClick?: () => void;
+  isFlipped?: boolean;
+  onFlip?: () => void;
+  showUpgradeAnimation?: boolean;
 }
 
 // --- HELPER FUNCTION ---
@@ -94,6 +98,9 @@ export default function MonsterCard({
   isToggleable = true,
   isTargetable = false,
   onCardClick,
+  isFlipped, // For MonsterLab
+  onFlip, // For MonsterLab
+  showUpgradeAnimation // For MonsterLab
 }: MonsterCardProps) {
 
   const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -102,12 +109,10 @@ export default function MonsterCard({
     setIsExpanded(startExpanded);
   }, [startExpanded]);
 
+  // FIX: This component now relies on the parent to provide abilities.
+  // We no longer fetch abilities inside the card itself.
   const baseMonster = 'monster' in monsterProp ? monsterProp.monster : monsterProp;
-
-  const { data: abilities = [], isLoading: abilitiesLoading } = useQuery<Ability[]>({
-    queryKey: [`/api/monster-abilities/${baseMonster.id}`],
-    enabled: !!baseMonster.id,
-  });
+  const abilities = baseMonster.abilities || [];
 
   const level = userMonster?.level ?? baseMonster.level ?? 1;
   const power = userMonster?.power ?? baseMonster.power ?? baseMonster.basePower ?? 0;
@@ -132,19 +137,26 @@ export default function MonsterCard({
       onCardClick();
       return;
     }
+    // In MonsterLab, onFlip handles toggling details.
+    if (onFlip) {
+      onFlip();
+      return;
+    }
     if (isToggleable) {
       setIsExpanded(!isExpanded);
     }
   };
 
-  const borderColorClass = isTargetable ? 'border-green-500 animate-pulse' 
-                         : isToggleable ? 'hover:border-yellow-400' 
-                         : 'border-cyan-500';
+  const borderColorClass = isTargetable ? 'border-green-500 animate-pulse'
+    : isToggleable || onFlip ? 'hover:border-yellow-400'
+    : 'border-cyan-500';
+
+  const finalIsExpanded = onFlip ? isFlipped : isExpanded;
 
   return (
-    <Card  
+    <Card
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargetable || isToggleable) && 'cursor-pointer'}`}
+      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${(isTargetable || isToggleable || onFlip) && 'cursor-pointer'}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
@@ -175,7 +187,7 @@ export default function MonsterCard({
             </div>
         }
 
-        {isExpanded && (
+        {finalIsExpanded && (
           <div className="mt-2 space-y-3">
             {baseMonster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
@@ -215,15 +227,15 @@ export default function MonsterCard({
             {showAbilities && (
               <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
-                {abilitiesLoading ? <p className="text-xs text-gray-400">Loading...</p> : 
+                {abilities.length === 0 ? <p className="text-xs text-gray-400 italic">No abilities to display.</p> : 
                   abilities.map(ability => {
                     const canAfford = battleMode && isPlayerTurn && (displayMp >= ability.mp_cost);
                     const isClickable = battleMode && isPlayerTurn && ability.ability_type === 'ACTIVE';
                     return (
-                        <div  
-                            key={ability.id}  
+                        <div
+                            key={ability.id}
                             className={`p-1 rounded text-xs transition-all ${isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : isClickable && !canAfford ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={(e) => {  
+                            onClick={(e) => {
                                 if (isClickable && canAfford && onAbilityClick) {
                                     e.stopPropagation();
                                     onAbilityClick(ability);
@@ -245,16 +257,10 @@ export default function MonsterCard({
           </div>
         )}
 
-        {size === 'tiny' && (
-            <div className="text-center mt-1">
-                <Badge variant={currentHp > 0 ? "secondary" : "destructive"}>{currentHp > 0 ? 'Ready' : 'Fainted'}</Badge>
-            </div>
-        )}
-
-        {isToggleable && (
+        {(isToggleable || onFlip) && (
           <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center">
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            <span className="ml-1">{isExpanded ? 'Collapse' : 'Details'}</span>
+            {finalIsExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            <span className="ml-1">{finalIsExpanded ? 'Collapse' : 'Details'}</span>
           </div>
         )}
       </CardContent>

@@ -8,9 +8,9 @@ import {
   aiTeams,
   abilities,
   monsterAbilities,
-  ranks, // NEW: Import ranks table
+  ranks,
   type User,
-  type Rank, // NEW: Import Rank type
+  type Rank,
   type UpsertUser,
   type Monster,
   type UserMonster,
@@ -253,9 +253,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonsterAbilities(monsterId: number) {
+    console.log(`[DEBUG] Fetching abilities for monsterId: ${monsterId}`);
     try {
       const result = await db.select().from(abilities).innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id)).where(eq(monsterAbilities.monster_id, monsterId));
+
+      console.log(`[DEBUG] Raw DB result for monsterId ${monsterId}:`, result);
+
       const processedAbilities = result.map(({ abilities, monster_abilities }) => ({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity }));
+
+      console.log(`[DEBUG] Processed abilities for monsterId ${monsterId}:`, processedAbilities);
+
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
@@ -501,7 +508,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAiTrainer(trainerData: InsertAiTeam): Promise<AiTeam> {
-    // This had a bug, referencing a column that doesn't exist. Removing it from insert.
     const [trainer] = await db.insert(aiTeams).values({ ...trainerData }).returning();
     return trainer;
   }

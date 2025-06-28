@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import MonsterCard from "./MonsterCard";
 import LabSubscriptionGate from "./LabSubscriptionGate";
-import { Zap, Shield } from "lucide-react";
 
-// Types (simplified for this component)
+// Types
+interface Ability {
+  id: number;
+  name: string;
+  description: string;
+}
+
 interface Monster {
   id: number;
   name: string;
@@ -23,6 +27,7 @@ interface Monster {
   weaknesses: string[];
   level: number;
   goldCost: number;
+  abilities?: Ability[];
 }
 
 interface UserMonster {
@@ -59,17 +64,58 @@ export default function MonsterLab() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
+        // Step 1: Fetch all monster and user monster data first.
         const [monstersResponse, userMonstersResponse] = await Promise.all([
           fetch('/api/monsters'),
           fetch('/api/user/monsters')
         ]);
         if (!monstersResponse.ok) throw new Error('Failed to fetch available monsters');
         if (!userMonstersResponse.ok) throw new Error('Failed to fetch user monsters');
-        const monstersData = await monstersResponse.json();
-        const userMonstersData = await userMonstersResponse.json();
-        setMonsters(monstersData);
-        setUserMonsters(userMonstersData);
+
+        const monstersData: Monster[] = await monstersResponse.json();
+        const userMonstersData: UserMonster[] = await userMonstersResponse.json();
+
+        // Step 2: Collect all unique monster IDs from both lists.
+        const allMonsterIds = [
+            ...monstersData.map(m => m.id), 
+            ...userMonstersData.map(um => um.monster.id)
+        ];
+        const uniqueMonsterIds = [...new Set(allMonsterIds)];
+
+        // Step 3: Fetch all abilities for all unique monsters.
+        const abilitiesMap: Record<number, Ability[]> = {};
+        await Promise.all(uniqueMonsterIds.map(async (id) => {
+            try {
+                const response = await fetch(`/api/monster-abilities/${id}`);
+                if (response.ok) {
+                    abilitiesMap[id] = await response.json();
+                }
+            } catch (e) {
+                console.error(`Failed to fetch abilities for monster ${id}`, e);
+                abilitiesMap[id] = [];
+            }
+        }));
+
+        // Step 4: Inject the fetched abilities into the monster data.
+        const monstersWithAbilities = monstersData.map(monster => ({
+            ...monster,
+            abilities: abilitiesMap[monster.id] || []
+        }));
+
+        const userMonstersWithAbilities = userMonstersData.map(userMonster => ({
+            ...userMonster,
+            monster: {
+                ...userMonster.monster,
+                abilities: abilitiesMap[userMonster.monster.id] || []
+            }
+        }));
+
+        // Step 5: Set state with the complete data, triggering a single render.
+        setMonsters(monstersWithAbilities);
+        setUserMonsters(userMonstersWithAbilities);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
@@ -106,10 +152,11 @@ export default function MonsterLab() {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to purchase monster');
       }
-      const userMonstersResponse = await fetch('/api/user/monsters');
-      if (userMonstersResponse.ok) {
-        setUserMonsters(await userMonstersResponse.json());
-      }
+       // Refetch data to ensure UI is up-to-date with new monster and its abilities
+       const userMonstersResponse = await fetch('/api/user/monsters');
+       if (userMonstersResponse.ok) {
+         setUserMonsters(await userMonstersResponse.json());
+       }
       alert("Monster purchased successfully!");
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Failed to purchase monster');
@@ -140,7 +187,7 @@ export default function MonsterLab() {
       if (error instanceof Error && error.message === 'FREE_TRIAL_LIMIT') {
         const monsterToBlock = userMonsters.find(m => m.id === userMonsterId);
         if (monsterToBlock) {
-          console.log(`ANALYTICS: upgrade_gate_triggered, monster: ${monsterToBlock.monster.name}`); // Explicit analytics log
+          console.log(`ANALYTICS: upgrade_gate_triggered, monster: ${monsterToBlock.monster.name}`);
           setBlockedMonster(monsterToBlock);
           setShowSubscriptionGate(true);
         }
