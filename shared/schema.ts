@@ -46,6 +46,7 @@ export const users = pgTable("users", {
   battleSlots: integer("battle_slots").default(2).notNull(), // Number of monsters allowed in battle
   rankPoints: integer("rank_points").default(0).notNull(), // RP system for battle rankings
   storyProgress: varchar("story_progress").default("Node_Start_01"),
+  player_tier: integer("player_tier").default(1).notNull(), // NEW: Unlocks monster tiers
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   subscriptionIntent: varchar("subscription_intent"), // 'monthly' or 'yearly'
@@ -69,15 +70,14 @@ export const monsters = pgTable("monsters", {
   description: text("description"),
   iconClass: varchar("icon_class").notNull(), // Font Awesome class
   gradient: varchar("gradient").notNull(), // CSS gradient colors
-  
   resistances: jsonb("resistances").default('[]').notNull(), // Damage resistances
   weaknesses: jsonb("weaknesses").default('[]').notNull(), // Damage weaknesses
   levelUpgrades: jsonb("level_upgrades").default('{}').notNull(), // Upgrades per level
   starterSet: boolean("starter_set").default(false).notNull(), // Part of starter set
+  monster_tier: integer("monster_tier").default(1).notNull(), // NEW: Tier for unlock progression
 });
 
 
-// Abilities table - NEW relational structure
 // Abilities table - FINAL relational structure
 export const abilities = pgTable("abilities", {
   id: serial("id").primaryKey(),
@@ -93,7 +93,16 @@ export const abilities = pgTable("abilities", {
   power_multiplier: decimal("power_multiplier", { precision: 4, scale: 2 }),
   scaling_stat: varchar("scaling_stat"), // 'POWER', 'DEFENSE', etc.
   healing_power: integer("healing_power").default(0).notNull(),
-  target: varchar("target"), // 'OPPONENT', 'SELF'
+
+  // MODIFIED: Renamed 'target' to 'target_scope' for more flexible targeting
+  target_scope: varchar("target_scope"), // 'ACTIVE_OPPONENT', 'ANY_ALLY', 'ALL_OPPONENTS', etc.
+
+  // NEW: Maximum number of targets for an ability
+  max_targets: integer("max_targets").default(1).notNull(),
+
+  // NEW: Fields for passive ability logic
+  activation_scope: varchar("activation_scope"), // For passives: 'BENCH' or 'ACTIVE'
+  activation_trigger: varchar("activation_trigger"), // For passives: 'END_OF_TURN', 'ON_SWITCH_IN', etc.
 
   // Group 3: Status Effect Columns
   status_effect_applies: varchar("status_effect_applies"), // 'POISONED', 'PARALYZED', etc.
@@ -126,10 +135,6 @@ export const monsterAbilities = pgTable("monster_abilities", {
   override_affinity: varchar("override_affinity"), // For Basic Attack inheritance
   created_at: timestamp("created_at").defaultNow(),
 });
-
-
-
-
 
 // User monsters (owned monsters)
 export const userMonsters = pgTable("user_monsters", {

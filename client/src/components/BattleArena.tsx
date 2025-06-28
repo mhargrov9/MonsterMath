@@ -1,27 +1,31 @@
 import React, { useState, useEffect, useRef } from 'react';
 import MonsterCard from './MonsterCard';
-import { BattleTeamSelector } from './BattleTeamSelector.tsx';
+import { BattleTeamSelector } from './BattleTeamSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 
 // --- INTERFACES ---
+// Updated to match the latest schema in Onboarding Brief v17
 interface Ability {
     id: number;
     name: string;
     description: string;
-    ability_type: string;
+    ability_type: 'ACTIVE' | 'PASSIVE';
     mp_cost: number;
     affinity: string;
     power_multiplier: number;
     scaling_stat?: string;
     healing_power?: number;
-    target?: string;
+    target_scope?: 'ACTIVE_OPPONENT' | 'ANY_OPPONENT' | 'SELF' | 'ANY_ALLY' | 'ALL_OPPONENTS' | 'ALL_ALLIES';
+    max_targets?: number;
+    activation_scope?: 'BENCH' | 'ACTIVE';
+    activation_trigger?: 'END_OF_TURN' | 'ON_BATTLE_START' | 'ON_BEING_HIT' | 'ON_ABILITY_USE' | 'ON_HP_THRESHOLD';
     status_effect_applies?: string;
     status_effect_chance?: number;
     status_effect_duration?: number;
     status_effect_value?: number;
-    status_effect_value_type?: string;
+    status_effect_value_type?: 'FLAT_HP' | 'PERCENT_MAX_HP';
 }
 
 interface Monster {
@@ -146,32 +150,66 @@ const BattleArena: React.FC = () => {
         return "";
     };
 
+    // REFACTORED: This function is now fully data-driven.
+    // It no longer contains hardcoded logic for specific passive abilities.
     const endTurn = (currentTurn: 'player' | 'ai', nextPlayerTeam: UserMonster[], nextAiTeam: Monster[]) => {
         let teamAfterPassives = [...nextPlayerTeam];
         const newLogMessages: string[] = [];
 
         if (currentTurn === 'player') {
-            const auraHolder = teamAfterPassives.find(m => playerMonsterAbilities?.[m.monster.id]?.some(a => a.name === 'Soothing Aura'));
-            if (auraHolder) {
-                const activeMonster = teamAfterPassives[activePlayerIndex];
-                if (activeMonster.hp > 0 && activeMonster.hp < activeMonster.maxHp) {
-                    const healingAmount = Math.round(activeMonster.maxHp * 0.03);
-                    const newHp = Math.min(activeMonster.maxHp, activeMonster.hp + healingAmount);
-                    newLogMessages.push(`A soothing aura restores ${healingAmount} HP for ${activeMonster.monster.name}!`);
-                    teamAfterPassives[activePlayerIndex] = { ...activeMonster, hp: newHp };
-                }
-            }
-            teamAfterPassives = teamAfterPassives.map((monster) => {
+            // Create a map to accumulate changes to prevent race conditions on the same monster.
+            const hpChanges: Record<number, number> = {};
+
+            // Iterate over every monster on the player's team to check for passives.
+            teamAfterPassives.forEach((monster, index) => {
                 const abilities = playerMonsterAbilities?.[monster.monster.id] || [];
-                const volcanicHeart = abilities.find(a => a.name === 'Volcanic Heart' && a.ability_type === 'PASSIVE');
-                if (volcanicHeart && monster.hp > 0 && Math.random() < 0.15) {
-                    const healingAmount = Math.round(monster.maxHp * 0.05);
-                    const newHp = Math.min(monster.maxHp, monster.hp + healingAmount);
-                    newLogMessages.push(`${monster.monster.name}'s Volcanic Heart glows, restoring ${healingAmount} HP!`);
-                    return { ...monster, hp: newHp };
-                }
-                return monster;
+
+                abilities.forEach(ability => {
+                    // Check if the ability is a passive that triggers at the end of the turn.
+                    if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'END_OF_TURN') {
+
+                        // Check if the monster is in the correct scope for the ability to activate.
+                        const isInScope = ability.activation_scope === 'BENCH' || (ability.activation_scope === 'ACTIVE' && index === activePlayerIndex);
+
+                        if (isInScope) {
+                            // Check if a random chance condition is met.
+                            const chance = ability.status_effect_chance || 1.0;
+                            if (Math.random() > chance) return;
+
+                            // Apply healing effects. This can be expanded to other effects later.
+                            if (ability.status_effect_applies === 'HEALING') {
+                                const targetMonster = ability.activation_scope === 'BENCH' ? teamAfterPassives[activePlayerIndex] : monster;
+
+                                if (targetMonster.hp > 0 && targetMonster.hp < targetMonster.maxHp) {
+                                    let healingAmount = 0;
+                                    if (ability.status_effect_value_type === 'PERCENT_MAX_HP') {
+                                        healingAmount = Math.round(targetMonster.maxHp * ((ability.status_effect_value || 0) / 100));
+                                    } else { // FLAT_HP
+                                        healingAmount = ability.status_effect_value || 0;
+                                    }
+
+                                    // Add the healing to our changes map.
+                                    if (!hpChanges[targetMonster.id]) hpChanges[targetMonster.id] = 0;
+                                    hpChanges[targetMonster.id] += healingAmount;
+
+                                    newLogMessages.push(`${monster.monster.name}'s ${ability.name} restores ${healingAmount} HP for ${targetMonster.monster.name}!`);
+                                }
+                            }
+                        }
+                    }
+                });
             });
+
+            // Apply all accumulated HP changes.
+            if (Object.keys(hpChanges).length > 0) {
+                 teamAfterPassives = teamAfterPassives.map(m => {
+                    if (hpChanges[m.id]) {
+                        const newHp = Math.min(m.maxHp, m.hp + hpChanges[m.id]);
+                        return { ...m, hp: newHp };
+                    }
+                    return m;
+                });
+            }
         }
 
         setPlayerTeam(teamAfterPassives);
@@ -188,10 +226,12 @@ const BattleArena: React.FC = () => {
         if (activePlayerMonster.mp < ability.mp_cost) {
             setBattleLog(prev => [...prev, "Not enough MP!"]); return;
         }
-        const targetType = ability.target || 'OPPONENT';
-        if (targetType === 'ALLY' || targetType === 'SELF') {
+        // Use the new `target_scope` field from the schema
+        const targetType = ability.target_scope || 'ACTIVE_OPPONENT';
+        if (targetType === 'ANY_ALLY' || targetType === 'SELF') {
             setTargetingMode({ ability, sourceMonsterId: activePlayerMonster.id }); return;
         }
+
         const activeAiMonster = aiTeam[activeAiIndex];
         const damageResult = calculateDamage(activePlayerMonster, activeAiMonster, ability);
         const newAiHp = Math.max(0, activeAiMonster.hp - damageResult.damage);
@@ -256,23 +296,14 @@ const BattleArena: React.FC = () => {
 
         setBattleLog(prev => [...prev, `${sourceMonster.monster.name} used ${ability.name}, healing ${targetMonster.monster.name} for ${healingAmount} HP!`]);
 
-        // --- BUG FIX ---
-        // Refactored this block to correctly handle self-targeting.
-        // It now ensures both HP changes and MP costs are applied correctly,
-        // even when the source and target monster are the same.
         teamAfterAction = teamAfterAction.map(monster => {
             let updatedMonster = { ...monster };
-
-            // Apply healing if it's the target
             if (monster.id === targetMonster.id) {
                 updatedMonster.hp = newHp;
             }
-
-            // Apply MP cost if it's the source
             if (monster.id === sourceMonsterId) {
                 updatedMonster.mp = monster.mp - ability.mp_cost;
             }
-
             return updatedMonster;
         });
 
@@ -360,7 +391,7 @@ const BattleArena: React.FC = () => {
                     <div className="flex flex-col items-center">
                         <h2 className="text-xl font-semibold mb-2 text-cyan-400">Your Team</h2>
                         <MonsterCard
-                            key={activePlayerMonster.hp + activePlayerMonster.mp} // Force re-render on HP or MP change
+                            key={activePlayerMonster.hp + activePlayerMonster.mp}
                             monster={activePlayerMonster.monster} userMonster={activePlayerMonster}
                             onAbilityClick={handlePlayerAbility} battleMode={true}
                             isPlayerTurn={turn === 'player' && !targetingMode} startExpanded={true}
