@@ -3,7 +3,7 @@ import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText } from '@/types/game';
+import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText, StatModifier } from '@/types/game';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 
@@ -32,7 +32,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
 
-  const addFloatingText = (text: string, type: 'damage' | 'heal' | 'crit', targetId: number, isPlayerTarget: boolean) => {
+  const addFloatingText = (text: string, type: 'damage' | 'heal' | 'crit' | 'info', targetId: number, isPlayerTarget: boolean) => {
     const newText: FloatingText = {
       id: Date.now() + Math.random(),
       text,
@@ -47,18 +47,59 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-    // This function can be expanded with activeEffects later
-    if ('monster' in monster) { // It's a UserMonster
-        return monster[statName];
-    }
-    // It's a base Monster for the AI
-    const baseStatMap = {
-        power: 'basePower',
-        defense: 'baseDefense',
-        speed: 'baseSpeed'
-    };
-    return (monster as any)[baseStatMap[statName]] || 0;
+      const monsterId = 'monster' in monster ? monster.monster.id : monster.id;
+      const baseStat = 'monster' in monster ? monster[statName] : (monster as any)[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}` as keyof Monster] as number || 0;
+
+      const effectsForStat = activeEffects.filter(e => e.targetMonsterId === monsterId && e.modifier.stat.toLowerCase() === statName.toLowerCase());
+
+      const flatModifiers = effectsForStat.filter(e => e.modifier.type === 'FLAT');
+      const percentageModifiers = effectsForStat.filter(e => e.modifier.type === 'PERCENTAGE');
+
+      let finalStat = baseStat;
+      // Apply flat modifiers first
+      for (const effect of flatModifiers) {
+          finalStat += effect.modifier.value;
+      }
+      // Then apply percentage modifiers
+      for (const effect of percentageModifiers) {
+          finalStat *= (1 + effect.modifier.value / 100);
+      }
+
+      return Math.round(finalStat);
   };
+
+  const checkAndApplyPassives = (target: UserMonster | Monster, trigger: 'ON_HP_THRESHOLD') => {
+      const monster = 'monster' in target ? target.monster : target;
+      const passives = monster.abilities?.filter(a => a.ability_type === 'PASSIVE' && a.activation_trigger === trigger) || [];
+
+      for(const passive of passives) {
+          if (trigger === 'ON_HP_THRESHOLD' && passive.trigger_condition_type === 'HP_PERCENT') {
+              const hpPercent = (target.hp / target.maxHp) * 100;
+              const threshold = passive.trigger_condition_value || 0;
+
+              const conditionMet = passive.trigger_condition_operator === 'LESS_THAN_OR_EQUAL' ? hpPercent <= threshold : hpPercent >= threshold;
+
+              if (conditionMet) {
+                  const alreadyActive = activeEffects.some(e => e.sourceAbilityId === passive.id && e.targetMonsterId === monster.id);
+                  if (alreadyActive) continue;
+
+                  setBattleLog(prev => [...prev, `${monster.name}'s ${passive.name} activates!`]);
+                  addFloatingText(passive.name, 'info', monster.id, 'monster' in target);
+
+                  const modifiers = passive.stat_modifiers as StatModifier[];
+                  const newEffects: ActiveEffect[] = modifiers.map(mod => ({
+                      id: `${monster.id}-${passive.id}-${mod.stat}`,
+                      sourceAbilityId: passive.id,
+                      targetMonsterId: monster.id,
+                      modifier: mod,
+                      duration: mod.duration || Infinity, // No duration means permanent for the battle
+                  }));
+                  setActiveEffects(prev => [...prev, ...newEffects]);
+              }
+          }
+      }
+  };
+
 
   const getAffinityMultiplier = (attackAffinity: string | undefined, defender: Monster): number => {
     if (!attackAffinity) return 1.0;
@@ -119,18 +160,27 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     const damageResult = calculateDamage(attacker, defender, ability);
     addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
     if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, false);
-    const newLog = [`Your ${attacker.monster.name} used ${ability.name}!`];
+
+    // Updated Battle Log Message
+    const newLog = [`Your ${attacker.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`];
     if (damageResult.isCritical) newLog.push("A critical hit!");
     newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-    const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
+
+    let nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
     const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+
     setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+
+    // Check for passives on the AI defender
+    checkAndApplyPassives(nextAiTeam[activeAiIndex], 'ON_HP_THRESHOLD');
+
     if (nextAiTeam[activeAiIndex].hp <= 0) {
         setBattleLog(prev => [...prev, `Opponent's ${nextAiTeam[activeAiIndex].name} has been defeated!`]);
         if (nextAiTeam.every(m => m.hp <= 0)) {
             handleBattleCompletion('player');
         }
     }
+
     setPlayerTeam(nextPlayerTeam);
     setAiTeam(nextAiTeam);
     setTurn('ai');
@@ -160,19 +210,28 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     const defender = playerTeam[activePlayerIndex];
     const damageResult = calculateDamage(activeAi, defender, ability);
     addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
-     if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
-    const newLog = [`Opponent's ${activeAi.name} used ${ability.name}!`];
+    if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
+
+    // Updated Battle Log Message
+    const newLog = [`Opponent's ${activeAi.name} used ${ability.name}, dealing ${damageResult.damage} damage!`];
     if (damageResult.isCritical) newLog.push("A critical hit!");
     newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-    const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
+
+    let nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
     const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+
     setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+
+    // Check for passives on the player defender
+    checkAndApplyPassives(nextPlayerTeam[activePlayerIndex], 'ON_HP_THRESHOLD');
+
     if (nextPlayerTeam[activePlayerIndex].hp <= 0) {
         setBattleLog(prev => [...prev, `Your ${nextPlayerTeam[activePlayerIndex].monster.name} has been defeated!`]);
         if (nextPlayerTeam.every(m => m.hp <= 0)) {
             handleBattleCompletion('ai');
         }
     }
+
     setPlayerTeam(nextPlayerTeam);
     setAiTeam(nextAiTeam);
     setTurn('player');
@@ -204,10 +263,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
     const playerTeamWithFullHealth = selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp }));
     setPlayerTeam(playerTeamWithFullHealth);
-
-    // The opponent data from the server now includes abilities, so we can use it directly.
     setAiTeam(generatedOpponent.scaledMonsters);
-
     setBattleLog([`Battle is about to begin! Select your starting monster.`]);
     setBattleMode('lead-select');
     setIsLoading(false);
