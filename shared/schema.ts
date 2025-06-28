@@ -45,7 +45,7 @@ export const users = pgTable("users", {
   battleTokensLastRefresh: timestamp("battle_tokens_last_refresh").defaultNow().notNull(),
   battleSlots: integer("battle_slots").default(2).notNull(),
   rankPoints: integer("rank_points").default(0).notNull(),
-  rank_xp: integer("rank_xp").default(0).notNull(), // NEW: For player ranking system
+  rank_xp: integer("rank_xp").default(0).notNull(), 
   storyProgress: varchar("story_progress").default("Node_Start_01"),
   player_tier: integer("player_tier").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -54,7 +54,7 @@ export const users = pgTable("users", {
   notificationEmail: varchar("notification_email"),
 });
 
-// NEW: Ranks table for player progression
+// Ranks table for player progression
 export const ranks = pgTable("ranks", {
   id: serial("id").primaryKey(),
   tier_name: varchar("tier_name").notNull(),
@@ -91,13 +91,9 @@ export const monsters = pgTable("monsters", {
 // Abilities table
 export const abilities = pgTable("abilities", {
   id: serial("id").primaryKey(),
-
-  // Group 1: Core Identity
   name: varchar("name").notNull(),
   description: text("description"),
-
-  // Group 2: Mechanical Function
-  ability_type: varchar("ability_type").notNull(), // 'ACTIVE' or 'PASSIVE'
+  ability_type: varchar("ability_type").notNull(),
   mp_cost: integer("mp_cost"),
   affinity: varchar("affinity"),
   power_multiplier: decimal("power_multiplier", { precision: 4, scale: 2 }),
@@ -105,30 +101,23 @@ export const abilities = pgTable("abilities", {
   healing_power: integer("healing_power").default(0).notNull(),
   target_scope: varchar("target_scope"),
   max_targets: integer("max_targets").default(1).notNull(),
-
-  // Group 3: Passive Ability Logic
   activation_scope: varchar("activation_scope"),
   activation_trigger: varchar("activation_trigger"),
   trigger_condition_type: varchar("trigger_condition_type"),
   trigger_condition_operator: varchar("trigger_condition_operator"),
   trigger_condition_value: integer("trigger_condition_value"),
-
-  // Group 4: Status Effects
   status_effect_applies: varchar("status_effect_applies"),
   status_effect_chance: decimal("status_effect_chance", { precision: 4, scale: 2 }),
   status_effect_duration: integer("status_effect_duration"),
   status_effect_value: decimal("status_effect_value", { precision: 10, scale: 2 }),
   status_effect_value_type: varchar("status_effect_value_type"),
   status_effect_trigger_affinity: varchar("status_effect_trigger_affinity"),
-
-  // Group 5: Advanced & Future-Proofing
   priority: integer("priority").default(0).notNull(),
   crit_chance_modifier: decimal("crit_chance_modifier", { precision: 4, scale: 2 }).default('0').notNull(),
   lifesteal_percent: decimal("lifesteal_percent", { precision: 4, scale: 2 }).default('0').notNull(),
-  stat_modifiers: jsonb("stat_modifiers"), // CORRECTED: Aligns with brief for buff/debuff system
+  stat_modifiers: jsonb("stat_modifiers"), // THIS IS THE CORRECT, REQUIRED COLUMN
   min_hits: integer("min_hits").default(1).notNull(),
   max_hits: integer("max_hits").default(1).notNull(),
-
   created_at: timestamp("created_at").defaultNow()
 });
 
@@ -175,7 +164,7 @@ export const questions = pgTable("questions", {
 
 export const battles = pgTable("battles", {
   id: serial("id").primaryKey(),
-  attackerId: varchar("attacker_id").references(() => users.id).notNull(), // THIS LINE IS FIXED
+  attackerId: varchar("attacker_id").references(() => users.id).notNull(),
   defenderId: varchar("defender_id").references(() => users.id),
   attackerMonsterId: integer("attacker_monster_id").references(() => userMonsters.id).notNull(),
   defenderMonsterId: integer("defender_monster_id").references(() => userMonsters.id).notNull(),
