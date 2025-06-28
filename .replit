@@ -1,37 +1,36 @@
-modules = ["nodejs-20", "web", "postgresql-16"] [cite: 1]
-run = "npm run dev" [cite: 1]
-onBoot = "nix-env -iA nixpkgs.curl"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"] [cite: 1]
+modules = ["nodejs-20", "web", "postgresql-16"]
+run = "npm run dev"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
-[nix] 
-channel = "stable-24_05" [cite: 1]
+[nix]
+channel = "stable-24_05"
 
-[deployment] 
-deploymentTarget = "autoscale" [cite: 1]
-build = ["npm", "run", "build"] [cite: 1]
-run = ["npm", "run", "start"] [cite: 1]
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
 
-[[ports]] 
-localPort = 5000 [cite: 1]
-externalPort = 80 [cite: 1]
+[[ports]]
+localPort = 5000
+externalPort = 80
 
-[workflows] 
-runButton = "Project" [cite: 1]
+[workflows]
+runButton = "Project"
 
-[[workflows.workflow]] 
-name = "Project" [cite: 1]
-mode = "parallel" [cite: 1]
-author = "agent" [cite: 1]
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
 
-[[workflows.workflow.tasks]] 
-task = "workflow.run" [cite: 1]
-args = "Start application" [cite: 1]
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
-[[workflows.workflow]] 
-name = "Start application" [cite: 1]
-author = "agent" [cite: 1]
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
 
-[[workflows.workflow.tasks]] 
-task = "shell.exec" [cite: 1]
-args = "npm run dev" [cite: 1]
-waitForPort = 5000 [cite: 1]
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
