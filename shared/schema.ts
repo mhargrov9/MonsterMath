@@ -175,7 +175,7 @@ export const questions = pgTable("questions", {
 
 export const battles = pgTable("battles", {
   id: serial("id").primaryKey(),
-  attackerId: varchar("attacker_id").references(() => users.id).notNULL(),
+  attackerId: varchar("attacker_id").references(() => users.id).notNull(), // THIS LINE IS FIXED
   defenderId: varchar("defender_id").references(() => users.id),
   attackerMonsterId: integer("attacker_monster_id").references(() => userMonsters.id).notNull(),
   defenderMonsterId: integer("defender_monster_id").references(() => userMonsters.id).notNull(),
