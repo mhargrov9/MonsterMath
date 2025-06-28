@@ -214,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { amount = 5 } = req.body;
 
-      const user = await storage.addBattleTokens(userId, amount);
+      const user = await storage.updateUserBattleTokens(userId, amount); // Corrected function call
       res.json({ 
         message: `${amount} battle tokens added.`, 
         user,
@@ -243,6 +243,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(userMonsters);
     } catch (error) {
       handleError(error, res, "Failed to fetch user monsters");
+    }
+  });
+
+  // NEW Route: Get User Rank Info
+  app.get("/api/user/rank", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const rankInfo = await storage.getUserRank(userId);
+      res.json(rankInfo);
+    } catch (error) {
+      handleError(error, res, "Failed to fetch user rank information");
     }
   });
 
@@ -338,40 +349,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Monster ID and healing cost are required" });
       }
 
-      // Get user to check gold balance
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      if (user.gold < healingCost) {
-        return res.status(400).json({ message: "Insufficient gold for healing" });
-      }
-
-      // Get user's monsters to verify ownership and get current HP
-      const userMonsters = await storage.getUserMonsters(userId);
-      const userMonster = userMonsters.find(m => m.id === monsterId);
-
-      if (!userMonster) {
-        return res.status(404).json({ message: "Monster not found" });
-      }
-
-      // Calculate max HP based on monster level and base HP
-      const maxHp = userMonster.monster.baseHp || 950;
-      const currentHp = userMonster.hp || maxHp;
-
-      if (currentHp >= maxHp) {
-        return res.status(400).json({ message: "Monster is already at full health" });
-      }
-
-      // Deduct gold and heal monster to full HP
+      const monsterToHeal = await storage.repairMonster(userId, monsterId);
       await storage.updateUserCurrency(userId, -healingCost, 0);
-      await storage.updateMonsterStats(userId, monsterId, maxHp, userMonster.mp || userMonster.monster.baseMp || 200);
 
       res.json({
         message: "Monster healed successfully",
         goldSpent: healingCost,
-        newHp: maxHp
+        newHp: monsterToHeal.maxHp
       });
 
     } catch (error) {
@@ -395,6 +379,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       handleError(error, res, "Failed to generate opponent");
+    }
+  });
+
+  // NEW Route: Complete battle and award Rank XP
+  app.post('/api/battle/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const { winnerId } = req.body;
+      const xp_per_win = 50; // Base XP for a win
+
+      if (!winnerId) {
+        return res.status(400).json({ message: 'Winner ID is required.' });
+      }
+
+      const updatedUser = await storage.awardRankXp(winnerId, xp_per_win);
+
+      res.json({
+        message: `Awarded ${xp_per_win} XP to user ${winnerId}.`,
+        newXpTotal: updatedUser.rank_xp
+      });
+
+    } catch(error) {
+      handleError(error, res, "Failed to complete battle and award XP");
     }
   });
 

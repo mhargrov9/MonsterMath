@@ -8,7 +8,9 @@ import {
   aiTeams,
   abilities,
   monsterAbilities,
+  ranks, // NEW: Import ranks table
   type User,
+  type Rank, // NEW: Import Rank type
   type UpsertUser,
   type Monster,
   type UserMonster,
@@ -25,7 +27,7 @@ import {
 } from "@shared/schema";
 
 import { db } from "./db";
-import { eq, and, ne, sql, desc, asc } from "drizzle-orm";
+import { eq, and, ne, sql, desc, asc, lte, gt } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -98,6 +100,10 @@ export interface IStorage {
 
   // Rank Point operations
   updateUserRankPoints(userId: string, rpDelta: number): Promise<User>;
+
+  // NEW: Player Rank operations
+  awardRankXp(userId: string, xp: number): Promise<User>;
+  getUserRank(userId: string): Promise<{ currentRank: Rank | null, nextRank: Rank | null, userXp: number }>;
 
   // AI Trainer operations
   getAllAiTrainers(): Promise<AiTeam[]>;
@@ -448,12 +454,55 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  // NEW: Award Rank XP to a user
+  async awardRankXp(userId: string, xp: number): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ rank_xp: sql`${users.rank_xp} + ${xp}` })
+      .where(eq(users.id, userId))
+      .returning();
+    if (!updated) throw new Error("User not found");
+    return updated;
+  }
+
+  // NEW: Get a user's current rank details
+  async getUserRank(userId: string): Promise<{ currentRank: Rank | null, nextRank: Rank | null, userXp: number }> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const userXp = user.rank_xp;
+
+    // Get the highest rank the user has achieved
+    const [currentRank] = await db
+      .select()
+      .from(ranks)
+      .where(lte(ranks.xp_required, userXp))
+      .orderBy(desc(ranks.xp_required))
+      .limit(1);
+
+    // Get the next rank the user can achieve
+    const [nextRank] = await db
+      .select()
+      .from(ranks)
+      .where(gt(ranks.xp_required, userXp))
+      .orderBy(asc(ranks.xp_required))
+      .limit(1);
+
+    return {
+      currentRank: currentRank || null,
+      nextRank: nextRank || null,
+      userXp: userXp,
+    };
+  }
+
   async getAllAiTrainers(): Promise<AiTeam[]> {
-    return await db.select().from(aiTeams).where(eq(aiTeams.teamType, 'trainer')).orderBy(asc(aiTeams.name));
+    // This had a bug, referencing a column that doesn't exist. Removing the where clause.
+    return await db.select().from(aiTeams).orderBy(asc(aiTeams.name));
   }
 
   async createAiTrainer(trainerData: InsertAiTeam): Promise<AiTeam> {
-    const [trainer] = await db.insert(aiTeams).values({ ...trainerData, teamType: 'trainer' }).returning();
+    // This had a bug, referencing a column that doesn't exist. Removing it from insert.
+    const [trainer] = await db.insert(aiTeams).values({ ...trainerData }).returning();
     return trainer;
   }
 }

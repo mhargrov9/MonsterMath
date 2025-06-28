@@ -45,12 +45,22 @@ export const users = pgTable("users", {
   battleTokensLastRefresh: timestamp("battle_tokens_last_refresh").defaultNow().notNull(),
   battleSlots: integer("battle_slots").default(2).notNull(),
   rankPoints: integer("rank_points").default(0).notNull(),
+  rank_xp: integer("rank_xp").default(0).notNull(), // NEW: For player ranking system
   storyProgress: varchar("story_progress").default("Node_Start_01"),
   player_tier: integer("player_tier").default(1).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   subscriptionIntent: varchar("subscription_intent"),
   notificationEmail: varchar("notification_email"),
+});
+
+// NEW: Ranks table for player progression
+export const ranks = pgTable("ranks", {
+  id: serial("id").primaryKey(),
+  tier_name: varchar("tier_name").notNull(),
+  sub_tier: integer("sub_tier").notNull(),
+  xp_required: integer("xp_required").notNull(),
+  icon_url: varchar("icon_url"),
 });
 
 // Monsters table
@@ -99,11 +109,9 @@ export const abilities = pgTable("abilities", {
   // Group 3: Passive Ability Logic
   activation_scope: varchar("activation_scope"),
   activation_trigger: varchar("activation_trigger"),
-
-  // NEW: Dynamic Trigger Conditions for Passives
-  trigger_condition_type: varchar("trigger_condition_type"), // e.g., 'HP_PERCENT', 'MP_PERCENT'
-  trigger_condition_operator: varchar("trigger_condition_operator"), // e.g., 'LESS_THAN_OR_EQUAL'
-  trigger_condition_value: integer("trigger_condition_value"), // e.g., 50 (for 50%)
+  trigger_condition_type: varchar("trigger_condition_type"),
+  trigger_condition_operator: varchar("trigger_condition_operator"),
+  trigger_condition_value: integer("trigger_condition_value"),
 
   // Group 4: Status Effects
   status_effect_applies: varchar("status_effect_applies"),
@@ -117,9 +125,7 @@ export const abilities = pgTable("abilities", {
   priority: integer("priority").default(0).notNull(),
   crit_chance_modifier: decimal("crit_chance_modifier", { precision: 4, scale: 2 }).default('0').notNull(),
   lifesteal_percent: decimal("lifesteal_percent", { precision: 4, scale: 2 }).default('0').notNull(),
-  target_stat_modifier: varchar("target_stat_modifier"),
-  stat_modifier_value: integer("stat_modifier_value"),
-  stat_modifier_duration: integer("stat_modifier_duration"),
+  stat_modifiers: jsonb("stat_modifiers"), // CORRECTED: Aligns with brief for buff/debuff system
   min_hits: integer("min_hits").default(1).notNull(),
   max_hits: integer("max_hits").default(1).notNull(),
 
@@ -169,7 +175,7 @@ export const questions = pgTable("questions", {
 
 export const battles = pgTable("battles", {
   id: serial("id").primaryKey(),
-  attackerId: varchar("attacker_id").references(() => users.id).notNull(),
+  attackerId: varchar("attacker_id").references(() => users.id).notNULL(),
   defenderId: varchar("defender_id").references(() => users.id),
   attackerMonsterId: integer("attacker_monster_id").references(() => userMonsters.id).notNull(),
   defenderMonsterId: integer("defender_monster_id").references(() => userMonsters.id).notNull(),
@@ -203,6 +209,7 @@ export const aiTeams = pgTable("ai_teams", {
 
 // Schemas for validation
 export const upsertUserSchema = createInsertSchema(users);
+export const insertRankSchema = createInsertSchema(ranks).omit({ id: true });
 export const insertMonsterSchema = createInsertSchema(monsters).omit({ id: true });
 export const insertUserMonsterSchema = createInsertSchema(userMonsters).omit({ id: true, acquiredAt: true });
 export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
@@ -216,6 +223,7 @@ export const insertAiTeamSchema = createInsertSchema(aiTeams).omit({ id: true })
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type Rank = typeof ranks.$inferSelect;
 export type Monster = typeof monsters.$inferSelect;
 export type UserMonster = typeof userMonsters.$inferSelect;
 export type Question = typeof questions.$inferSelect;
@@ -230,3 +238,4 @@ export type AiTeam = typeof aiTeams.$inferSelect;
 export type InsertAiTeam = z.infer<typeof insertAiTeamSchema>;
 export type Ability = typeof abilities.$inferSelect;
 export type MonsterAbility = typeof monsterAbilities.$inferSelect;
+export type InsertRank = z.infer<typeof insertRankSchema>;
