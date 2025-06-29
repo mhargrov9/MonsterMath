@@ -4,10 +4,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 
-// Newly separated engine logic
-import { processBattleAction } from "./battleEngine"; 
-
-// Standardized error handler
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
   res.status(500).json({
@@ -17,7 +13,7 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // All API routes are protected
+  // --- AUTH & USER ---
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -25,13 +21,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch user"); }
   });
 
-  app.get("/api/user/monsters", isAuthenticated, async (req: any, res) => {
+  // --- MONSTER LAB ---
+  app.get("/api/monster-lab-data", isAuthenticated, async (req: any, res) => {
     try {
-      const userMonsters = await storage.getUserMonsters(req.user.claims.sub);
-      res.json(userMonsters);
-    } catch (error) { handleError(error, res, "Failed to fetch user monsters"); }
+      const data = await storage.getMonsterLabData(req.user.claims.sub);
+      res.json(data);
+    } catch (error) {
+      handleError(error, res, "Failed to fetch Monster Lab data");
+    }
   });
 
+  // This specific route is left for other potential uses, but MonsterLab now uses the combined endpoint
   app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req: any, res) => {
     try {
       const monsterId = parseInt(req.params.monsterId);
@@ -41,6 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch monster abilities"); }
   });
 
+  // --- BATTLE ARENA ---
   app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
     try {
         const slots = await storage.getUserBattleSlots(req.user.claims.sub);
@@ -50,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
-      const aiOpponent = await storage.generateAiOpponent(0); // TPL is not used yet
+      const aiOpponent = await storage.generateAiOpponent(0);
       res.json(aiOpponent);
     } catch (error) { handleError(error, res, "Failed to generate opponent"); }
   });
@@ -62,23 +63,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to spend battle token"); }
   });
 
-  // --- BATTLE ACTION ENDPOINT ---
-  app.post("/api/battle/action", isAuthenticated, async (req: any, res) => {
-    try {
-      const { battleState, action } = req.body;
-      if (!battleState || !action) {
-        return res.status(400).json({ message: "Missing battle state or action." });
-      }
-
-      // The server processes the entire turn based on one player action
-      const { nextState, log } = await processBattleAction(battleState, action);
-
-      res.json({ success: true, nextState, log });
-
-    } catch (error) {
-      handleError(error, res, "Failed to process battle action");
-    }
-  });
+  // Note: The server-side battle engine has been removed. Logic is client-side for now.
+  // We will re-implement the /api/battle/action endpoint when we migrate logic to the server in Phase 3.
 
   const httpServer = createServer(app);
   return httpServer;
