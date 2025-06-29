@@ -8,49 +8,21 @@ import BattleArena from "@/components/BattleArena";
 import CurrencyDisplay from "@/components/CurrencyDisplay";
 import PlayerInventory from "@/components/PlayerInventory";
 import StoryManager from "@/components/StoryManager";
-import { GameTab, User } from "@/types/game";
+import { User } from "@/types/game";
 import { Button } from "@/components/ui/button";
 
+type GameTab = "lab" | "battle" | "story";
+
 export default function Home() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<GameTab>("lab");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userData } = useQuery<User>({
+  const { data: userData } = useQuery({
     queryKey: ["/api/auth/user"],
     enabled: !!user,
-    queryFn: () => apiRequest('/api/auth/user', { method: 'GET' }).then(res => res.json())
-  });
-
-  const addRepairKitMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("/api/inventory/add", {
-        method: "POST",
-        data: {
-          itemName: "Repair Kit",
-          itemDescription: "Repairs a shattered monster back to full health. Essential for monster trainers!",
-          quantity: 1,
-          itemType: "consumable",
-          rarity: "rare",
-          iconClass: "fas fa-wrench"
-        }
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
-      toast({
-        title: "Item Found!",
-        description: "You found a Repair Kit! Check your backpack.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to add item to inventory.",
-        variant: "destructive",
-      });
-    },
+    queryFn: () => apiRequest('/api/auth/user', { method: 'GET' }).then(res => res.json() as Promise<User>)
   });
 
   const handleLogout = () => {
@@ -59,6 +31,15 @@ export default function Home() {
 
   const handleRetreat = () => {
     setActiveTab("lab"); 
+  };
+
+  // Helper function to determine button classes, making logic clearer for the compiler.
+  const getButtonClass = (tabName: GameTab) => {
+    const baseClass = "flex-1 px-6 py-4 rounded-xl font-bold text-lg transition-all";
+    if (activeTab === tabName) {
+      return `${baseClass} bg-electric-blue text-white animate-pulse-glow`;
+    }
+    return `${baseClass} bg-white/20 text-white hover:bg-white/30`;
   };
 
   return (
@@ -94,9 +75,9 @@ export default function Home() {
         {activeTab !== "battle" && (
             <div className="mb-6 sm:mb-8">
               <div className="flex space-x-4 bg-white/10 p-2 rounded-2xl backdrop-blur-sm">
-                <Button onClick={() => setActiveTab("lab")} className={`flex-1 px-6 py-4 rounded-xl font-bold text-lg transition-all ${activeTab === "lab" ? "bg-electric-blue text-white animate-pulse-glow" : "bg-white/20 text-white hover:bg-white/30"}`} >MONSTER LAB</Button>
-                <Button onClick={() => setActiveTab("battle")} className={`flex-1 px-6 py-4 rounded-xl font-bold text-lg transition-all ${activeTab === "battle" ? "bg-electric-blue text-white animate-pulse-glow" : "bg-white/20 text-white hover:bg-white/30"}`} >BATTLE ARENA</Button>
-                <Button onClick={() => setActiveTab("story")} className={`flex-1 px-6 py-4 rounded-xl font-bold text-lg transition-all ${activeTab === "story" ? "bg-electric-blue text-white animate-pulse-glow" : "bg-white/20 text-white hover:bg-white/30"}`} >STORY</Button>
+                <Button onClick={() => setActiveTab("lab")} className={getButtonClass("lab")} >MONSTER LAB</Button>
+                <Button onClick={() => setActiveTab("battle")} className={getButtonClass("battle")} >BATTLE ARENA</Button>
+                <Button onClick={() => setActiveTab("story")} className={getButtonClass("story")} >STORY</Button>
               </div>
             </div>
         )}

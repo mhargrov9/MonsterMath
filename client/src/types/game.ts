@@ -26,7 +26,7 @@ export interface Monster {
   baseMp: number;
   goldCost: number;
   abilities?: Ability[];
-  level?: number; // Added for displaying level on non-user monsters
+  level?: number;
 }
 
 export interface UserMonster {
@@ -113,3 +113,4 @@ export type BattleActionResponse = {
 
 // --- Misc App-Specific Types ---
 export type GameTab = "lab" | "battle" | "story";
+export type Subject = "math" | "spelling" | "mixed";

@@ -1,14 +1,18 @@
-import { UserMonster, Monster, Ability, ActiveEffect } from '@/types/game';
+import { UserMonster, Monster, Ability, ActiveEffect, PlayerCombatMonster } from '@/types/game';
 
-export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed', activeEffects: ActiveEffect[]): number => {
+export const getModifiedStat = (monster: UserMonster | PlayerCombatMonster | Monster, statName: 'power' | 'defense' | 'speed', activeEffects: ActiveEffect[]): number => {
     const monsterId = monster.id;
     let baseStat: number;
 
-    if ('monster' in monster) { // UserMonster
+    if ('monster' in monster) { // PlayerCombatMonster
         baseStat = monster[statName];
-    } else { // AI Monster or Base Monster
-        const key = `base${statName.charAt(0).toUpperCase() + statName.slice(1)}` as keyof Monster;
-        baseStat = (monster as any)[key] ?? 0;
+    } else if ('userId' in monster) { // UserMonster (base type, less common here but safe to handle)
+        baseStat = monster[statName];
+    }
+    else { // AI Monster or Base Monster
+        if (statName === 'power') baseStat = monster.basePower;
+        else if (statName === 'defense') baseStat = monster.baseDefense;
+        else baseStat = monster.baseSpeed;
     }
 
     if(typeof baseStat !== 'number') baseStat = 0;
@@ -22,7 +26,7 @@ export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power
     return Math.round(finalStat);
 };
 
-export const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability, activeEffects: ActiveEffect[]): number => {
+export const calculateDamage = (attacker: UserMonster | PlayerCombatMonster | Monster, defender: UserMonster | PlayerCombatMonster | Monster, ability: Ability, activeEffects: ActiveEffect[]): number => {
     if (!ability) return 0;
     const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
     const attackingPower = getModifiedStat(attacker, scalingStatName, activeEffects);

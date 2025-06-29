@@ -46,7 +46,7 @@ const AiTrainerLibrary: React.FC = () => {
               <div className="mt-4">
                 <h4 className="font-semibold mb-2">Team Composition:</h4>
                 <div className="flex gap-4">
-                  {trainer.composition.map((comp, index) => {
+                  {trainer.composition.map((comp: { monsterId: number; level: number }, index: number) => {
                     const monster = getMonsterById(comp.monsterId);
                     if (!monster) return null;
                     const monsterForCard: Monster = {...monster, level: comp.level};
