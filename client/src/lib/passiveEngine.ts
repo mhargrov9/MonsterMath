@@ -1,15 +1,62 @@
-import { UserMonster, Monster, Ability, ActiveEffect, StatModifier } from '@/types/game';
+// --- Self-Contained, Correct Type Definitions ---
+interface StatModifier {
+    stat: 'power' | 'defense' | 'speed';
+    type: 'FLAT' | 'PERCENTAGE';
+    value: number;
+    duration?: number;
+}
+
+interface Ability {
+    id: number;
+    name: string;
+    ability_type: 'ACTIVE' | 'PASSIVE';
+    activation_trigger?: 'ON_HP_THRESHOLD' | 'END_OF_TURN' | 'ON_ABILITY_USE' | 'ON_BATTLE_START' | 'ON_BEING_HIT' | null;
+    activation_scope?: 'SELF' | 'ACTIVE' | 'BENCH' | null;
+    trigger_condition_value?: number | null;
+    status_effect_value?: string | null;
+    stat_modifiers?: StatModifier[] | null;
+}
+
+interface ActiveEffect {
+    id: string;
+    sourceAbilityId: number;
+    targetMonsterId: number | string;
+    modifier: StatModifier;
+    duration: number;
+}
+
+interface BaseMonster {
+  id: number | string;
+  name: string;
+  abilities?: Ability[] | null;
+  maxHp?: number | null;
+}
+
+interface BaseUserMonster {
+  id: number;
+  maxHp?: number | null;
+}
+
+type PlayerCombatMonster = BaseUserMonster & { 
+    monster: BaseMonster; 
+    hp: number | null;
+};
+type AiCombatMonster = BaseMonster & { 
+    abilities: Ability[];
+    hp: number;
+};
+type CombatMonster = PlayerCombatMonster | AiCombatMonster;
 
 type TeamState = {
-    playerTeam: UserMonster[];
-    aiTeam: Monster[];
+    playerTeam: PlayerCombatMonster[];
+    aiTeam: AiCombatMonster[];
     activePlayerIndex: number;
     activeAiIndex: number;
 }
 
 type PassiveResult = {
-    newPlayerTeam: UserMonster[];
-    newAiTeam: Monster[];
+    newPlayerTeam: PlayerCombatMonster[];
+    newAiTeam: AiCombatMonster[];
     newEffects: ActiveEffect[];
     logEntries: string[];
 }
@@ -21,12 +68,12 @@ export function applyPassives(
     triggerer: 'player' | 'ai',
     damagedMonsterId?: number | string
 ): PassiveResult {
-    let newPlayerTeam = JSON.parse(JSON.stringify(teams.playerTeam));
-    let newAiTeam = JSON.parse(JSON.stringify(teams.aiTeam));
-    let newEffects = JSON.parse(JSON.stringify(activeEffects));
+    let newPlayerTeam: PlayerCombatMonster[] = JSON.parse(JSON.stringify(teams.playerTeam));
+    let newAiTeam: AiCombatMonster[] = JSON.parse(JSON.stringify(teams.aiTeam));
+    let newEffects: ActiveEffect[] = JSON.parse(JSON.stringify(activeEffects));
     const logEntries: string[] = [];
 
-    const allMonsters = [...newPlayerTeam, ...newAiTeam];
+    const allMonsters: CombatMonster[] = [...newPlayerTeam, ...newAiTeam];
     const triggererIsPlayer = triggerer === 'player';
 
     for (const monster of allMonsters) {
@@ -40,21 +87,23 @@ export function applyPassives(
 
             if (trigger === 'ON_HP_THRESHOLD') {
                 if (monster.id === damagedMonsterId) {
-                    const hpPercent = (monster.hp / monster.maxHp) * 100;
+                    const currentHp = monster.hp ?? 0;
+                    const maxHp = monster.maxHp ?? 1;
+                    const hpPercent = (currentHp / maxHp) * 100;
                     conditionMet = hpPercent <= (passive.trigger_condition_value || 0);
                 }
             } else if (trigger === 'END_OF_TURN') {
                 const scope = passive.activation_scope || 'SELF';
                 const isMyTurn = (isPlayerMonster && triggererIsPlayer) || (!isPlayerMonster && !triggererIsPlayer);
 
-                if (!isMyTurn) continue; // Only trigger END_OF_TURN passives on the owner's turn
+                if (!isMyTurn) continue;
 
-                if (scope === 'ACTIVE') {
+                if (scope === 'ACTIVE' || scope === 'SELF') {
                     const isActive = (isPlayerMonster && teams.activePlayerIndex === newPlayerTeam.findIndex(p => p.id === monster.id)) ||
                                      (!isPlayerMonster && teams.activeAiIndex === newAiTeam.findIndex(a => a.id === monster.id));
                     if (isActive) conditionMet = true;
                 } else if (scope === 'BENCH') {
-                    conditionMet = true; // Applies to the whole team
+                    conditionMet = true;
                 }
             }
 
@@ -64,20 +113,29 @@ export function applyPassives(
 
                 logEntries.push(`${base.name}'s ${passive.name} activates!`);
 
-                // Handle Soothing Aura specifically
                 if (passive.name === 'Soothing Aura') {
                     const activePlayerMonster = newPlayerTeam[teams.activePlayerIndex];
-                    const healAmount = Math.round(activePlayerMonster.maxHp * (parseFloat(passive.status_effect_value as any) / 100));
-                    newPlayerTeam = newPlayerTeam.map(m => m.id === activePlayerMonster.id ? { ...m, hp: Math.min(m.maxHp, m.hp + healAmount)} : m);
+                    const maxHp = activePlayerMonster.maxHp ?? 1;
+                    const healAmount = Math.round(maxHp * (parseFloat(passive.status_effect_value as any) / 100));
+
+                    newPlayerTeam = newPlayerTeam.map(m => {
+                        if (m.id === activePlayerMonster.id) {
+                            const currentHp = m.hp ?? 0;
+                            const newHp = Math.min(maxHp, currentHp + healAmount);
+                            return { ...m, hp: newHp };
+                        }
+                        return m;
+                    });
                     logEntries.push(`${base.name} heals ${activePlayerMonster.monster.name} for ${healAmount} HP!`);
                 }
 
-                // Handle stat modifier passives like Crystalize
                 if (passive.stat_modifiers) {
                     (passive.stat_modifiers as StatModifier[]).forEach(mod => {
                         newEffects.push({
                             id: `${base.id}-${passive.id}-${mod.stat}`,
-                            sourceAbilityId: passive.id, targetMonsterId: base.id, modifier: mod,
+                            sourceAbilityId: passive.id, 
+                            targetMonsterId: base.id, 
+                            modifier: mod,
                             duration: mod.duration || Infinity,
                         });
                     });

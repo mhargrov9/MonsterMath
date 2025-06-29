@@ -24,13 +24,18 @@ export default function Home() {
 
   const addRepairKitMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/inventory/add", {
-        itemName: "Repair Kit",
-        itemDescription: "Repairs a shattered monster back to full health. Essential for monster trainers!",
-        quantity: 1,
-        itemType: "consumable",
-        rarity: "rare",
-        iconClass: "fas fa-wrench"
+      // *** THIS IS THE FIX ***
+      // The HTTP method 'POST' must be inside the options object.
+      await apiRequest("/api/inventory/add", {
+        method: "POST",
+        data: {
+          itemName: "Repair Kit",
+          itemDescription: "Repairs a shattered monster back to full health. Essential for monster trainers!",
+          quantity: 1,
+          itemType: "consumable",
+          rarity: "rare",
+          iconClass: "fas fa-wrench"
+        }
       });
     },
     onSuccess: () => {
@@ -53,14 +58,12 @@ export default function Home() {
     window.location.href = "/api/logout";
   };
 
-  // NEW: Function to handle exiting a battle
   const handleRetreat = () => {
-    setActiveTab("lab"); // Return to the Monster Lab after a battle
+    setActiveTab("lab"); 
   };
 
   return (
     <div className="min-h-screen">
-      {/* Header is now conditional: It will hide when a battle starts */}
       {activeTab !== "battle" && (
         <header className="bg-gray-900/80 backdrop-blur-sm border-b-4 border-electric-blue p-3 sm:p-4 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto">
@@ -89,7 +92,6 @@ export default function Home() {
       )}
 
       <div className={activeTab !== "battle" ? "max-w-7xl mx-auto p-3 sm:p-4 lg:p-6" : "w-full h-full"}>
-        {/* Navigation Tabs are now conditional */}
         {activeTab !== "battle" && (
             <div className="mb-6 sm:mb-8">
               <div className="flex space-x-4 bg-white/10 p-2 rounded-2xl backdrop-blur-sm">

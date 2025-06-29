@@ -1,36 +1,32 @@
-export interface GameUser {
-  id: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
-  gold: number;
-  diamonds: number;
-  currentSubject?: string;
-  questionsAnswered: number;
-  correctAnswers: number;
-  currentStreak: number;
-  battleTokens: number;
+// This is the single source of truth for all client-side type definitions.
+
+// --- Base Schemas & Types---
+export interface Ability {
+  id: number;
+  name: string;
+  description: string;
+  ability_type: 'ACTIVE' | 'PASSIVE';
+  mp_cost: number | null;
+  affinity?: string | null;
+  power_multiplier?: string | null;
+  scaling_stat?: string | null;
+  healing_power?: number | null;
+  target_scope?: string | null;
+  stat_modifiers?: StatModifier[] | null;
 }
 
 export interface Monster {
-  id: number;
+  id: number | string;
   name: string;
   type: string;
   basePower: number;
   baseSpeed: number;
   baseDefense: number;
-  baseHp?: number;
-  baseMp?: number;
+  baseHp: number;
+  baseMp: number;
   goldCost: number;
-  diamondCost: number;
-  description?: string;
-  iconClass: string;
-  gradient: string;
-  abilities?: any[];
-  resistances?: any[];
-  weaknesses?: any[];
-  levelUpgrades?: any;
+  abilities?: Ability[];
+  level?: number; // For displaying level on non-user monsters
 }
 
 export interface UserMonster {
@@ -43,33 +39,69 @@ export interface UserMonster {
   defense: number;
   experience: number;
   evolutionStage: number;
-  upgradeChoices: Record<string, any>;
-  acquiredAt?: string | Date | null;
-  monster: Monster;
+  hp: number | null;
+  maxHp: number | null;
+  mp: number | null;
+  maxMp: number | null;
+}
+
+export interface User {
+    id: string;
+    email?: string | null;
+    username?: string | null;
+    gold: number;
+    diamonds: number;
+    battleSlots: number;
+    // Add other user properties as needed
 }
 
 export interface Question {
-  id: number;
-  subject: string;
-  difficulty: number;
-  questionText: string;
-  correctAnswer: string;
-  options: string[];
-  hint?: string;
-  goldReward: number;
+    id: number;
+    questionText: string;
+    correctAnswer: string;
+    options: string[];
+    goldReward: number;
+    hint: string | null;
 }
 
-export interface Battle {
+export interface FloatingText {
   id: number;
-  attackerId: string;
-  defenderId: string;
-  attackerMonsterId: number;
-  defenderMonsterId: number;
-  winnerId: string;
-  goldFee: number;
-  diamondsAwarded: number;
-  battleAt?: string;
+  text: string;
+  type: 'damage' | 'heal' | 'crit' | 'info';
+  targetId: number | string;
+  isPlayerTarget: boolean;
 }
 
+export interface ActiveEffect {
+    id: string;
+    sourceAbilityId: number;
+    targetMonsterId: number | string;
+    modifier: StatModifier;
+    duration: number;
+}
+
+export interface StatModifier {
+    stat: 'power' | 'defense' | 'speed';
+    type: 'FLAT' | 'PERCENTAGE';
+    value: number;
+    duration?: number;
+}
+
+export interface AiTrainer {
+  id: number;
+  name: string;
+  archetype: string;
+  description: string;
+  minTPL: number;
+  maxTPL: number;
+  composition: { monsterId: number; level: number }[];
+}
+
+
+// --- Decorated & Combined Types ---
+export type PlayerCombatMonster = UserMonster & { monster: Monster };
+export type AiCombatMonster = Monster & { abilities: Ability[]; hp: number; mp: number; };
+
+// --- Misc App-Specific Types ---
+export type GameTab = "lab" | "battle" | "story";
 export type Subject = "math" | "spelling" | "mixed";
-export type GameTab = "learn" | "lab" | "battle" | "story";

@@ -3,18 +3,35 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import MonsterCard from './MonsterCard';
-import { Monster as BaseMonster, UserMonster as BaseUserMonster } from '@/types/game';
 import { useAuth } from '@/hooks/useAuth';
 
-const fetchApiJson = async (path: string) => {
-    const res = await fetch(path);
-    if (!res.ok) {
-        throw new Error(`Request to ${path} failed with status ${res.status}`);
-    }
-    return res.json();
-};
+// --- Self-Contained, Correct Type Definitions ---
+interface BaseMonster {
+  id: number | string;
+  name: string;
+  goldCost?: number | null;
+  abilities?: any[]; 
+  basePower?: number | null;
+  baseDefense?: number | null;
+  baseSpeed?: number | null;
+  hp?: number | null;
+  maxHp?: number | null;
+  mp?: number | null;
+  maxMp?: number | null;
+}
 
-// Define the correct shape of the UserMonster object returned by the API
+interface BaseUserMonster {
+  id: number;
+  level: number;
+  power: number;
+  speed: number;
+  defense: number;
+  hp: number | null;
+  maxHp: number | null;
+  mp: number | null;
+  maxMp: number | null;
+}
+
 type UserMonsterWithDetails = BaseUserMonster & {
     monster: BaseMonster;
 };
@@ -24,12 +41,20 @@ interface MonsterLabData {
     userMonsters: UserMonsterWithDetails[];
 }
 
+const fetchApiJson = async (path: string): Promise<MonsterLabData> => {
+    const res = await fetch(path);
+    if (!res.ok) {
+        throw new Error(`Request to ${path} failed with status ${res.status}`);
+    }
+    return res.json();
+};
+
 const MonsterLab: React.FC = () => {
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
     const { data, isLoading, isError } = useQuery<MonsterLabData>({ 
         queryKey: ['/api/monster-lab-data'], 
-        queryFn: fetchApiJson,
+        queryFn: () => fetchApiJson('/api/monster-lab-data'),
         enabled: isAuthenticated,
     });
 
@@ -64,7 +89,7 @@ const MonsterLab: React.FC = () => {
                                 <div key={`avail-${monster.id}`} className="flex flex-col items-center gap-3 w-full max-w-sm">
                                     <MonsterCard monster={monster} size="medium" isToggleable={true} />
                                     <Button disabled className="shadow-lg w-full max-w-xs touch-manipulation min-h-[48px]">
-                                        {`Buy for ${monster.goldCost}g`}
+                                        {`Buy for ${monster.goldCost || 0}g`}
                                     </Button>
                                 </div>
                             ))

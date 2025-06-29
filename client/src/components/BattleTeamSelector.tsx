@@ -7,61 +7,33 @@ import InterestTest from "./InterestTest";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Users, Zap } from "lucide-react";
-import { UserMonster, Ability } from "@/types/game";
+import { PlayerCombatMonster } from "@/types/game";
 
 interface BattleTeamSelectorProps {
-  onBattleStart: (selectedMonsters: UserMonster[], aiOpponent: any) => void;
+  onBattleStart: (selectedMonsters: PlayerCombatMonster[], aiOpponent: any) => void;
 }
 
 export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
-  const [selectedMonsters, setSelectedMonsters] = useState<UserMonster[]>([]);
-  const [monstersWithAbilities, setMonstersWithAbilities] = useState<UserMonster[]>([]);
+  const [selectedMonsters, setSelectedMonsters] = useState<PlayerCombatMonster[]>([]);
   const [isStartingBattle, setIsStartingBattle] = useState(false);
   const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userMonsters, isLoading: loadingMonsters } = useQuery<UserMonster[]>({
+  const { data: userMonsters, isLoading: loadingMonsters } = useQuery<PlayerCombatMonster[]>({
     queryKey: ["/api/user/monsters"],
+    queryFn: () => apiRequest('/api/user/monsters', { method: 'GET' }).then(res => res.json())
   });
-
-  useEffect(() => {
-    if (!userMonsters) return;
-    let isMounted = true;
-    const fetchAbilitiesForAll = async () => {
-      const abilitiesPromises = userMonsters.map(um =>
-        fetch(`/api/monster-abilities/${um.monster.id}`)
-          .then(res => res.ok ? res.json() : [])
-          .then(abilities => ({ monsterId: um.monster.id, abilities }))
-          .catch(() => ({ monsterId: um.monster.id, abilities: [] }))
-      );
-      const results = await Promise.all(abilitiesPromises);
-      const abilitiesMap = results.reduce((acc, { monsterId, abilities }) => {
-        acc[monsterId] = abilities;
-        return acc;
-      }, {} as Record<number, Ability[]>);
-
-      if (isMounted) {
-        const populatedMonsters = userMonsters.map(um => ({
-          ...um,
-          monster: { ...um.monster, abilities: abilitiesMap[um.monster.id] || [] },
-        }));
-        setMonstersWithAbilities(populatedMonsters);
-      }
-    };
-    fetchAbilitiesForAll();
-    return () => { isMounted = false; };
-  }, [userMonsters]);
 
   const { data: battleSlotsData } = useQuery<{ battleSlots: number }>({
     queryKey: ["/api/user/battle-slots"],
   });
 
-  const battleSlots = battleSlotsData?.battleSlots || 7;
-  const availableMonsters = monstersWithAbilities.filter((m) => m.hp > 0);
+  const battleSlots = battleSlotsData?.battleSlots || 3;
+  const availableMonsters = userMonsters?.filter((m) => (m.hp ?? 0) > 0) || [];
   const currentTPL = selectedMonsters.reduce((total, m) => total + m.level, 0);
 
-  const handleMonsterSelect = (monster: UserMonster) => {
+  const handleMonsterSelect = (monster: PlayerCombatMonster) => {
     setSelectedMonsters(prev => {
       const isSelected = prev.some(m => m.id === monster.id);
       if (isSelected) {
@@ -91,7 +63,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
 
       onBattleStart(selectedMonsters, opponentData);
 
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof Error && error.message.includes("NO_BATTLE_TOKENS")) {
         setShowSubscriptionGate(true);
       } else {
@@ -101,50 +73,30 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
     }
   };
 
-  if (loadingMonsters) return <div className="text-center p-8">Loading your monsters...</div>;
+  if (loadingMonsters) return <div className="text-center p-8 text-white">Loading your monsters...</div>;
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Assemble Your Battle Team</h2>
-              <p className="text-muted-foreground">Select up to {battleSlots} monsters. Your Team Power Level (TPL) determines your opponent.</p>
+        {/* Simplified UI */}
+        <Button onClick={handleStartBattle} disabled={isStartingBattle || selectedMonsters.length === 0}>
+            {isStartingBattle ? "Finding Opponent..." : "Start Battle!"}
+        </Button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-4">
+        {availableMonsters.map((userMonster) => {
+            const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
+            return (
+            <div key={userMonster.id} className={`transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : ''}`}>
+                <MonsterCard 
+                monster={userMonster.monster} 
+                userMonster={userMonster} 
+                size="small"
+                onCardClick={() => handleMonsterSelect(userMonster)}
+                isToggleable={false}
+                />
             </div>
-            <div className="flex flex-col gap-2 min-w-[200px] text-right">
-                <div className="flex items-center justify-end gap-2"><Users className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Slots: {selectedMonsters.length}/{battleSlots}</span></div>
-                <div className="flex items-center justify-end gap-2"><Zap className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">TPL: {currentTPL}</span></div>
-                {selectedMonsters.length > 0 && (
-                  <Button onClick={handleStartBattle} disabled={isStartingBattle} className="bg-red-600 hover:bg-red-700 w-full mt-2">
-                    {isStartingBattle ? "Finding Opponent..." : "Start Battle!"}
-                  </Button>
-                )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-6">
-          <h3 className="text-lg font-bold mb-4">Available Monsters For Battle</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {availableMonsters.map((userMonster) => {
-              const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
-              return (
-                <div key={userMonster.id} className={`transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : ''}`}>
-                  <MonsterCard 
-                    monster={userMonster.monster} 
-                    userMonster={userMonster} 
-                    size="small"
-                    onCardClick={() => handleMonsterSelect(userMonster)}
-                    isToggleable={false}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+            );
+        })}
+        </div>
       {showSubscriptionGate && <InterestTest onComplete={() => setShowSubscriptionGate(false)} />}
     </div>
   );

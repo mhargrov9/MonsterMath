@@ -4,50 +4,52 @@ import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
+// --- Self-Contained, Correct Type Definitions ---
+// These types accurately reflect the data structures and are defined locally
+// to avoid conflicts with incorrect shared types.
+
 interface Ability {
   id: number;
   name: string;
   description: string;
   ability_type: 'ACTIVE' | 'PASSIVE';
-  mp_cost: number;
-  affinity?: string;
+  mp_cost: number | null;
+  affinity?: string | null;
 }
 
-interface Monster {
+interface BaseMonster {
   id: number | string;
   name: string;
-  level?: number;
-  hp: number;
-  maxHp: number;
-  mp: number;
-  maxMp: number;
-  power?: number;
-  defense?: number;
-  speed?: number;
-  resistances?: string[];
-  weaknesses?: string[];
-  basePower?: number;
-  baseDefense?: number;
-  baseSpeed?: number;
   abilities?: Ability[];
+  basePower?: number | null;
+  baseDefense?: number | null;
+  baseSpeed?: number | null;
+  // These are on the AI Monster object at runtime
+  hp?: number | null;
+  maxHp?: number | null;
+  mp?: number | null;
+  maxMp?: number | null;
+  goldCost?: number | null;
 }
 
-interface UserMonster {
+interface BaseUserMonster {
   id: number;
   level: number;
   power: number;
   speed: number;
   defense: number;
-  hp: number;
-  maxHp: number;
-  mp: number;
-  maxMp: number;
-  monster: Monster;
+  hp: number | null;
+  maxHp: number | null;
+  mp: number | null;
+  maxMp: number | null;
 }
 
+// This is the decorated UserMonster type that includes the nested base monster data
+type UserMonsterWithDetails = BaseUserMonster & { monster: BaseMonster };
+
 interface MonsterCardProps {
-  monster: Monster;
-  userMonster?: UserMonster;
+  monster: BaseMonster;
+  userMonster?: UserMonsterWithDetails | BaseUserMonster;
   size?: 'tiny' | 'small' | 'medium' | 'large';
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
@@ -56,7 +58,7 @@ interface MonsterCardProps {
   isTargetable?: boolean;
 }
 
-const getAffinityIcon = (affinity: string | undefined) => {
+const getAffinityIcon = (affinity: string | null | undefined) => {
   if (!affinity) return <Sword className="w-3 h-3 mr-1" />;
   switch (affinity.toLowerCase()) {
     case 'fire': return <Flame className="w-3 h-3 mr-1 text-red-400" />;
@@ -85,18 +87,21 @@ export default function MonsterCard({
     setIsExpanded(size === 'large');
   }, [size]);
 
-  const baseMonster = userMonster ? userMonster.monster : monsterProp;
+  const baseMonster = monsterProp;
   const abilities = baseMonster.abilities || [];
 
-  const level = userMonster?.level ?? baseMonster.level ?? 1;
+  const level = userMonster?.level ?? 1;
   const power = userMonster?.power ?? baseMonster.basePower ?? 0;
   const defense = userMonster?.defense ?? baseMonster.baseDefense ?? 0;
   const speed = userMonster?.speed ?? baseMonster.baseSpeed ?? 0;
 
-  const currentHp = userMonster?.hp ?? monsterProp.hp;
-  const maxHp = userMonster?.maxHp ?? 1;
-  const displayMp = userMonster?.mp ?? monsterProp.mp;
-  const maxMp = userMonster?.maxMp ?? 1;
+  const currentHp = userMonster?.hp ?? baseMonster.hp ?? 0;
+  const maxHp = userMonster?.maxHp ?? baseMonster.maxHp ?? 1;
+  const displayMp = userMonster?.mp ?? baseMonster.mp ?? 0;
+  const maxMp = userMonster?.maxMp ?? baseMonster.maxMp ?? 1;
+
+  const hpPercentage = maxHp > 0 ? ((currentHp ?? 0) / maxHp) * 100 : 0;
+  const mpPercentage = maxMp > 0 ? ((displayMp ?? 0) / maxMp) * 100 : 0;
 
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
@@ -121,13 +126,13 @@ export default function MonsterCard({
         </div>
         <div className="space-y-1">
             <div className="bg-gray-700 rounded-full h-2.5">
-                <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${(currentHp / maxHp) * 100}%` }}></div>
+                <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${hpPercentage}%` }}></div>
             </div>
-            <div className="text-xs text-right">HP: {currentHp} / {maxHp}</div>
+            <div className="text-xs text-right">HP: {(currentHp ?? 0)} / {maxHp}</div>
             <div className="bg-gray-700 rounded-full h-2.5">
-                <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${(displayMp / maxMp) * 100}%` }}></div>
+                <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${mpPercentage}%` }}></div>
             </div>
-            <div className="text-xs text-right">MP: {displayMp} / {maxMp}</div>
+            <div className="text-xs text-right">MP: {(displayMp ?? 0)} / {maxMp}</div>
         </div>
         {size !== 'tiny' &&
             <div className="grid grid-cols-3 gap-1 text-center text-xs">
@@ -142,7 +147,7 @@ export default function MonsterCard({
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
                 {abilities.length === 0 ? <p className="text-xs text-gray-400 italic">No abilities to display.</p> : 
                   abilities.map(ability => {
-                    const canAfford = displayMp >= (ability.mp_cost || 0);
+                    const canAfford = (displayMp ?? 0) >= (ability.mp_cost || 0);
                     const isClickable = onAbilityClick && ability.ability_type === 'ACTIVE' && isPlayerTurn;
                     const effectiveClass = isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : onAbilityClick ? 'opacity-50 cursor-not-allowed' : '';
                     return (
@@ -156,7 +161,7 @@ export default function MonsterCard({
                             <div className="flex items-center gap-2 font-bold">
                                 {getAffinityIcon(ability.affinity)}
                                 <span>{ability.name}</span>
-                                <span className="ml-auto text-blue-400">{ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}</span>
+                                <span className="ml-auto text-blue-400">{ability.mp_cost && ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}</span>
                             </div>
                             <p className="text-gray-400 text-[10px] leading-tight pl-6">{ability.description}</p>
                         </div>

@@ -2,15 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useBattleState } from '@/hooks/useBattleState';
-import { UserMonster, Monster } from '@/types/game';
+import { UserMonster, Monster, PlayerCombatMonster, AiCombatMonster } from '@/types/game';
 
 interface BattleInit {
-  playerTeam: UserMonster[];
-  aiTeam: Monster[];
+  playerTeam: PlayerCombatMonster[];
+  aiTeam: AiCombatMonster[];
 }
 
-// This is a new sub-component that will be rendered once the battle starts.
-// This allows us to conditionally call the useBattleState hook, which is a requirement of React.
 const CombatSession: React.FC<{
   initialState: BattleInit;
   onRetreat: () => void;
@@ -27,7 +25,7 @@ const CombatSession: React.FC<{
   }, [state.battleLog]);
 
   if (!state.playerTeam[state.activePlayerIndex] || !state.aiTeam[state.activeAiIndex]) {
-    return <div className="text-center p-8">Loading Battle...</div>;
+    return <div className="text-center p-8 text-white">Loading Battle...</div>;
   }
 
   return (
@@ -45,20 +43,18 @@ const CombatSession: React.FC<{
       onSwapMonster={actions.handleSwapMonster}
       onRetreat={onRetreat}
       onPlayAgain={onPlayAgain}
-      floatingTexts={[]} // Note: Floating text logic will need to be part of useBattleState later
-      targetingMode={null} // Note: Targeting logic will need to be part of useBattleState later
-      onTargetSelect={() => {}} // Placeholder for now
+      floatingTexts={[]}
+      targetingMode={null}
+      onTargetSelect={() => {}}
     />
   );
 };
 
-// This is the main controller component.
 export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
   const [battleMode, setBattleMode] = useState<'team-select' | 'combat'>('team-select');
   const [battleInit, setBattleInit] = useState<BattleInit | null>(null);
 
-  const handleBattleStart = (playerTeam: UserMonster[], aiOpponent: any) => {
-    // We are preserving the full monster object from the server now
+  const handleBattleStart = (playerTeam: PlayerCombatMonster[], aiOpponent: any) => {
     setBattleInit({
       playerTeam: playerTeam,
       aiTeam: aiOpponent.scaledMonsters,
@@ -79,5 +75,5 @@ export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
     return <CombatSession initialState={battleInit} onRetreat={onRetreat} onPlayAgain={handlePlayAgain} />;
   }
 
-  return null; // Should not be reached
+  return null;
 }

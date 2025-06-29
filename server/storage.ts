@@ -27,7 +27,7 @@ import {
 } from "../shared/schema";
 
 import { db } from "./db";
-import { eq, and, ne, sql, desc, asc, lte, gt } from "drizzle-orm";
+import { eq, and, ne, sql, desc, asc, lte, gt, notInArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -44,6 +44,10 @@ export interface IStorage {
 
   // New combined data fetcher
   getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }>;
+
+  // Learning System operations
+  getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null>;
+  saveQuestionResult(userId: string, questionId: number, isCorrect: boolean, goldReward: number): Promise<User>;
 
   // Other operations...
   generateAiOpponent(playerTPL: number): Promise<any>;
@@ -94,17 +98,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }> {
-    // *** THIS IS THE FIX ***
-    // We are changing from parallel to sequential execution to isolate the crash.
-    console.log("[storage] Attempting to fetch all monsters...");
-    const allMonsters = await this.getAllMonsters();
-    console.log("[storage] Successfully fetched all monsters.");
-
-    console.log("[storage] Attempting to fetch user monsters...");
-    const userMonsters = await this.getUserMonsters(userId);
-    console.log("[storage] Successfully fetched user monsters.");
-
+    const [allMonsters, userMonsters] = await Promise.all([
+        this.getAllMonsters(),
+        this.getUserMonsters(userId)
+    ]);
     return { allMonsters, userMonsters };
+  }
+
+  async getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null> {
+    const user = await this.getUser(userId);
+    const answeredIds = user?.answeredQuestionIds as number[] || [];
+
+    let query = db.select().from(questions).where(
+      and(
+        eq(questions.difficulty, difficulty),
+        answeredIds.length > 0 ? notInArray(questions.id, answeredIds) : undefined
+      )
+    ).orderBy(sql`RANDOM()`).limit(1);
+
+    if (subject !== 'mixed') {
+        query = db.select().from(questions).where(
+            and(
+                eq(questions.subject, subject),
+                eq(questions.difficulty, difficulty),
+                answeredIds.length > 0 ? notInArray(questions.id, answeredIds) : undefined
+            )
+        ).orderBy(sql`RANDOM()`).limit(1);
+    }
+
+    const [question] = await query;
+    return question || null;
+  }
+
+  async saveQuestionResult(userId: string, questionId: number, isCorrect: boolean, goldReward: number): Promise<User> {
+      const user = await this.getUser(userId);
+      if (!user) throw new Error("User not found");
+
+      const answeredQuestionIds = [...(user.answeredQuestionIds as number[]), questionId];
+      let gold = user.gold;
+      let correctAnswers = user.correctAnswers;
+
+      if(isCorrect) {
+          gold += goldReward;
+          correctAnswers += 1;
+      }
+
+      const [updatedUser] = await db.update(users).set({
+          answeredQuestionIds,
+          gold,
+          correctAnswers,
+          questionsAnswered: (user.questionsAnswered || 0) + 1,
+      }).where(eq(users.id, userId)).returning();
+
+      return updatedUser;
   }
 
   async generateAiOpponent(tpl: number) {

@@ -1,10 +1,58 @@
-import { useState, useEffect } from 'react';
-import { UserMonster, Monster, Ability } from '@/types/game';
+import { useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 
-export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: Monster[]) => {
-    const [playerTeam, setPlayerTeam] = useState<UserMonster[]>(initialPlayerTeam);
-    const [aiTeam, setAiTeam] = useState<Monster[]>(initialAiTeam);
+// --- Self-Contained, Correct Type Definitions ---
+// These types are now defined locally to ensure correctness and avoid dependency issues.
+
+interface Ability {
+  id: number;
+  name: string;
+  description: string;
+  ability_type: 'ACTIVE' | 'PASSIVE';
+  mp_cost: number | null;
+  affinity?: string | null;
+}
+
+interface BaseMonster {
+  id: number | string;
+  name: string;
+  basePower?: number | null;
+  baseDefense?: number | null;
+  baseSpeed?: number | null;
+}
+
+interface BaseUserMonster {
+  id: number;
+  monsterId: number;
+  level: number;
+  power: number;
+  speed: number;
+  defense: number;
+  hp: number | null;
+  maxHp: number | null;
+  mp: number | null;
+  maxMp: number | null;
+}
+
+type PlayerCombatMonster = BaseUserMonster & { monster: BaseMonster };
+type AiCombatMonster = BaseMonster & { abilities: Ability[]; hp: number; mp: number; };
+
+type BattleState = {
+    playerTeam: PlayerCombatMonster[];
+    aiTeam: AiCombatMonster[];
+    activePlayerIndex: number;
+    activeAiIndex: number;
+};
+
+// This type defines the shape of the data we expect back from the server.
+type BattleActionResponse = {
+    nextState: BattleState;
+    log: string[];
+}
+
+export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initialAiTeam: AiCombatMonster[]) => {
+    const [playerTeam, setPlayerTeam] = useState<PlayerCombatMonster[]>(initialPlayerTeam);
+    const [aiTeam, setAiTeam] = useState<AiCombatMonster[]>(initialAiTeam);
     const [activePlayerIndex, setActivePlayerIndex] = useState(0);
     const [activeAiIndex, setActiveAiIndex] = useState(0);
     const [turn, setTurn] = useState<'player' | 'ai' | 'pre-battle'>('player');
@@ -17,29 +65,27 @@ export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: 
         if (isProcessing || battleEnded) return;
         setIsProcessing(true);
 
-        const battleState = { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
+        const battleState: BattleState = { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
 
         try {
-            const response = await apiRequest('/api/battle/action', {
+            const response: BattleActionResponse = await apiRequest('/api/battle/action', {
                 method: 'POST',
                 data: { battleState, action }
             });
 
             const { nextState, log } = response;
 
-            // Update state based on the server's response
             setPlayerTeam(nextState.playerTeam);
             setAiTeam(nextState.aiTeam);
             setActivePlayerIndex(nextState.activePlayerIndex);
             setActiveAiIndex(nextState.activeAiIndex);
             setBattleLog(prev => [...prev, ...log]);
 
-            // Check for win/loss conditions
-            if (nextState.aiTeam.every((m: Monster) => m.hp <= 0)) {
+            if (nextState.aiTeam.every((m: AiCombatMonster) => (m.hp ?? 0) <= 0)) {
                 setBattleEnded(true);
                 setWinner('player');
                 setBattleLog(prev => [...prev, '--- YOU ARE VICTORIOUS! ---']);
-            } else if (nextState.playerTeam.every((m: UserMonster) => m.hp <= 0)) {
+            } else if (nextState.playerTeam.every((m: PlayerCombatMonster) => (m.hp ?? 0) <= 0)) {
                 setBattleEnded(true);
                 setWinner('ai');
                 setBattleLog(prev => [...prev, '--- YOU HAVE BEEN DEFEATED ---']);
@@ -55,7 +101,7 @@ export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: 
 
     const handlePlayerAbility = (ability: Ability) => {
         const attacker = playerTeam[activePlayerIndex];
-        if (attacker.hp <= 0 || attacker.mp < (ability.mp_cost || 0)) {
+        if ((attacker.hp ?? 0) <= 0 || (attacker.mp ?? 0) < (ability.mp_cost || 0)) {
             return;
         }
 
@@ -80,6 +126,6 @@ export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: 
 
     return {
         state: { playerTeam, aiTeam, activePlayerIndex, activeAiIndex, turn, battleLog, battleEnded, winner, isProcessing },
-        actions: { handlePlayerAbility, handleSwapMonster, setBattleLog, setPlayerTeam, setAiTeam, setActivePlayerIndex, setActiveAiIndex, setTurn }
+        actions: { handlePlayerAbility, handleSwapMonster }
     };
 };
