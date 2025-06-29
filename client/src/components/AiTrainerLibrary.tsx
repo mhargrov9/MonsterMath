@@ -27,9 +27,7 @@ const AiTrainerLibrary: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <CardHeader>
-        <CardTitle>AI Trainer Library</CardTitle>
-      </CardHeader>
+      <CardHeader><CardTitle>AI Trainer Library</CardTitle></CardHeader>
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {trainers.map((trainer) => (
           <Card key={trainer.id} className="bg-white/10 border-white/20 text-white">
@@ -51,9 +49,10 @@ const AiTrainerLibrary: React.FC = () => {
                   {trainer.composition.map((comp, index) => {
                     const monster = getMonsterById(comp.monsterId);
                     if (!monster) return null;
+                    const monsterForCard: Monster = {...monster, level: comp.level};
                     return (
                       <div key={index} className="flex flex-col items-center">
-                        <MonsterCard monster={{...monster, level: comp.level}} size="tiny" />
+                        <MonsterCard monster={monsterForCard} size="tiny" />
                       </div>
                     );
                   })}
@@ -66,5 +65,4 @@ const AiTrainerLibrary: React.FC = () => {
     </div>
   );
 };
-
 export default AiTrainerLibrary;

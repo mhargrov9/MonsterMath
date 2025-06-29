@@ -8,24 +8,23 @@ import BattleArena from "@/components/BattleArena";
 import CurrencyDisplay from "@/components/CurrencyDisplay";
 import PlayerInventory from "@/components/PlayerInventory";
 import StoryManager from "@/components/StoryManager";
-import { GameTab } from "@/types/game";
+import { GameTab, User } from "@/types/game";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<GameTab>("lab");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userData } = useQuery({
+  const { data: userData } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     enabled: !!user,
+    queryFn: () => apiRequest('/api/auth/user', { method: 'GET' }).then(res => res.json())
   });
 
   const addRepairKitMutation = useMutation({
     mutationFn: async () => {
-      // *** THIS IS THE FIX ***
-      // The HTTP method 'POST' must be inside the options object.
       await apiRequest("/api/inventory/add", {
         method: "POST",
         data: {
@@ -72,7 +71,7 @@ export default function Home() {
                 <h1 className="text-3xl font-fredoka text-white">Monster Academy</h1>
               </div>
               <div className="flex items-center space-x-6">
-                <CurrencyDisplay user={userData as any} />
+                <CurrencyDisplay user={userData} />
                 <PlayerInventory 
                   trigger={
                     <Button variant="outline" className="text-white border-white/20 hover:bg-white/10">
@@ -102,7 +101,6 @@ export default function Home() {
             </div>
         )}
 
-        {/* Tab Content */}
         {activeTab === "lab" && <MonsterLab />}
         {activeTab === "battle" && <BattleArena onRetreat={handleRetreat} />}
         {activeTab === "story" && <StoryManager />}

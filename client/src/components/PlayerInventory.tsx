@@ -14,19 +14,19 @@ const PlayerInventory: React.FC<{ trigger: React.ReactNode }> = ({ trigger }) =>
 
     const { data: inventory } = useQuery<InventoryItem[]>({
         queryKey: ['/api/inventory'],
-        queryFn: () => apiRequest('/api/inventory').then(res => res.json())
+        queryFn: () => apiRequest('/api/inventory', { method: 'GET' }).then(res => res.json())
     });
 
     const deleteMutation = useMutation({
         mutationFn: (itemName: string) => {
-            return apiRequest(`/api/inventory/${encodeURIComponent(itemName)}`, { method: "DELETE" });
+            return apiRequest(`/api/inventory/${encodeURIComponent(itemName)}`, { method: 'DELETE' });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['/api/inventory'] });
         }
     });
 
-    const useMutation = useMutation({
+    const updateMutation = useMutation({
         mutationFn: ({ itemName, quantity }: { itemName: string, quantity: number }) => {
             return apiRequest(`/api/inventory/${encodeURIComponent(itemName)}`, {
                 method: 'PUT',

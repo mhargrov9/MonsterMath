@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useBattleState } from '@/hooks/useBattleState';
-import { UserMonster, Monster, PlayerCombatMonster, AiCombatMonster } from '@/types/game';
+import { PlayerCombatMonster, AiCombatMonster } from '@/types/game';
 
 interface BattleInit {
   playerTeam: PlayerCombatMonster[];

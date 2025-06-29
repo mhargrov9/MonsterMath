@@ -1,41 +1,11 @@
 import { useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
-
-// --- Self-Contained, Correct Type Definitions ---
-// These types are now defined locally to ensure correctness and avoid dependency issues.
-
-interface Ability {
-  id: number;
-  name: string;
-  description: string;
-  ability_type: 'ACTIVE' | 'PASSIVE';
-  mp_cost: number | null;
-  affinity?: string | null;
-}
-
-interface BaseMonster {
-  id: number | string;
-  name: string;
-  basePower?: number | null;
-  baseDefense?: number | null;
-  baseSpeed?: number | null;
-}
-
-interface BaseUserMonster {
-  id: number;
-  monsterId: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  hp: number | null;
-  maxHp: number | null;
-  mp: number | null;
-  maxMp: number | null;
-}
-
-type PlayerCombatMonster = BaseUserMonster & { monster: BaseMonster };
-type AiCombatMonster = BaseMonster & { abilities: Ability[]; hp: number; mp: number; };
+import { 
+    Ability, 
+    PlayerCombatMonster, 
+    AiCombatMonster,
+    BattleActionResponse
+} from '@/types/game';
 
 type BattleState = {
     playerTeam: PlayerCombatMonster[];
@@ -43,12 +13,6 @@ type BattleState = {
     activePlayerIndex: number;
     activeAiIndex: number;
 };
-
-// This type defines the shape of the data we expect back from the server.
-type BattleActionResponse = {
-    nextState: BattleState;
-    log: string[];
-}
 
 export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initialAiTeam: AiCombatMonster[]) => {
     const [playerTeam, setPlayerTeam] = useState<PlayerCombatMonster[]>(initialPlayerTeam);
@@ -68,10 +32,11 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
         const battleState: BattleState = { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
 
         try {
-            const response: BattleActionResponse = await apiRequest('/api/battle/action', {
+            const res = await apiRequest('/api/battle/action', {
                 method: 'POST',
                 data: { battleState, action }
             });
+            const response: BattleActionResponse = await res.json();
 
             const { nextState, log } = response;
 
@@ -81,11 +46,11 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
             setActiveAiIndex(nextState.activeAiIndex);
             setBattleLog(prev => [...prev, ...log]);
 
-            if (nextState.aiTeam.every((m: AiCombatMonster) => (m.hp ?? 0) <= 0)) {
+            if (nextState.aiTeam.every((m) => (m.hp ?? 0) <= 0)) {
                 setBattleEnded(true);
                 setWinner('player');
                 setBattleLog(prev => [...prev, '--- YOU ARE VICTORIOUS! ---']);
-            } else if (nextState.playerTeam.every((m: PlayerCombatMonster) => (m.hp ?? 0) <= 0)) {
+            } else if (nextState.playerTeam.every((m) => (m.hp ?? 0) <= 0)) {
                 setBattleEnded(true);
                 setWinner('ai');
                 setBattleLog(prev => [...prev, '--- YOU HAVE BEEN DEFEATED ---']);

@@ -26,7 +26,7 @@ export interface Monster {
   baseMp: number;
   goldCost: number;
   abilities?: Ability[];
-  level?: number; // For displaying level on non-user monsters
+  level?: number; // Added for displaying level on non-user monsters
 }
 
 export interface UserMonster {
@@ -52,7 +52,6 @@ export interface User {
     gold: number;
     diamonds: number;
     battleSlots: number;
-    // Add other user properties as needed
 }
 
 export interface Question {
@@ -97,11 +96,20 @@ export interface AiTrainer {
   composition: { monsterId: number; level: number }[];
 }
 
-
 // --- Decorated & Combined Types ---
 export type PlayerCombatMonster = UserMonster & { monster: Monster };
 export type AiCombatMonster = Monster & { abilities: Ability[]; hp: number; mp: number; };
 
+// --- API Response Types ---
+export type BattleActionResponse = {
+    nextState: {
+        playerTeam: PlayerCombatMonster[];
+        aiTeam: AiCombatMonster[];
+        activePlayerIndex: number;
+        activeAiIndex: number;
+    };
+    log: string[];
+}
+
 // --- Misc App-Specific Types ---
 export type GameTab = "lab" | "battle" | "story";
-export type Subject = "math" | "spelling" | "mixed";

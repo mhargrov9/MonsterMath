@@ -11,6 +11,8 @@ export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power
         baseStat = (monster as any)[key] ?? 0;
     }
 
+    if(typeof baseStat !== 'number') baseStat = 0;
+
     const effectsForStat = activeEffects.filter(e => e.targetMonsterId === monsterId && e.modifier.stat.toLowerCase() === statName.toLowerCase());
     let finalStat = baseStat;
 
