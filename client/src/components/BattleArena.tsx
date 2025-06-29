@@ -48,32 +48,14 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     return Math.round(baseStat);
   };
 
-  const getAffinityMultiplier = (attackAffinity: string | undefined, defender: UserMonster | Monster): number => {
-    if (!attackAffinity) return 1.0;
-    const lower = attackAffinity.toLowerCase();
-    const weaknesses = 'monster' in defender ? defender.monster.weaknesses : defender.weaknesses;
-    const resistances = 'monster' in defender ? defender.monster.resistances : defender.resistances;
-    if (weaknesses?.map((w: string) => w.toLowerCase()).includes(lower)) return 2.0;
-    if (resistances?.map((r: string) => r.toLowerCase()).includes(lower)) return 0.5;
-    return 1.0;
-  };
-
   const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability): DamageResult => {
     const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
     const attackingPower = getModifiedStat(attacker, scalingStatName);
     const defendingDefense = getModifiedStat(defender, 'defense');
     const attackPower = attackingPower * (parseFloat(ability.power_multiplier as any) || 0.5);
     const damageMultiplier = 100 / (100 + defendingDefense);
-    let rawDamage = attackPower * damageMultiplier;
-    const affinityMultiplier = getAffinityMultiplier(ability.affinity, defender);
-    rawDamage *= affinityMultiplier;
-    return { damage: Math.round(Math.max(1, rawDamage)), isCritical: false, affinityMultiplier };
-  };
-
-  const getEffectivenessMessage = (multiplier: number): string => {
-    if (multiplier > 1.0) return "It's super effective!";
-    if (multiplier < 1.0) return "It's not very effective...";
-    return "";
+    const rawDamage = attackPower * damageMultiplier;
+    return { damage: Math.round(Math.max(1, rawDamage)), isCritical: false, affinityMultiplier: 1 };
   };
 
   const handleBattleCompletion = async (winnerVal: 'player' | 'ai') => {
@@ -83,72 +65,88 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     setWinner(winnerVal);
   };
 
+  const handleActionAndEndTurn = (action: () => void, isPlayerAction: boolean) => {
+      if ((isPlayerAction && turn !== 'player') || (!isPlayerAction && turn !== 'ai')) return;
+      action();
+      setTurn(isPlayerAction ? 'ai' : 'player');
+  }
+
+  // --- Player Actions ---
   const handlePlayerAbility = (ability: Ability) => {
-    if (turn !== 'player' || battleEnded || targetingMode) return;
+    if (targetingMode) return;
     const attacker = playerTeam[activePlayerIndex];
     if (attacker.mp < (ability.mp_cost || 0)) {
         setBattleLog(prev => [...prev, "Not enough MP!"]); return;
     }
-    const scope = ability.target_scope || 'ACTIVE_OPPONENT';
-    if(scope === 'ACTIVE_OPPONENT') {
-      const defender = aiTeam[activeAiIndex];
-      const damageResult = calculateDamage(attacker, defender, ability);
-      setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
-      setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
-      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
-      setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`, getEffectivenessMessage(damageResult.affinityMultiplier)].filter(Boolean));
-      setTurn('ai');
-    } else if (scope === 'ANY_ALLY') {
-      setTargetingMode({ ability, validTargets: playerTeam.map(p => p.id) });
-      setBattleLog(prev => [...prev, `Select a target for ${ability.name}.`]);
+
+    // This is the restored "dispatcher" logic
+    if (ability.healing_power && ability.healing_power > 0) {
+        // Enter targeting mode for healing
+        setTargetingMode({ ability, validTargets: playerTeam.map(p => p.id) });
+        setBattleLog(prev => [...prev, `Select a target for ${ability.name}.`]);
+    } else {
+        // Execute a damage ability
+        handleActionAndEndTurn(() => {
+            const defender = aiTeam[activeAiIndex];
+            const damageResult = calculateDamage(attacker, defender, ability);
+            setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
+            setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
+            addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
+            setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
+        }, true);
     }
   };
 
-  const handleAiAbility = () => {
-    if (battleEnded || turn !== 'ai') return;
-    const activeAi = aiTeam[activeAiIndex];
-    const defender = playerTeam[activePlayerIndex];
-    const ability = activeAi.abilities?.find(a => a.name === "Basic Attack")!;
-    const damageResult = calculateDamage(activeAi, defender, ability);
-
-    setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
-    setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
-
-    addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
-    setBattleLog(prev => [...prev, `Opponent's ${activeAi.name} used ${ability.name}, dealing ${damageResult.damage} damage!`, getEffectivenessMessage(damageResult.affinityMultiplier)].filter(Boolean));
-    setTurn('player');
-  };
-
   const handleTargetSelect = (targetId: number | string) => {
-      if(!targetingMode) return;
-      const ability = targetingMode.ability;
-      const attacker = playerTeam[activePlayerIndex];
-      const target = playerTeam.find(p => p.id === targetId);
-      if(!target) return;
+      if (!targetingMode) return;
+      handleActionAndEndTurn(() => {
+          const { ability } = targetingMode;
+          const attacker = playerTeam[activePlayerIndex];
+          const target = playerTeam.find(p => p.id === targetId);
+          if (!target) return;
 
-      const healAmount = ability.healing_power || 0;
-      setPlayerTeam(team => team.map(p => p.id === targetId ? {...p, hp: Math.min(p.maxHp, p.hp + healAmount)} : p)
-                                .map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m)
-      );
-      setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`]);
-      addFloatingText(`+${healAmount}`, 'heal', targetId, true);
-      setTargetingMode(null);
-      setTurn('ai');
+          const healAmount = ability.healing_power || 0;
+          setPlayerTeam(team => 
+              team.map(p => p.id === targetId ? {...p, hp: Math.min(p.maxHp, p.hp + healAmount)} : p)
+                  .map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m)
+          );
+          setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`]);
+          addFloatingText(`+${healAmount}`, 'heal', targetId, true);
+          setTargetingMode(null);
+      }, true);
   };
 
   const handleSwapMonster = (monsterId: number) => {
-    if (turn !== 'player' || battleEnded) return;
-    const newIndex = playerTeam.findIndex(p => p.id === monsterId);
-    if (newIndex === -1 || playerTeam[newIndex].hp <= 0) return;
-    setBattleLog(prev => [...prev, `You send out ${playerTeam[newIndex].monster.name}!`]);
-    setActivePlayerIndex(newIndex);
-    setTurn('ai');
+    handleActionAndEndTurn(() => {
+        const newIndex = playerTeam.findIndex(p => p.id === monsterId);
+        if (newIndex === -1 || playerTeam[newIndex].hp <= 0) return;
+        setBattleLog(prev => [...prev, `You send out ${playerTeam[newIndex].monster.name}!`]);
+        setActivePlayerIndex(newIndex);
+    }, true);
+  };
+
+  // --- AI Action ---
+  const handleAiAbility = () => {
+    handleActionAndEndTurn(() => {
+        const activeAi = aiTeam[activeAiIndex];
+        const defender = playerTeam[activePlayerIndex];
+        // AI will use its first available damaging ability for now
+        const ability = activeAi.abilities?.find(a => a.ability_type === 'ACTIVE' && !a.healing_power) || activeAi.abilities?.[0];
+        if (!ability) return;
+
+        const damageResult = calculateDamage(activeAi, defender, ability);
+        setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
+        setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
+        addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
+        setBattleLog(prev => [...prev, `Opponent's ${activeAi.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
+    }, false);
   };
 
   // --- Game Loop & Setup ---
   useEffect(() => {
     if (battleEnded || turn === 'pre-battle') return;
 
+    // Check for fainted monsters at the start of a turn
     const activePlayer = playerTeam[activePlayerIndex];
     if (turn === 'player' && activePlayer?.hp <= 0) {
         if (playerTeam.every(m => m.hp <= 0)) { handleBattleCompletion('ai'); } 
@@ -175,7 +173,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
 
   const handleBattleStart = (selectedTeam: UserMonster[], generatedOpponent: any) => {
     setPlayerTeam(selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp })));
-    setAiTeam(generatedOpponent.scaledMonsters);
+    setAiTeam(generatedOpponent.scaledMonsters); // Restored server call
     setActivePlayerIndex(0);
     setActiveAiIndex(0);
     setBattleLog([`Battle begins! You send out ${selectedTeam[0].monster.name}.`]);
