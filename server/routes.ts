@@ -3,6 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
+import { processBattleAction } from "./battleEngine";
 
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
@@ -63,8 +64,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to spend battle token"); }
   });
 
-  // Note: The server-side battle engine has been removed. Logic is client-side for now.
-  // We will re-implement the /api/battle/action endpoint when we migrate logic to the server in Phase 3.
+  // --- SERVER-SIDE BATTLE ENGINE ENDPOINT ---
+  app.post('/api/battle/action', isAuthenticated, async (req: any, res) => {
+    try {
+      const { battleState, action } = req.body;
+      if (!battleState || !action) {
+        return res.status(400).json({ message: "Missing battleState or action in request body." });
+      }
+      const result = await processBattleAction(battleState, action);
+      res.json(result);
+    } catch (error) {
+      handleError(error, res, "Failed to process battle action");
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

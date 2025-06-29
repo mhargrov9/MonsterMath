@@ -10,28 +10,25 @@ interface Ability {
   description: string;
   ability_type: 'ACTIVE' | 'PASSIVE';
   mp_cost: number;
-  affinity: string;
-  power_multiplier?: number;
-  scaling_stat?: string;
-  healing_power?: number;
-  target_scope?: string;
+  affinity?: string;
 }
 
 interface Monster {
   id: number | string;
   name: string;
-  type?: string;
-  description?: string;
   level?: number;
   hp: number;
   maxHp: number;
   mp: number;
   maxMp: number;
+  power?: number;
+  defense?: number;
+  speed?: number;
   resistances?: string[];
   weaknesses?: string[];
   basePower?: number;
-  baseSpeed?: number;
   baseDefense?: number;
+  baseSpeed?: number;
   abilities?: Ability[];
 }
 
@@ -54,7 +51,6 @@ interface MonsterCardProps {
   size?: 'tiny' | 'small' | 'medium' | 'large';
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
-  startExpanded?: boolean;
   isToggleable?: boolean;
   onCardClick?: () => void;
   isTargetable?: boolean;
@@ -79,19 +75,15 @@ export default function MonsterCard({
   size = 'medium',
   isPlayerTurn = false,
   onAbilityClick,
-  startExpanded = false,
   isToggleable = true,
   onCardClick,
   isTargetable = false,
 }: MonsterCardProps) {
-
-  const [isExpanded, setIsExpanded] = useState(startExpanded);
+  const [isExpanded, setIsExpanded] = useState(size === 'large');
 
   useEffect(() => {
-    if (startExpanded) {
-        setIsExpanded(true);
-    }
-  }, [startExpanded]);
+    setIsExpanded(size === 'large');
+  }, [size]);
 
   const baseMonster = userMonster ? userMonster.monster : monsterProp;
   const abilities = baseMonster.abilities || [];
@@ -102,31 +94,23 @@ export default function MonsterCard({
   const speed = userMonster?.speed ?? baseMonster.baseSpeed ?? 0;
 
   const currentHp = userMonster?.hp ?? monsterProp.hp;
-  const maxHp = userMonster?.maxHp ?? monsterProp.maxHp ?? 1;
+  const maxHp = userMonster?.maxHp ?? 1;
   const displayMp = userMonster?.mp ?? monsterProp.mp;
-  const maxMp = userMonster?.maxMp ?? monsterProp.maxMp ?? 1;
+  const maxMp = userMonster?.maxMp ?? 1;
 
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onCardClick) {
-        onCardClick();
-        return;
-    }
-    if (isToggleable) { 
-        setIsExpanded(!isExpanded); 
-    }
+    if (onCardClick) { onCardClick(); return; }
+    if (isToggleable) { setIsExpanded(!isExpanded); }
   };
 
   const borderColorClass = isTargetable ? 'border-green-500 animate-pulse' : (onCardClick ? 'hover:border-green-500' : isToggleable ? 'hover:border-yellow-400' : 'border-cyan-500');
   const cursorClass = onCardClick || isToggleable ? 'cursor-pointer' : '';
 
   return (
-    <Card
-      onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass}`}
-    >
+    <Card onClick={handleCardClick} className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass}`}>
       <CardContent className="p-2 flex flex-col space-y-2">
         <div className="flex justify-between items-center">
           <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
@@ -154,27 +138,6 @@ export default function MonsterCard({
         }
         {isExpanded && (
           <div className="mt-2 space-y-3">
-            {baseMonster.description && size !== 'tiny' && (
-              <div className="bg-gray-900/60 p-2 rounded">
-                <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
-              </div>
-            )}
-            {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <h5 className="font-bold text-green-400">Resists</h5>
-                  {baseMonster.resistances && baseMonster.resistances.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.resistances.map(res => (<Badge key={res} variant="secondary" className="capitalize bg-green-900/80 text-green-300 border-green-700/80">{getAffinityIcon(res)} {res}</Badge>))}</div>
-                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
-                </div>
-                <div>
-                  <h5 className="font-bold text-red-400">Weak to</h5>
-                  {baseMonster.weaknesses && baseMonster.weaknesses.length > 0 ? (
-                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.weaknesses.map(weak => (<Badge key={weak} variant="destructive" className="capitalize bg-red-900/80 text-red-300 border-red-700/80">{getAffinityIcon(weak)} {weak}</Badge>))}</div>
-                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
-                </div>
-              </div>
-            )}
             <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
                 <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
                 {abilities.length === 0 ? <p className="text-xs text-gray-400 italic">No abilities to display.</p> : 
@@ -182,18 +145,14 @@ export default function MonsterCard({
                     const canAfford = displayMp >= (ability.mp_cost || 0);
                     const isClickable = onAbilityClick && ability.ability_type === 'ACTIVE' && isPlayerTurn;
                     const effectiveClass = isClickable && canAfford ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer' : onAbilityClick ? 'opacity-50 cursor-not-allowed' : '';
-
                     return (
-                        <div
-                            key={ability.id}
-                            className={`p-1 rounded text-xs transition-all ${effectiveClass}`}
+                        <div key={ability.id} className={`p-1 rounded text-xs transition-all ${effectiveClass}`}
                             onClick={(e) => {
                                 if (isClickable && canAfford && onAbilityClick) {
                                     e.stopPropagation();
                                     onAbilityClick(ability);
                                 }
-                            }}
-                        >
+                            }}>
                             <div className="flex items-center gap-2 font-bold">
                                 {getAffinityIcon(ability.affinity)}
                                 <span>{ability.name}</span>

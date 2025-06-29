@@ -6,11 +6,10 @@ import MonsterCard from './MonsterCard';
 import { Monster, UserMonster } from '@/types/game';
 import { useAuth } from '@/hooks/useAuth';
 
-// This is the single fetcher for the entire screen.
-const fetchMonsterLabData = async () => {
-    const res = await fetch('/api/monster-lab-data');
+const fetchApiJson = async (path: string) => {
+    const res = await fetch(path);
     if (!res.ok) {
-        throw new Error(`Server responded with an error: ${res.status}`);
+        throw new Error(`Request to ${path} failed with status ${res.status}`);
     }
     return res.json();
 };
@@ -23,15 +22,27 @@ interface MonsterLabData {
 const MonsterLab: React.FC = () => {
     const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
 
-    // A single query for all screen data, enabled by authentication.
-    const { data, isLoading, isError, error } = useQuery<MonsterLabData>({ 
+    const { data, isLoading, isError } = useQuery<MonsterLabData>({ 
         queryKey: ['/api/monster-lab-data'], 
-        queryFn: fetchMonsterLabData,
+        queryFn: fetchApiJson,
         enabled: isAuthenticated,
-        retry: false, // Don't retry on failure, show error immediately
     });
 
     const isLoadingData = isLoading || isAuthLoading;
+
+    if (isLoadingData) {
+        return <div className="text-center p-8 text-white">Loading Monster Lab...</div>;
+    }
+
+    if (isError) {
+        return (
+            <div className="p-4">
+                <div className="text-red-400 bg-red-900/20 p-4 rounded-lg">
+                    <p className="font-bold">Could not load Monster Lab data. The server may be experiencing issues.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="relative p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
@@ -43,10 +54,7 @@ const MonsterLab: React.FC = () => {
                 <div>
                     <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">Available Monsters</h3>
                     <div className="grid grid-cols-1 gap-4 justify-items-center">
-                        {isLoadingData ? <p className="text-white/70">Loading...</p> :
-                         isError ? (
-                            <div className="text-red-400 bg-red-900/20 p-4 rounded-lg"><p className="font-bold">Could not load available monsters.</p></div>
-                        ) : (data?.allMonsters && data.allMonsters.length > 0) ? (
+                        {(data?.allMonsters && data.allMonsters.length > 0) ? (
                             data.allMonsters.map((monster) => (
                                 <div key={`avail-${monster.id}`} className="flex flex-col items-center gap-3 w-full max-w-sm">
                                     <MonsterCard monster={monster} size="medium" isToggleable={true} />
@@ -63,10 +71,7 @@ const MonsterLab: React.FC = () => {
                 <div>
                     <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 text-white">Your Monsters</h3>
                     <div className="grid grid-cols-1 gap-4 justify-items-center">
-                        {isLoadingData ? <p className="text-white/70">Loading...</p> :
-                         isError ? (
-                            <div className="text-red-400 bg-red-900/20 p-4 rounded-lg"><p className="font-bold">Could not load your monsters.</p></div>
-                        ) : data?.userMonsters && data.userMonsters.length > 0 ? (
+                        {data?.userMonsters && data.userMonsters.length > 0 ? (
                             data.userMonsters.map((userMonster) => (
                                 <div key={`user-${userMonster.id}`} className="flex flex-col items-center gap-3 w-full max-w-sm">
                                   <MonsterCard monster={userMonster.monster} userMonster={userMonster} isToggleable={true} size="medium" />
