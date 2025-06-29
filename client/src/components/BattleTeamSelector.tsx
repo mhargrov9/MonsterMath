@@ -27,22 +27,19 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
 
   useEffect(() => {
     if (!userMonsters) return;
-
     let isMounted = true;
     const fetchAbilitiesForAll = async () => {
-      const abilitiesMap: Record<number, Ability[]> = {};
-      await Promise.all(
-        userMonsters.map(async (um) => {
-          try {
-            const res = await fetch(`/api/monster-abilities/${um.monster.id}`);
-            if (res.ok) {
-              abilitiesMap[um.monster.id] = await res.json();
-            }
-          } catch (e) {
-            console.error(`Failed to fetch abilities for monster ${um.monster.id}`, e);
-          }
-        })
+      const abilitiesPromises = userMonsters.map(um =>
+        fetch(`/api/monster-abilities/${um.monster.id}`)
+          .then(res => res.ok ? res.json() : [])
+          .then(abilities => ({ monsterId: um.monster.id, abilities }))
+          .catch(() => ({ monsterId: um.monster.id, abilities: [] }))
       );
+      const results = await Promise.all(abilitiesPromises);
+      const abilitiesMap = results.reduce((acc, { monsterId, abilities }) => {
+        acc[monsterId] = abilities;
+        return acc;
+      }, {} as Record<number, Ability[]>);
 
       if (isMounted) {
         const populatedMonsters = userMonsters.map(um => ({
@@ -52,9 +49,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
         setMonstersWithAbilities(populatedMonsters);
       }
     };
-
     fetchAbilitiesForAll();
-
     return () => { isMounted = false; };
   }, [userMonsters]);
 
@@ -62,7 +57,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
     queryKey: ["/api/user/battle-slots"],
   });
 
-  const battleSlots = battleSlotsData?.battleSlots || 7; // Temporarily increased for testing
+  const battleSlots = battleSlotsData?.battleSlots || 7;
   const availableMonsters = monstersWithAbilities.filter((m) => m.hp > 0);
   const currentTPL = selectedMonsters.reduce((total, m) => total + m.level, 0);
 
@@ -88,17 +83,12 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
 
     setIsStartingBattle(true);
     try {
-      const tokenResponse = await apiRequest("/api/battle/spend-token", { method: "POST" });
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        throw new Error(errorData.message || "Failed to spend battle token.");
-      }
+      await apiRequest("/api/battle/spend-token", { method: "POST" });
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
 
       const opponentResponse = await apiRequest("/api/battle/generate-opponent", { method: "POST", data: { tpl: currentTPL } });
-      if (!opponentResponse.ok) throw new Error("Failed to generate an opponent.");
-
       const opponentData = await opponentResponse.json();
+
       onBattleStart(selectedMonsters, opponentData);
 
     } catch (error) {
@@ -107,21 +97,14 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
       } else {
         toast({ title: "An Error Occurred", description: (error as Error).message || "Could not start the battle.", variant: "destructive" });
       }
-    } finally {
       setIsStartingBattle(false);
     }
   };
 
   if (loadingMonsters) return <div className="text-center p-8">Loading your monsters...</div>;
 
-  if (!loadingMonsters && availableMonsters.length === 0) {
-    return (
-       <Card className="w-full max-w-4xl mx-auto"><CardContent className="p-6 text-center"><h3 className="text-xl font-bold mb-4">No Available Monsters</h3><p className="text-muted-foreground">You need healthy monsters to enter battle.</p></CardContent></Card>
-    );
-  }
-
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
       <Card>
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -153,8 +136,8 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
                     monster={userMonster.monster} 
                     userMonster={userMonster} 
                     size="small"
-                    onCardClick={() => handleMonsterSelect(userMonster)} // <-- PASSING THE HANDLER DIRECTLY
-                    isToggleable={false} // Prevent card from toggling itself
+                    onCardClick={() => handleMonsterSelect(userMonster)}
+                    isToggleable={false}
                   />
                 </div>
               );
