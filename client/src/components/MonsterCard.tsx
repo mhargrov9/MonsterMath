@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 
-// --- TYPE DEFINITIONS (Aligned with parent components) ---
 interface Ability {
   id: number;
   name: string;
@@ -19,25 +18,20 @@ interface Ability {
 }
 
 interface Monster {
-  id: number;
+  id: number | string;
   name: string;
   type?: string;
   description?: string;
   level?: number;
-  power?: number;
-  speed?: number;
-  defense?: number;
-  hp?: number;
-  max_hp?: number;
-  mp?: number;
-  max_mp?: number;
+  hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
   resistances?: string[];
   weaknesses?: string[];
   basePower?: number;
   baseSpeed?: number;
   baseDefense?: number;
-  baseHp?: number;
-  baseMp?: number;
   abilities?: Ability[];
 }
 
@@ -62,11 +56,11 @@ interface MonsterCardProps {
   onAbilityClick?: (ability: Ability) => void;
   startExpanded?: boolean;
   isToggleable?: boolean;
-  onCardClick?: () => void; // <-- ADDED: A dedicated prop for parent-controlled clicks
+  onCardClick?: () => void;
+  isTargetable?: boolean;
 }
 
-// --- HELPER FUNCTION ---
-const getAffinityIcon = (affinity: string) => {
+const getAffinityIcon = (affinity: string | undefined) => {
   if (!affinity) return <Sword className="w-3 h-3 mr-1" />;
   switch (affinity.toLowerCase()) {
     case 'fire': return <Flame className="w-3 h-3 mr-1 text-red-400" />;
@@ -79,7 +73,6 @@ const getAffinityIcon = (affinity: string) => {
   }
 };
 
-// --- MAIN COMPONENT ---
 export default function MonsterCard({
   monster: monsterProp,
   userMonster,
@@ -88,44 +81,45 @@ export default function MonsterCard({
   onAbilityClick,
   startExpanded = false,
   isToggleable = true,
-  onCardClick, // <-- ADDED
+  onCardClick,
+  isTargetable = false,
 }: MonsterCardProps) {
 
   const [isExpanded, setIsExpanded] = useState(startExpanded);
 
   useEffect(() => {
-    setIsExpanded(startExpanded);
+    if (startExpanded) {
+        setIsExpanded(true);
+    }
   }, [startExpanded]);
 
-  const baseMonster = 'monster' in monsterProp ? monsterProp.monster : monsterProp;
+  const baseMonster = userMonster ? userMonster.monster : monsterProp;
   const abilities = baseMonster.abilities || [];
 
   const level = userMonster?.level ?? baseMonster.level ?? 1;
-  const power = userMonster?.power ?? baseMonster.power ?? baseMonster.basePower ?? 0;
-  const defense = userMonster?.defense ?? baseMonster.defense ?? baseMonster.baseDefense ?? 0;
-  const speed = userMonster?.speed ?? baseMonster.speed ?? baseMonster.baseSpeed ?? 0;
-  const currentHp = userMonster?.hp ?? baseMonster.hp ?? baseMonster.baseHp ?? 0;
-  const maxHp = userMonster?.maxHp ?? baseMonster.max_hp ?? baseMonster.baseHp ?? 1;
-  const displayMp = userMonster?.mp ?? baseMonster.mp ?? baseMonster.baseMp ?? 0;
-  const maxMp = userMonster?.maxMp ?? baseMonster.max_mp ?? baseMonster.baseMp ?? 1;
+  const power = userMonster?.power ?? baseMonster.basePower ?? 0;
+  const defense = userMonster?.defense ?? baseMonster.baseDefense ?? 0;
+  const speed = userMonster?.speed ?? baseMonster.baseSpeed ?? 0;
+
+  const currentHp = userMonster?.hp ?? monsterProp.hp;
+  const maxHp = userMonster?.maxHp ?? monsterProp.maxHp ?? 1;
+  const displayMp = userMonster?.mp ?? monsterProp.mp;
+  const maxMp = userMonster?.maxMp ?? monsterProp.maxMp ?? 1;
 
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // UPDATED LOGIC: Prioritize the onCardClick from the parent if it exists.
+    e.stopPropagation();
     if (onCardClick) {
-        e.stopPropagation();
         onCardClick();
         return;
     }
-    // Fallback to internal toggle logic if no parent handler is provided.
     if (isToggleable) { 
-        e.stopPropagation();
         setIsExpanded(!isExpanded); 
     }
   };
 
-  const borderColorClass = onCardClick ? 'hover:border-green-500' : isToggleable ? 'hover:border-yellow-400' : 'border-cyan-500';
+  const borderColorClass = isTargetable ? 'border-green-500 animate-pulse' : (onCardClick ? 'hover:border-green-500' : isToggleable ? 'hover:border-yellow-400' : 'border-cyan-500');
   const cursorClass = onCardClick || isToggleable ? 'cursor-pointer' : '';
 
   return (
@@ -133,20 +127,20 @@ export default function MonsterCard({
       onClick={handleCardClick}
       className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass}`}
     >
-      <CardContent className="p-2 space-y-2">
+      <CardContent className="p-2 flex flex-col space-y-2">
         <div className="flex justify-between items-center">
           <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
           <Badge variant="secondary">LV. {level}</Badge>
         </div>
         <div className="bg-gray-900/50 rounded h-32 flex items-center justify-center overflow-hidden">
-            <VeoMonster monsterId={baseMonster.id} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />
+            <VeoMonster monsterId={baseMonster.id as number} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />
         </div>
         <div className="space-y-1">
-            <div className="w-full bg-gray-700 rounded-full h-2.5">
+            <div className="bg-gray-700 rounded-full h-2.5">
                 <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${(currentHp / maxHp) * 100}%` }}></div>
             </div>
             <div className="text-xs text-right">HP: {currentHp} / {maxHp}</div>
-            <div className="w-full bg-gray-700 rounded-full h-2.5">
+            <div className="bg-gray-700 rounded-full h-2.5">
                 <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${(displayMp / maxMp) * 100}%` }}></div>
             </div>
             <div className="text-xs text-right">MP: {displayMp} / {maxMp}</div>
@@ -163,6 +157,22 @@ export default function MonsterCard({
             {baseMonster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
                 <p className="text-xs italic text-gray-400">{baseMonster.description}</p>
+              </div>
+            )}
+            {(baseMonster.resistances?.length || baseMonster.weaknesses?.length) && size !== 'tiny' && (
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <h5 className="font-bold text-green-400">Resists</h5>
+                  {baseMonster.resistances && baseMonster.resistances.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.resistances.map(res => (<Badge key={res} variant="secondary" className="capitalize bg-green-900/80 text-green-300 border-green-700/80">{getAffinityIcon(res)} {res}</Badge>))}</div>
+                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
+                </div>
+                <div>
+                  <h5 className="font-bold text-red-400">Weak to</h5>
+                  {baseMonster.weaknesses && baseMonster.weaknesses.length > 0 ? (
+                    <div className="flex flex-wrap gap-1 mt-1">{baseMonster.weaknesses.map(weak => (<Badge key={weak} variant="destructive" className="capitalize bg-red-900/80 text-red-300 border-red-700/80">{getAffinityIcon(weak)} {weak}</Badge>))}</div>
+                  ) : <p className="text-gray-500 italic text-[11px]">None</p> }
+                </div>
               </div>
             )}
             <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">

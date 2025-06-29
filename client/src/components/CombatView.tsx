@@ -19,11 +19,14 @@ interface CombatViewProps {
   onRetreat: () => void;
   onPlayAgain: () => void;
   floatingTexts: FloatingText[];
+  targetingMode: { ability: Ability; validTargets: number[] } | null;
+  onTargetSelect: (targetId: number) => void;
 }
 
 const FloatingTextComponent: React.FC<{ text: FloatingText }> = ({ text }) => {
     const colorClass = text.type === 'damage' ? 'text-red-500' 
                      : text.type === 'heal'   ? 'text-green-400'
+                     : text.type === 'info'   ? 'text-blue-300'
                      : 'text-yellow-400';
     return (
         <div 
@@ -36,7 +39,7 @@ const FloatingTextComponent: React.FC<{ text: FloatingText }> = ({ text }) => {
     );
 };
 
-const BenchCard: React.FC<{ monster: UserMonster | Monster, isPlayer: boolean, onSwap?: (id: number) => void, disabled: boolean }> = ({ monster, isPlayer, onSwap, disabled }) => {
+const BenchCard: React.FC<{ monster: UserMonster | Monster, isPlayer: boolean, onSwap?: (id: number) => void, disabled: boolean, isTargetable: boolean, onTargetSelect?: (id: number) => void }> = ({ monster, isPlayer, onSwap, disabled, isTargetable, onTargetSelect }) => {
     const userMonster = isPlayer ? (monster as UserMonster) : undefined;
     const baseMonster = isPlayer ? (monster as UserMonster).monster : (monster as Monster);
     const isFainted = ('hp' in monster && monster.hp <= 0);
@@ -47,7 +50,9 @@ const BenchCard: React.FC<{ monster: UserMonster | Monster, isPlayer: boolean, o
                 monster={baseMonster} 
                 userMonster={userMonster} 
                 size="tiny" 
-                isToggleable={true} 
+                isToggleable={!onTargetSelect}
+                isTargetable={isTargetable}
+                onCardClick={isTargetable && onTargetSelect ? () => onTargetSelect(monster.id) : undefined}
             />
             {isPlayer && onSwap && (
                 <Button onClick={() => onSwap(userMonster!.id)} disabled={disabled || isFainted} size="xs" className="w-full text-xs h-6">
@@ -73,7 +78,11 @@ export const CombatView: React.FC<CombatViewProps> = ({
   onRetreat,
   onPlayAgain,
   floatingTexts,
+  targetingMode,
+  onTargetSelect,
 }) => {
+  const isTargetingAlly = targetingMode?.ability.target_scope === 'ANY_ALLY';
+
   return (
     <>
       <style>{`
@@ -85,13 +94,8 @@ export const CombatView: React.FC<CombatViewProps> = ({
           animation: float-up 1.5s ease-out forwards;
         }
       `}</style>
-
-      {/* Main container: A robust flex column layout that prevents clipping */}
       <div className="w-screen h-screen flex flex-col p-2 gap-2 bg-gray-800 text-white">
-
-        {/* Top Section: Battlefields (this part will grow and shrink) */}
         <div className="flex-1 flex flex-col lg:flex-row gap-2 min-h-0">
-            {/* Opponent's Field */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg relative">
               <div className="relative flex-grow flex items-center justify-center w-full">
                 <MonsterCard monster={opponentMonster} size="large" startExpanded={true} isToggleable={true} />
@@ -100,8 +104,6 @@ export const CombatView: React.FC<CombatViewProps> = ({
                 ))}
               </div>
             </div>
-
-            {/* Player's Field */}
             <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg relative">
                <div className="relative flex-grow flex items-center justify-center w-full">
                   <MonsterCard 
@@ -111,7 +113,9 @@ export const CombatView: React.FC<CombatViewProps> = ({
                       isPlayerTurn={isPlayerTurn} 
                       size="large" 
                       startExpanded={true} 
-                      isToggleable={false} 
+                      isToggleable={!targetingMode}
+                      isTargetable={isTargetingAlly && targetingMode.validTargets.includes(playerMonster.id)}
+                      onCardClick={isTargetingAlly ? () => onTargetSelect(playerMonster.id) : undefined}
                   />
                   {floatingTexts.filter(ft => ft.isPlayerTarget && ft.targetId === playerMonster.id).map(ft => (
                       <FloatingTextComponent key={ft.id} text={ft} />
@@ -119,25 +123,22 @@ export const CombatView: React.FC<CombatViewProps> = ({
               </div>
             </div>
         </div>
-
-        {/* Fixed HUD at the bottom (this part has a fixed height) */}
         <div className="flex-shrink-0 p-2 bg-gray-900/90 backdrop-blur-sm border-t-2 border-gray-700 h-[170px] rounded-lg">
           <div className="w-full h-full grid grid-cols-12 gap-4 items-center">
                <div className="col-span-4 flex flex-col justify-between h-full">
                   <h3 className="text-xl font-semibold text-red-400 text-center">Opponent's Bench</h3>
                   <div className="flex gap-2 items-end justify-center h-full">
                       {opponentBench.map(monster => (
-                          <BenchCard key={monster.id} monster={monster} isPlayer={false} disabled={true} />
+                          <BenchCard key={monster.id} monster={monster} isPlayer={false} disabled={true} isTargetable={false} />
                       ))}
                   </div>
                </div>
-
               <div className="col-span-4 flex flex-col justify-between h-full bg-gray-800/60 p-2 rounded">
                   <div className="flex items-center justify-center gap-2">
                      <Swords className="w-5 h-5 text-yellow-400" />
                      <h3 className="text-lg font-bold text-center">Battle Log</h3>
                   </div>
-                  <div className="overflow-y-auto h-full mt-1 font-mono text-sm" ref={logRef}>
+                  <div className="flex-grow overflow-y-auto mt-1 font-mono text-sm max-h-[7.5rem]" ref={logRef}>
                       {battleLog.map((log, i) => <p key={i} className={`mb-1 ${log.startsWith("Your") ? "text-cyan-300" : log.startsWith("Opponent") ? "text-red-300" : ""}`}>{`> ${log}`}</p>)}
                       {battleEnded && (
                           <div className="text-center mt-2">
@@ -148,16 +149,15 @@ export const CombatView: React.FC<CombatViewProps> = ({
                   </div>
                    <div className={`mt-1 p-1 rounded-lg text-center w-full ${battleEnded ? 'bg-yellow-600/50' : isPlayerTurn ? 'bg-cyan-600/50 animate-pulse' : 'bg-red-800/50'}`}>
                      <p className="text-md font-bold uppercase tracking-widest">
-                        {battleEnded ? "BATTLE OVER" : isPlayerTurn ? "YOUR TURN" : "OPPONENT'S TURN"}
+                        {targetingMode ? 'SELECT TARGET' : battleEnded ? "BATTLE OVER" : isPlayerTurn ? "YOUR TURN" : "OPPONENT'S TURN"}
                      </p>
                   </div>
                </div>
-
                <div className="col-span-4 flex flex-col justify-between h-full">
                   <h3 className="text-xl font-semibold text-cyan-400 text-center">Your Bench</h3>
                   <div className="flex gap-2 items-end justify-center h-full">
                       {playerBench.map(monster => (
-                          <BenchCard key={monster.id} monster={monster} isPlayer={true} onSwap={onSwapMonster} disabled={!isPlayerTurn || battleEnded} />
+                          <BenchCard key={monster.id} monster={monster} isPlayer={true} onSwap={onSwapMonster} disabled={!isPlayerTurn || battleEnded || !!targetingMode} isTargetable={isTargetingAlly && targetingMode.validTargets.includes(monster.id)} onTargetSelect={onTargetSelect} />
                       ))}
                   </div>
                </div>
