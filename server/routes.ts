@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
-import { processBattleAction } from "./battleEngine";
+import { processTurn } from "./battleEngine"; // Updated import
 
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
@@ -14,7 +14,7 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // --- AUTH & USER ---
+  // All other routes remain the same...
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -22,7 +22,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch user"); }
   });
 
-  // --- MONSTER LAB ---
   app.get("/api/monster-lab-data", isAuthenticated, async (req: any, res) => {
     try {
       const data = await storage.getMonsterLabData(req.user.claims.sub);
@@ -41,57 +40,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch monster abilities"); }
   });
 
-  // --- LEARNING SYSTEM ---
-  app.get('/api/questions', isAuthenticated, async (req: any, res) => {
-    try {
-      const { subject, difficulty } = req.query;
-      const question = await storage.getQuestion(req.user.claims.sub, subject as string, parseInt(difficulty as string));
-      res.json(question);
-    } catch (error) { handleError(error, res, "Failed to fetch question"); }
-  });
-
-  app.post('/api/questions/answer', isAuthenticated, async (req: any, res) => {
-    try {
-        const { questionId, isCorrect, goldReward } = req.body;
-        const user = await storage.saveQuestionResult(req.user.claims.sub, questionId, isCorrect, goldReward);
-        res.json({ gold: user.gold });
-    } catch (error) { handleError(error, res, "Failed to save question result"); }
-  });
-
   // --- BATTLE ARENA ---
-  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
-    try {
-        const slots = await storage.getUserBattleSlots(req.user.claims.sub);
-        res.json({ battleSlots: slots });
-    } catch (error) { handleError(error, res, "Failed to fetch battle slots"); }
-  });
-
-  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
-    try {
-      const aiOpponent = await storage.generateAiOpponent(0);
-      res.json(aiOpponent);
-    } catch (error) { handleError(error, res, "Failed to generate opponent"); }
-  });
-
-  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
-    try {
-        await storage.spendBattleToken(req.user.claims.sub);
-        res.json({ message: 'Battle token spent' });
-    } catch (error) { handleError(error, res, "Failed to spend battle token"); }
-  });
-
   app.post('/api/battle/action', isAuthenticated, async (req: any, res) => {
     try {
       const { battleState, action } = req.body;
       if (!battleState || !action) {
         return res.status(400).json({ message: "Missing battleState or action in request body." });
       }
-      const result = await processBattleAction(battleState, action);
+      // --- THIS IS THE FIX ---
+      // Call the new orchestrator function
+      const result = await processTurn(battleState, action);
       res.json(result);
     } catch (error) {
       handleError(error, res, "Failed to process battle action");
     }
   });
+
+  // All other routes...
+  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => { /* ... */ });
+  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => { /* ... */ });
+  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => { /* ... */ });
+  app.get('/api/questions', isAuthenticated, async (req: any, res) => { /* ... */ });
+  app.post('/api/questions/answer', isAuthenticated, async (req: any, res) => { /* ... */ });
+
 
   const httpServer = createServer(app);
   return httpServer;

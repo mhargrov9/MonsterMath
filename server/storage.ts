@@ -30,26 +30,18 @@ import { db } from "./db";
 import { eq, and, ne, sql, desc, asc, lte, gt, notInArray } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations
+  // ... (other interface methods)
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createLocalUser(username: string, email: string, passwordHash: string): Promise<User>;
-
-  // Monster operations
   getAllMonsters(): Promise<Monster[]>;
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
   getMonsterAbilities(monsterId: number): Promise<any[]>;
-
-  // New combined data fetcher
   getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }>;
-
-  // Learning System operations
   getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null>;
   saveQuestionResult(userId: string, questionId: number, isCorrect: boolean, goldReward: number): Promise<User>;
-
-  // Other operations...
   generateAiOpponent(playerTPL: number): Promise<any>;
   spendBattleToken(userId: string): Promise<User>;
   awardRankXp(userId: string, xp: number): Promise<User>;
@@ -57,6 +49,7 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // ... (other storage methods)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -98,11 +91,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }> {
-    const [allMonsters, userMonsters] = await Promise.all([
-        this.getAllMonsters(),
-        this.getUserMonsters(userId)
-    ]);
-    return { allMonsters, userMonsters };
+    console.log("[storage] Attempting to fetch all monsters...");
+    const baseMonsters = await this.getAllMonsters();
+    console.log("[storage] Successfully fetched all monsters.");
+
+    console.log("[storage] Attempting to fetch user monsters...");
+    const userMonstersData = await this.getUserMonsters(userId);
+    console.log("[storage] Successfully fetched user monsters.");
+
+    // --- THIS IS THE FIX ---
+    // Fetch abilities for all monsters and attach them.
+    const allMonstersWithAbilities = await Promise.all(
+        baseMonsters.map(async (monster) => {
+            const abilities = await this.getMonsterAbilities(monster.id as number);
+            return { ...monster, abilities };
+        })
+    );
+
+    const userMonstersWithAbilities = await Promise.all(
+        userMonstersData.map(async (userMonster) => {
+            const abilities = await this.getMonsterAbilities(userMonster.monsterId);
+            return { ...userMonster, monster: { ...userMonster.monster, abilities } };
+        })
+    );
+
+    return { allMonsters: allMonstersWithAbilities, userMonsters: userMonstersWithAbilities };
   }
 
   async getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null> {
@@ -162,7 +175,7 @@ export class DatabaseStorage implements IStorage {
     const teamMonsters = [...monsterPool].sort(() => 0.5 - Math.random()).slice(0, actualTeamSize);
 
     const scaledMonstersWithAbilities = await Promise.all(teamMonsters.map(async (monster) => {
-      const monsterAbilities = await this.getMonsterAbilities(monster.id);
+      const monsterAbilities = await this.getMonsterAbilities(monster.id as number);
       return { ...monster, hp: monster.baseHp, maxHp: monster.baseHp, mp: monster.baseMp, maxMp: monster.baseMp, abilities: monsterAbilities };
     }));
 

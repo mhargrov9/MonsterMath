@@ -3,53 +3,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
-
-// --- Self-Contained, Correct Type Definitions ---
-// These types accurately reflect the data structures and are defined locally
-// to avoid conflicts with incorrect shared types.
-
-interface Ability {
-  id: number;
-  name: string;
-  description: string;
-  ability_type: 'ACTIVE' | 'PASSIVE';
-  mp_cost: number | null;
-  affinity?: string | null;
-}
-
-interface BaseMonster {
-  id: number | string;
-  name: string;
-  abilities?: Ability[];
-  basePower?: number | null;
-  baseDefense?: number | null;
-  baseSpeed?: number | null;
-  // These are on the AI Monster object at runtime
-  hp?: number | null;
-  maxHp?: number | null;
-  mp?: number | null;
-  maxMp?: number | null;
-  goldCost?: number | null;
-}
-
-interface BaseUserMonster {
-  id: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  hp: number | null;
-  maxHp: number | null;
-  mp: number | null;
-  maxMp: number | null;
-}
-
-// This is the decorated UserMonster type that includes the nested base monster data
-type UserMonsterWithDetails = BaseUserMonster & { monster: BaseMonster };
+import { Ability, Monster, UserMonster, PlayerCombatMonster } from '@/types/game';
 
 interface MonsterCardProps {
-  monster: BaseMonster;
-  userMonster?: UserMonsterWithDetails | BaseUserMonster;
+  monster: Monster;
+  userMonster?: PlayerCombatMonster | UserMonster;
   size?: 'tiny' | 'small' | 'medium' | 'large';
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
@@ -95,13 +53,15 @@ export default function MonsterCard({
   const defense = userMonster?.defense ?? baseMonster.baseDefense ?? 0;
   const speed = userMonster?.speed ?? baseMonster.baseSpeed ?? 0;
 
-  const currentHp = userMonster?.hp ?? baseMonster.hp ?? 0;
-  const maxHp = userMonster?.maxHp ?? baseMonster.maxHp ?? 1;
-  const displayMp = userMonster?.mp ?? baseMonster.mp ?? 0;
-  const maxMp = userMonster?.maxMp ?? baseMonster.maxMp ?? 1;
+  // --- THIS IS THE FIX ---
+  // Use baseHp and baseMp as the fallback for the display values.
+  const currentHp = userMonster?.hp ?? baseMonster.baseHp;
+  const maxHp = userMonster?.maxHp ?? baseMonster.baseHp;
+  const displayMp = userMonster?.mp ?? baseMonster.baseMp;
+  const maxMp = userMonster?.maxMp ?? baseMonster.baseMp;
 
-  const hpPercentage = maxHp > 0 ? ((currentHp ?? 0) / maxHp) * 100 : 0;
-  const mpPercentage = maxMp > 0 ? ((displayMp ?? 0) / maxMp) * 100 : 0;
+  const hpPercentage = (maxHp ?? 0) > 0 ? ((currentHp ?? 0) / (maxHp ?? 1)) * 100 : 0;
+  const mpPercentage = (maxMp ?? 0) > 0 ? ((displayMp ?? 0) / (maxMp ?? 1)) * 100 : 0;
 
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
@@ -128,11 +88,11 @@ export default function MonsterCard({
             <div className="bg-gray-700 rounded-full h-2.5">
                 <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${hpPercentage}%` }}></div>
             </div>
-            <div className="text-xs text-right">HP: {(currentHp ?? 0)} / {maxHp}</div>
+            <div className="text-xs text-right">HP: {(currentHp ?? 0)} / {(maxHp ?? 0)}</div>
             <div className="bg-gray-700 rounded-full h-2.5">
                 <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${mpPercentage}%` }}></div>
             </div>
-            <div className="text-xs text-right">MP: {(displayMp ?? 0)} / {maxMp}</div>
+            <div className="text-xs text-right">MP: {(displayMp ?? 0)} / {(maxMp ?? 0)}</div>
         </div>
         {size !== 'tiny' &&
             <div className="grid grid-cols-3 gap-1 text-center text-xs">

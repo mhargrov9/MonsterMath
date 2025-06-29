@@ -23,6 +23,9 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
+    // *** THIS IS THE FIX ***
+    // We are allowing all hosts that end in .replit.dev, which is required for the preview window.
+    allowedHosts: ['.replit.dev'],
   };
 
   const vite = await createViteServer({

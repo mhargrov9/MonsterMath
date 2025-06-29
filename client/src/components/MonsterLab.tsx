@@ -4,41 +4,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import MonsterCard from './MonsterCard';
 import { useAuth } from '@/hooks/useAuth';
-
-// --- Self-Contained, Correct Type Definitions ---
-interface BaseMonster {
-  id: number | string;
-  name: string;
-  goldCost?: number | null;
-  abilities?: any[]; 
-  basePower?: number | null;
-  baseDefense?: number | null;
-  baseSpeed?: number | null;
-  hp?: number | null;
-  maxHp?: number | null;
-  mp?: number | null;
-  maxMp?: number | null;
-}
-
-interface BaseUserMonster {
-  id: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  hp: number | null;
-  maxHp: number | null;
-  mp: number | null;
-  maxMp: number | null;
-}
-
-type UserMonsterWithDetails = BaseUserMonster & {
-    monster: BaseMonster;
-};
+import { Monster, PlayerCombatMonster } from '@/types/game';
 
 interface MonsterLabData {
-    allMonsters: BaseMonster[];
-    userMonsters: UserMonsterWithDetails[];
+    allMonsters: Monster[];
+    userMonsters: PlayerCombatMonster[];
 }
 
 const fetchApiJson = async (path: string): Promise<MonsterLabData> => {
