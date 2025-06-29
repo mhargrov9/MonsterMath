@@ -1,7 +1,5 @@
 import { UserMonster, Monster, Ability } from '../shared/schema';
-
-// This is the server-side game engine. It takes the current state and an action,
-// and returns the definitive new state of the battle.
+import { storage } from './storage'; // To fetch master ability data
 
 type BattleState = {
     playerTeam: UserMonster[];
@@ -11,84 +9,71 @@ type BattleState = {
 };
 
 type Action = {
-    type: 'USE_ABILITY';
+    type: 'USE_ABILITY' | 'SWAP_MONSTER';
     payload: {
-        abilityId: number;
-        casterId: number; // Player's UserMonster ID
-        targetId: number; // AI's Monster ID
+        abilityId?: number;
+        targetId?: number | string;
+        monsterId?: number;
     };
 };
 
-const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-    if ('monster' in monster) { // UserMonster
-        return monster[statName];
-    }
-    const key = `base${statName.charAt(0).toUpperCase() + statName.slice(1)}` as keyof Monster;
-    return (monster as any)[key] || 0;
-};
-
-const getAffinityMultiplier = (attackAffinity: string | null, defender: UserMonster | Monster): number => {
-    if (!attackAffinity) return 1.0;
-    const lower = attackAffinity.toLowerCase();
-
-    const defenderBase = 'monster' in defender ? defender.monster : defender;
-
-    const weaknesses = defenderBase.weaknesses as string[] || [];
-    const resistances = defenderBase.resistances as string[] || [];
-
-    if (weaknesses.map(w => w.toLowerCase()).includes(lower)) return 2.0;
-    if (resistances.map(r => r.toLowerCase()).includes(lower)) return 0.5;
-    return 1.0;
-  };
-
 const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability): number => {
-    const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
-    const attackingPower = getModifiedStat(attacker, scalingStatName);
-    const defendingDefense = getModifiedStat(defender, 'defense');
-    const attackPower = attackingPower * (parseFloat(ability.power_multiplier as any) || 0.5);
-    const damageMultiplier = 100 / (100 + defendingDefense);
-    let rawDamage = attackPower * damageMultiplier;
-    const affinityMultiplier = getAffinityMultiplier(ability.affinity, defender);
-    rawDamage *= affinityMultiplier;
-    const finalDamage = Math.round(Math.max(1, rawDamage));
-    return finalDamage;
+    const power = 'monster' in attacker ? attacker.power : (attacker as any).basePower;
+    const defense = 'monster' in defender ? defender.defense : (defender as any).baseDefense;
+    const powerMultiplier = parseFloat(ability.power_multiplier as any) || 0.5;
+    const damage = Math.round(((power * powerMultiplier) / (defense + 25)) * 10);
+    return Math.max(1, damage);
 };
 
-export function processBattleAction(initialState: BattleState, action: Action, allAbilities: Ability[]): BattleState {
-    let { playerTeam, aiTeam, activePlayerIndex, activeAiIndex } = initialState;
+export async function processBattleAction(initialState: BattleState, action: Action) {
+    let { playerTeam, aiTeam, activePlayerIndex, activeAiIndex } = JSON.parse(JSON.stringify(initialState));
+    const log: string[] = [];
 
-    playerTeam = JSON.parse(JSON.stringify(playerTeam));
-    aiTeam = JSON.parse(JSON.stringify(aiTeam));
-
-    // --- Player's Turn ---
+    // --- Player Action Phase ---
     if (action.type === 'USE_ABILITY') {
-        const { abilityId, casterId, targetId } = action.payload;
-        const ability = allAbilities.find(a => a.id === abilityId);
-        if (!ability) throw new Error(`Ability with ID ${abilityId} not found.`);
+        const attacker = playerTeam[activePlayerIndex];
+        const defender = aiTeam[activeAiIndex];
+        const ability = (await storage.getMonsterAbilities(attacker.monsterId)).find(a => a.id === action.payload.abilityId);
 
-        const attacker = playerTeam.find(p => p.id === casterId);
-        const defender = aiTeam.find(a => a.id === targetId);
-        if (!attacker || !defender) throw new Error('Attacker or Defender not found in battle state.');
-
-        const damageToAi = calculateDamage(attacker, defender, ability);
-        aiTeam = aiTeam.map(a => a.id === targetId ? { ...a, hp: Math.max(0, a.hp - damageToAi) } : a);
-        playerTeam = playerTeam.map(p => p.id === casterId ? { ...p, mp: p.mp - (ability.mp_cost || 0) } : p);
-    }
-
-    // --- AI's Immediate Counter-Attack ---
-    const activeAi = aiTeam[activeAiIndex];
-    const playerDefender = playerTeam[activePlayerIndex];
-
-    if (activeAi.hp > 0 && playerDefender.hp > 0) {
-        const aiAbility = activeAi.abilities?.find(a => a.name === "Basic Attack");
-
-        if(aiAbility && activeAi.mp >= (aiAbility.mp_cost || 0)) {
-            const damageToPlayer = calculateDamage(activeAi, playerDefender, aiAbility);
-
-            playerTeam = playerTeam.map((p, i) => i === activePlayerIndex ? { ...p, hp: Math.max(0, p.hp - damageToPlayer) } : p);
-            aiTeam = aiTeam.map((a, i) => i === activeAiIndex ? { ...a, mp: a.mp - (aiAbility.mp_cost || 0) } : a);
+        if (attacker.hp > 0 && ability) {
+            const damage = calculateDamage(attacker, defender, ability);
+            aiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
+            playerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+            log.push(`Your ${attacker.monster.name} used ${ability.name}, dealing ${damage} damage!`);
+        }
+    } else if (action.type === 'SWAP_MONSTER') {
+        const newIndex = playerTeam.findIndex(p => p.id === action.payload.monsterId);
+        if (newIndex !== -1 && playerTeam[newIndex].hp > 0) {
+            log.push(`You withdrew ${playerTeam[activePlayerIndex].monster.name} and sent out ${playerTeam[newIndex].monster.name}!`);
+            activePlayerIndex = newIndex;
         }
     }
 
-    return { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
+    // --- AI Turn Phase ---
+    let activeAi = aiTeam[activeAiIndex];
+    if (activeAi.hp <= 0) {
+        const nextIndex = aiTeam.findIndex(m => m.hp > 0);
+        if (nextIndex !== -1) {
+            log.push(`Opponent's ${activeAi.name} fainted! Opponent sends out ${aiTeam[nextIndex].name}.`);
+            activeAiIndex = nextIndex;
+        }
+    }
+
+    // AI attacks if its active monster is alive
+    activeAi = aiTeam[activeAiIndex];
+    if (activeAi.hp > 0) {
+        const playerDefender = playerTeam[activePlayerIndex];
+        if (playerDefender.hp > 0) {
+            const aiAbility = activeAi.abilities?.find(a => a.ability_type === 'ACTIVE');
+            if (aiAbility) {
+                const damage = calculateDamage(activeAi, playerDefender, aiAbility);
+                playerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
+                aiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (aiAbility.mp_cost || 0)} : m);
+                log.push(`Opponent's ${activeAi.name} used ${aiAbility.name}, dealing ${damage} damage!`);
+            }
+        }
+    }
+
+    const nextState = { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
+    return { nextState, log };
 }

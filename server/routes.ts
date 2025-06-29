@@ -4,6 +4,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 
+// Newly separated engine logic
+import { processBattleAction } from "./battleEngine"; 
+
 // Standardized error handler
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
@@ -13,13 +16,6 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
   });
 };
 
-// Input validation helpers
-const validateTPL = (tpl: any): number => {
-  const parsed = parseInt(tpl);
-  if (isNaN(parsed) || parsed < 1) { throw new Error("Invalid TPL (must be positive number)");}
-  return parsed;
-};
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // All API routes are protected
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -27,13 +23,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(req.user.claims.sub);
       res.json(user);
     } catch (error) { handleError(error, res, "Failed to fetch user"); }
-  });
-
-  app.get("/api/monsters", isAuthenticated, async (req, res) => {
-    try {
-      const monsters = await storage.getAllMonsters();
-      res.json(monsters);
-    } catch (error) { handleError(error, res, "Failed to fetch monsters"); }
   });
 
   app.get("/api/user/monsters", isAuthenticated, async (req: any, res) => {
@@ -61,8 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
-      const validatedTPL = validateTPL(req.body.tpl);
-      const aiOpponent = await storage.generateAiOpponent(validatedTPL);
+      const aiOpponent = await storage.generateAiOpponent(0); // TPL is not used yet
       res.json(aiOpponent);
     } catch (error) { handleError(error, res, "Failed to generate opponent"); }
   });
@@ -74,17 +62,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to spend battle token"); }
   });
 
-  app.post('/api/battle/complete', isAuthenticated, async (req: any, res) => {
+  // --- BATTLE ACTION ENDPOINT ---
+  app.post("/api/battle/action", isAuthenticated, async (req: any, res) => {
     try {
-      const { winnerId } = req.body;
-      if (!winnerId) { return res.status(400).json({ message: 'Winner ID is required.' }); }
-      await storage.awardRankXp(winnerId, 50);
-      res.json({ message: `Awarded 50 XP.`});
-    } catch(error) { handleError(error, res, "Failed to complete battle and award XP"); }
-  });
+      const { battleState, action } = req.body;
+      if (!battleState || !action) {
+        return res.status(400).json({ message: "Missing battle state or action." });
+      }
 
-  // The complex and fragile /api/generate/monster-image endpoint has been removed.
-  // Images are now served as static assets directly, which is more robust and scalable.
+      // The server processes the entire turn based on one player action
+      const { nextState, log } = await processBattleAction(battleState, action);
+
+      res.json({ success: true, nextState, log });
+
+    } catch (error) {
+      handleError(error, res, "Failed to process battle action");
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
