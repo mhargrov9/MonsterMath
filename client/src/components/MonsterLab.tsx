@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import MonsterCard from './MonsterCard';
-import { Monster, UserMonster } from '@/types/game';
+import { Monster as BaseMonster, UserMonster as BaseUserMonster } from '@/types/game';
 import { useAuth } from '@/hooks/useAuth';
 
 const fetchApiJson = async (path: string) => {
@@ -14,9 +14,14 @@ const fetchApiJson = async (path: string) => {
     return res.json();
 };
 
+// Define the correct shape of the UserMonster object returned by the API
+type UserMonsterWithDetails = BaseUserMonster & {
+    monster: BaseMonster;
+};
+
 interface MonsterLabData {
-    allMonsters: Monster[];
-    userMonsters: UserMonster[];
+    allMonsters: BaseMonster[];
+    userMonsters: UserMonsterWithDetails[];
 }
 
 const MonsterLab: React.FC = () => {

@@ -24,7 +24,7 @@ import {
   type InsertBattle,
   type InsertInventoryItem,
   type InsertAiTeam,
-} from "@shared/schema";
+} from "../shared/schema";
 
 import { db } from "./db";
 import { eq, and, ne, sql, desc, asc, lte, gt } from "drizzle-orm";
@@ -94,10 +94,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }> {
-    const [allMonsters, userMonsters] = await Promise.all([
-        this.getAllMonsters(),
-        this.getUserMonsters(userId)
-    ]);
+    // *** THIS IS THE FIX ***
+    // We are changing from parallel to sequential execution to isolate the crash.
+    console.log("[storage] Attempting to fetch all monsters...");
+    const allMonsters = await this.getAllMonsters();
+    console.log("[storage] Successfully fetched all monsters.");
+
+    console.log("[storage] Attempting to fetch user monsters...");
+    const userMonsters = await this.getUserMonsters(userId);
+    console.log("[storage] Successfully fetched user monsters.");
+
     return { allMonsters, userMonsters };
   }
 
