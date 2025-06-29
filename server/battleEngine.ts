@@ -1,7 +1,23 @@
-import { UserMonster, Monster, Ability, PlayerCombatMonster, AiCombatMonster, ActiveEffect, StatModifier } from '../shared/schema';
+import { UserMonster, Monster, Ability } from '../shared/schema';
 import { storage } from './storage';
 
-// --- Type Definitions ---
+// --- Self-Contained, Correct Type Definitions ---
+interface StatModifier {
+    stat: 'power' | 'defense' | 'speed';
+    type: 'FLAT' | 'PERCENTAGE';
+    value: number;
+    duration?: number;
+}
+interface ActiveEffect {
+    id: string;
+    sourceAbilityId: number;
+    targetMonsterId: number | string;
+    modifier: StatModifier;
+    duration: number;
+}
+type PlayerCombatMonster = UserMonster & { monster: Monster };
+type AiCombatMonster = Monster & { abilities: Ability[]; hp: number; mp: number; };
+
 type BattleState = {
     playerTeam: PlayerCombatMonster[];
     aiTeam: AiCombatMonster[];
@@ -25,8 +41,24 @@ type TurnPhaseResult = {
     logEntries: string[];
 }
 
-// --- Calculation Logic ---
-// (calculateDamage and getModifiedStat functions remain here, unchanged)
+const getModifiedStat = (monster: PlayerCombatMonster | AiCombatMonster, statName: 'power' | 'defense' | 'speed', activeEffects: ActiveEffect[]): number => {
+    const monsterId = monster.id;
+    let baseStat: number;
+    if ('monster' in monster) { 
+        baseStat = monster[statName];
+    } else {
+        if (statName === 'power') baseStat = monster.basePower;
+        else if (statName === 'defense') baseStat = monster.baseDefense;
+        else baseStat = monster.baseSpeed;
+    }
+    if(typeof baseStat !== 'number') baseStat = 0;
+    const effectsForStat = activeEffects.filter(e => e.targetMonsterId === monsterId && e.modifier.stat.toLowerCase() === statName.toLowerCase());
+    let finalStat = baseStat;
+    effectsForStat.filter(e => e.modifier.type === 'FLAT').forEach(e => finalStat += e.modifier.value);
+    effectsForStat.filter(e => e.modifier.type === 'PERCENTAGE').forEach(e => finalStat *= (1 + e.modifier.value / 100));
+    return Math.round(finalStat);
+};
+
 const calculateDamage = (attacker: PlayerCombatMonster | AiCombatMonster, defender: PlayerCombatMonster | AiCombatMonster, ability: Ability, activeEffects: ActiveEffect[]): number => {
     if (!ability) return 0;
     const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
@@ -39,21 +71,7 @@ const calculateDamage = (attacker: PlayerCombatMonster | AiCombatMonster, defend
     return Math.round(Math.max(1, rawDamage));
 };
 
-const getModifiedStat = (monster: PlayerCombatMonster | AiCombatMonster, statName: 'power' | 'defense' | 'speed', activeEffects: ActiveEffect[]): number => {
-    // This logic would be fully implemented here
-    if ('monster' in monster) {
-        return monster[statName] ?? 0;
-    }
-    if (statName === 'power') return monster.basePower;
-    if (statName === 'defense') return monster.baseDefense;
-    return monster.baseSpeed;
-};
-
-
-// --- Phase Handlers ---
-
 function handleStartOfTurn(currentState: BattleState): TurnPhaseResult {
-    // Placeholder: In the future, we will check for status effects like PARALYZED or apply POISON damage here.
     console.log('[battleEngine] Executing Start-of-Turn Phase...');
     return { newState: currentState, logEntries: [] };
 }
@@ -63,7 +81,6 @@ async function handleActionPhase(currentState: BattleState, action: Action): Pro
     let state = { ...currentState };
     const logEntries: string[] = [];
 
-    // Player Action
     if (action.type === 'USE_ABILITY') {
         const attacker = state.playerTeam[state.activePlayerIndex];
         const defender = state.aiTeam[state.activeAiIndex];
@@ -73,63 +90,47 @@ async function handleActionPhase(currentState: BattleState, action: Action): Pro
         if ((attacker.hp ?? 0) > 0 && ability) {
             const damage = calculateDamage(attacker, defender, ability, state.activeEffects);
             const newDefender = { ...defender, hp: Math.max(0, defender.hp - damage) };
-            state.aiTeam = state.aiTeam.map((m, i) => i === state.activeAiIndex ? newDefender : m);
-            state.playerTeam = state.playerTeam.map((m, i) => i === state.activePlayerIndex ? { ...m, mp: (m.mp ?? 0) - (ability.mp_cost || 0) } : m);
+            state.aiTeam = state.aiTeam.map((m: AiCombatMonster, i: number) => i === state.activeAiIndex ? newDefender : m);
+            state.playerTeam = state.playerTeam.map((m: PlayerCombatMonster, i: number) => i === state.activePlayerIndex ? { ...m, mp: (m.mp ?? 0) - (ability.mp_cost || 0) } : m);
             logEntries.push(`Your ${attacker.monster.name} used ${ability.name}, dealing ${damage} damage!`);
         }
-    } else if (action.type === 'SWAP_MONSTER') {
-        // This logic will be expanded later
     }
 
-    // AI Response
     let activeAi = state.aiTeam[state.activeAiIndex];
     if (activeAi.hp > 0) {
         const playerDefender = state.playerTeam[state.activePlayerIndex];
         if ((playerDefender.hp ?? 0) > 0) {
-            const aiAbility = activeAi.abilities.find((a) => a.ability_type === 'ACTIVE');
+            const aiAbility = activeAi.abilities.find((a: Ability) => a.ability_type === 'ACTIVE');
             if (aiAbility) {
                 const damage = calculateDamage(activeAi, playerDefender, aiAbility, state.activeEffects);
                 const newPlayerDefender = { ...playerDefender, hp: Math.max(0, (playerDefender.hp ?? 0) - damage) };
-                state.playerTeam = state.playerTeam.map((m, i) => i === state.activePlayerIndex ? newPlayerDefender : m);
-                state.aiTeam = state.aiTeam.map((m, i) => i === state.activeAiIndex ? { ...m, mp: m.mp - (aiAbility.mp_cost || 0)} : m);
+                state.playerTeam = state.playerTeam.map((m: PlayerCombatMonster, i: number) => i === state.activePlayerIndex ? newPlayerDefender : m);
+                state.aiTeam = state.aiTeam.map((m: AiCombatMonster, i: number) => i === state.activeAiIndex ? { ...m, mp: m.mp - (aiAbility.mp_cost || 0)} : m);
                 logEntries.push(`Opponent's ${activeAi.name} used ${aiAbility.name}, dealing ${damage} damage!`);
             }
         }
     }
-
     return { newState: state, logEntries };
 }
 
 function handleEndOfTurn(currentState: BattleState): TurnPhaseResult {
-    // Placeholder: In the future, we will apply passives like Soothing Aura or tick down status effect durations here.
     console.log('[battleEngine] Executing End-of-Turn Phase...');
     return { newState: currentState, logEntries: [] };
 }
 
-
-// --- Main Turn Orchestrator ---
 export async function processTurn(initialState: BattleState, action: Action) {
-    let state = JSON.parse(JSON.stringify(initialState));
-    state.activeEffects = []; // Initialize empty for now
+    let state: BattleState = JSON.parse(JSON.stringify(initialState));
+    state.activeEffects = [];
     state.log = [];
 
-    // 1. Start-of-Turn Phase
     const startOfTurnResult = handleStartOfTurn(state);
     state = startOfTurnResult.newState;
     state.log.push(...startOfTurnResult.logEntries);
 
-    // Check if turn was skipped by a status effect, etc. If so, jump to End-of-Turn.
-    // (Logic to be added here)
-
-    // 2. Action Phase
     const actionPhaseResult = await handleActionPhase(state, action);
     state = actionPhaseResult.newState;
     state.log.push(...actionPhaseResult.logEntries);
 
-    // Check for fainted monsters after action
-    // (Logic to be added here)
-
-    // 3. End-of-Turn Phase
     const endOfTurnResult = handleEndOfTurn(state);
     state = endOfTurnResult.newState;
     state.log.push(...endOfTurnResult.logEntries);

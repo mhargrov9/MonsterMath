@@ -1,6 +1,4 @@
 // This is the single source of truth for all client-side type definitions.
-
-// --- Base Schemas & Types---
 export interface Ability {
   id: number;
   name: string;
@@ -27,6 +25,8 @@ export interface Monster {
   goldCost: number;
   abilities?: Ability[];
   level?: number;
+  resistances?: string[];
+  weaknesses?: string[];
 }
 
 export interface UserMonster {
@@ -54,15 +54,6 @@ export interface User {
     battleSlots: number;
 }
 
-export interface Question {
-    id: number;
-    questionText: string;
-    correctAnswer: string;
-    options: string[];
-    goldReward: number;
-    hint: string | null;
-}
-
 export interface FloatingText {
   id: number;
   text: string;
@@ -86,21 +77,9 @@ export interface StatModifier {
     duration?: number;
 }
 
-export interface AiTrainer {
-  id: number;
-  name: string;
-  archetype: string;
-  description: string;
-  minTPL: number;
-  maxTPL: number;
-  composition: { monsterId: number; level: number }[];
-}
-
-// --- Decorated & Combined Types ---
 export type PlayerCombatMonster = UserMonster & { monster: Monster };
 export type AiCombatMonster = Monster & { abilities: Ability[]; hp: number; mp: number; };
 
-// --- API Response Types ---
 export type BattleActionResponse = {
     nextState: {
         playerTeam: PlayerCombatMonster[];
@@ -110,7 +89,3 @@ export type BattleActionResponse = {
     };
     log: string[];
 }
-
-// --- Misc App-Specific Types ---
-export type GameTab = "lab" | "battle" | "story";
-export type Subject = "math" | "spelling" | "mixed";

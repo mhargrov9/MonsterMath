@@ -55,7 +55,6 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
                 setWinner('ai');
                 setBattleLog(prev => [...prev, '--- YOU HAVE BEEN DEFEATED ---']);
             }
-
         } catch (error) {
             console.error("Error processing action:", error);
             setBattleLog(prev => [...prev, "An error occurred."]);
@@ -69,23 +68,12 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
         if ((attacker.hp ?? 0) <= 0 || (attacker.mp ?? 0) < (ability.mp_cost || 0)) {
             return;
         }
-
-        const action = {
-            type: 'USE_ABILITY',
-            payload: {
-                abilityId: ability.id,
-                casterId: attacker.id,
-                targetId: aiTeam[activeAiIndex].id
-            }
-        };
+        const action = { type: 'USE_ABILITY', payload: { abilityId: ability.id } };
         postAction(action);
     };
 
     const handleSwapMonster = (monsterId: number) => {
-        const action = {
-            type: 'SWAP_MONSTER',
-            payload: { monsterId }
-        };
+        const action = { type: 'SWAP_MONSTER', payload: { monsterId } };
         postAction(action);
     };
 
