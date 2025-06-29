@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserMonster, Monster, Ability, ActiveEffect, FloatingText } from '@/types/game';
 import { applyPassives } from '@/lib/passiveEngine';
-import { calculateDamage, getModifiedStat } from '@/lib/battleCalculations';
+import { calculateDamage } from '@/lib/battleCalculations';
 
 export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: Monster[]) => {
     const [playerTeam, setPlayerTeam] = useState<UserMonster[]>(initialPlayerTeam);
@@ -31,86 +31,89 @@ export const useBattleState = (initialPlayerTeam: UserMonster[], initialAiTeam: 
         setWinner(winnerVal);
     };
 
-    const handleAction = (isPlayerAction: boolean, actionFn: () => { pTeam: UserMonster[], aTeam: Monster[] }) => {
-        if ((isPlayerAction && turn !== 'player') || (!isPlayerAction && turn !== 'ai') || battleEnded) return;
-        const { pTeam, aTeam } = actionFn();
-        setPlayerTeam(pTeam);
-        setAiTeam(aTeam);
-        setTurn(isPlayerAction ? 'ai' : 'player');
-    };
-
     const handlePlayerAbility = (ability: Ability) => {
-        if (targetingMode) return;
+        if (turn !== 'player' || battleEnded || targetingMode) return;
         const attacker = playerTeam[activePlayerIndex];
         if (attacker.mp < (ability.mp_cost || 0)) {
             addLogEntry("Not enough MP!"); return;
         }
+
         if (ability.healing_power && ability.healing_power > 0) {
             setTargetingMode({ ability, validTargets: playerTeam.map(p => p.id) });
             addLogEntry(`Select a target for ${ability.name}.`);
         } else {
-            handleAction(() => {
-                const defender = aiTeam[activeAiIndex];
-                const damage = calculateDamage(attacker, defender, ability, activeEffects);
-                addFloatingText(`-${damage}`, 'damage', defender.id, false);
-                addLogEntry(`Your ${attacker.monster.name} used ${ability.name}, dealing ${damage} damage!`);
-                const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
-                const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
-                return { pTeam: nextPlayerTeam, aTeam: nextAiTeam };
-            }, true);
+            const defender = aiTeam[activeAiIndex];
+            const damage = calculateDamage(attacker, defender, ability, activeEffects);
+            addFloatingText(`-${damage}`, 'damage', defender.id, false);
+            addLogEntry(`Your ${attacker.monster.name} used ${ability.name}, dealing ${damage} damage!`);
+
+            const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
+            const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+
+            setPlayerTeam(nextPlayerTeam);
+            setAiTeam(nextAiTeam);
+            setTurn('ai');
         }
     };
 
     const handleAiAbility = () => {
-        handleAction(() => {
-            const activeAi = aiTeam[activeAiIndex];
-            const defender = playerTeam[activePlayerIndex];
-            const ability = activeAi.abilities?.find(a => a.ability_type === 'ACTIVE' && !a.healing_power) || activeAi.abilities?.[0];
-            if (!ability) return { pTeam: playerTeam, aTeam: aiTeam };
-            const damage = calculateDamage(activeAi, defender, ability, activeEffects);
-            addFloatingText(`-${damage}`, 'damage', defender.id, true);
-            addLogEntry(`Opponent's ${activeAi.name} used ${ability.name}, dealing ${damage} damage!`);
-            const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
-            const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
-            return { pTeam: nextPlayerTeam, aTeam: nextAiTeam };
-        }, false);
+        if (turn !== 'ai' || battleEnded) return;
+        const activeAi = aiTeam[activeAiIndex];
+        const defender = playerTeam[activePlayerIndex];
+        const ability = activeAi.abilities?.find(a => a.ability_type === 'ACTIVE' && !a.healing_power) || activeAi.abilities?.[0];
+        if (!ability) { setTurn('player'); return; }
+
+        const damage = calculateDamage(activeAi, defender, ability, activeEffects);
+        addFloatingText(`-${damage}`, 'damage', defender.id, true);
+        addLogEntry(`Opponent's ${activeAi.name} used ${ability.name}, dealing ${damage} damage!`);
+
+        const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damage) } : m);
+        const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+
+        setPlayerTeam(nextPlayerTeam);
+        setAiTeam(nextAiTeam);
+        setTurn('player');
     };
 
     const handleSwapMonster = (monsterId: number) => {
-        handleAction(() => {
-            const newIndex = playerTeam.findIndex(p => p.id === monsterId);
-            if (newIndex !== -1 && playerTeam[newIndex].hp > 0) {
-                addLogEntry(`You send out ${playerTeam[newIndex].monster.name}!`);
-                setActivePlayerIndex(newIndex);
-            }
-            return { pTeam: playerTeam, aTeam: aiTeam };
-        }, true);
+        if (turn !== 'player' || battleEnded) return;
+        const newIndex = playerTeam.findIndex(p => p.id === monsterId);
+        if (newIndex === -1 || playerTeam[newIndex].hp <= 0) return;
+        addLogEntry(`You send out ${playerTeam[newIndex].monster.name}!`);
+        setActivePlayerIndex(newIndex);
+        setTurn('ai');
     };
 
     const handleTargetSelect = (targetId: number | string) => {
-        if (!targetingMode) return;
+        if (!targetingMode || turn !== 'player' || battleEnded) return;
         const { ability } = targetingMode;
-        handleAction(() => {
-            const attacker = playerTeam[activePlayerIndex];
-            const target = playerTeam.find(p => p.id === targetId);
-            if (!target) return { pTeam: playerTeam, aTeam: aiTeam };
-            const healAmount = ability.healing_power || 0;
-            addLogEntry(`Your ${attacker.monster.name} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`);
-            addFloatingText(`+${healAmount}`, 'heal', targetId, true);
-            const nextPlayerTeam = playerTeam.map(p => p.id === targetId ? {...p, hp: Math.min(p.maxHp, p.hp + healAmount)} : p)
-                .map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
-            setTargetingMode(null);
-            return { pTeam: nextPlayerTeam, aTeam: aiTeam };
-        }, true);
+        const attacker = playerTeam[activePlayerIndex];
+        const target = playerTeam.find(p => p.id === targetId);
+        if (!target) return;
+
+        const healAmount = ability.healing_power || 0;
+        addLogEntry(`Your ${attacker.monster.name} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`);
+        addFloatingText(`+${healAmount}`, 'heal', targetId, true);
+
+        const nextPlayerTeam = playerTeam
+            .map(p => p.id === targetId ? {...p, hp: Math.min(p.maxHp, p.hp + healAmount)} : p)
+            .map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+
+        setPlayerTeam(nextPlayerTeam);
+        setTargetingMode(null);
+        setTurn('ai');
     };
 
     // Main Game Loop
     useEffect(() => {
         if (battleEnded || turn === 'pre-battle') return;
+
         if (playerTeam.every(m => m.hp <= 0)) { handleBattleCompletion('ai'); return; }
         if (aiTeam.every(m => m.hp <= 0)) { handleBattleCompletion('player'); return; }
+
         const activePlayer = playerTeam[activePlayerIndex];
         const activeAi = aiTeam[activeAiIndex];
+
         if (turn === 'player' && activePlayer?.hp <= 0) {
             addLogEntry(`Your ${activePlayer.monster.name} fainted! You must swap.`);
             return;
