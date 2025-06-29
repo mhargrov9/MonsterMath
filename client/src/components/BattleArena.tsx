@@ -1,213 +1,71 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText, StatModifier } from '@/types/game';
-import MonsterCard from './MonsterCard';
-import { Button } from '@/components/ui/button';
+import { UserMonster, Monster } from '@/types/game';
+import { useBattleState } from '@/hooks/useBattleState';
 
-// --- Type Definitions ---
-interface BattleArenaProps {
-  onRetreat: () => void;
-}
-
-// --- Main Component ---
-const useUser = () => {
-    return useQuery<{ id: string; rank_xp: number }>({ queryKey: ['/api/auth/user'] }).data;
-};
-
-export default function BattleArena({ onRetreat }: BattleArenaProps) {
-  const queryClient = useQueryClient();
-  const user = useUser();
-
+// This is now a lightweight component whose only job is to select which
+// view to show (team selection or combat) and pass state to the view.
+export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
   const [battleMode, setBattleMode] = useState<'team-select' | 'combat'>('team-select');
-  const [targetingMode, setTargetingMode] = useState<{ ability: Ability; validTargets: (number | string)[] } | null>(null);
-  const [playerTeam, setPlayerTeam] = useState<UserMonster[]>([]);
-  const [aiTeam, setAiTeam] = useState<Monster[]>([]);
-  const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-  const [activeAiIndex, setActiveAiIndex] = useState(0);
-  const [turn, setTurn] = useState<'player' | 'ai' | 'pre-battle'>('pre-battle');
-  const [battleLog, setBattleLog] = useState<string[]>([]);
-  const [battleEnded, setBattleEnded] = useState(false);
-  const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
-  const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
-  const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
-
-  // --- Utility & Calculation Functions ---
-  const addFloatingText = (text: string, type: 'damage' | 'heal' | 'crit' | 'info', targetId: number | string, isPlayerTarget: boolean) => {
-    const newText: FloatingText = { id: Date.now() + Math.random(), text, type, targetId, isPlayerTarget };
-    setFloatingTexts(prev => [...prev, newText]);
-    setTimeout(() => setFloatingTexts(prev => prev.filter(t => t.id !== newText.id)), 1500);
-  };
-
-  const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-    let baseStat: number;
-    if ('monster' in monster) { baseStat = monster[statName]; } 
-    else { const key = `base${statName.charAt(0).toUpperCase() + statName.slice(1)}` as keyof Monster; baseStat = (monster as any)[key] || 0; }
-    return Math.round(baseStat);
-  };
-
-  const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability): DamageResult => {
-    const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
-    const attackingPower = getModifiedStat(attacker, scalingStatName);
-    const defendingDefense = getModifiedStat(defender, 'defense');
-    const attackPower = attackingPower * (parseFloat(ability.power_multiplier as any) || 0.5);
-    const damageMultiplier = 100 / (100 + defendingDefense);
-    const rawDamage = attackPower * damageMultiplier;
-    return { damage: Math.round(Math.max(1, rawDamage)), isCritical: false, affinityMultiplier: 1 };
-  };
-
-  const handleBattleCompletion = async (winnerVal: 'player' | 'ai') => {
-    if (battleEnded) return;
-    setBattleLog(prev => [...prev, `--- BATTLE OVER ---`]);
-    setBattleEnded(true);
-    setWinner(winnerVal);
-  };
-
-  const handleActionAndEndTurn = (action: () => void, isPlayerAction: boolean) => {
-      if ((isPlayerAction && turn !== 'player') || (!isPlayerAction && turn !== 'ai')) return;
-      action();
-      setTurn(isPlayerAction ? 'ai' : 'player');
-  }
-
-  // --- Player Actions ---
-  const handlePlayerAbility = (ability: Ability) => {
-    if (targetingMode) return;
-    const attacker = playerTeam[activePlayerIndex];
-    if (attacker.mp < (ability.mp_cost || 0)) {
-        setBattleLog(prev => [...prev, "Not enough MP!"]); return;
-    }
-
-    // This is the restored "dispatcher" logic
-    if (ability.healing_power && ability.healing_power > 0) {
-        // Enter targeting mode for healing
-        setTargetingMode({ ability, validTargets: playerTeam.map(p => p.id) });
-        setBattleLog(prev => [...prev, `Select a target for ${ability.name}.`]);
-    } else {
-        // Execute a damage ability
-        handleActionAndEndTurn(() => {
-            const defender = aiTeam[activeAiIndex];
-            const damageResult = calculateDamage(attacker, defender, ability);
-            setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
-            setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
-            addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
-            setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
-        }, true);
-    }
-  };
-
-  const handleTargetSelect = (targetId: number | string) => {
-      if (!targetingMode) return;
-      handleActionAndEndTurn(() => {
-          const { ability } = targetingMode;
-          const attacker = playerTeam[activePlayerIndex];
-          const target = playerTeam.find(p => p.id === targetId);
-          if (!target) return;
-
-          const healAmount = ability.healing_power || 0;
-          setPlayerTeam(team => 
-              team.map(p => p.id === targetId ? {...p, hp: Math.min(p.maxHp, p.hp + healAmount)} : p)
-                  .map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m)
-          );
-          setBattleLog(prev => [...prev, `Your ${attacker.monster.name} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`]);
-          addFloatingText(`+${healAmount}`, 'heal', targetId, true);
-          setTargetingMode(null);
-      }, true);
-  };
-
-  const handleSwapMonster = (monsterId: number) => {
-    handleActionAndEndTurn(() => {
-        const newIndex = playerTeam.findIndex(p => p.id === monsterId);
-        if (newIndex === -1 || playerTeam[newIndex].hp <= 0) return;
-        setBattleLog(prev => [...prev, `You send out ${playerTeam[newIndex].monster.name}!`]);
-        setActivePlayerIndex(newIndex);
-    }, true);
-  };
-
-  // --- AI Action ---
-  const handleAiAbility = () => {
-    handleActionAndEndTurn(() => {
-        const activeAi = aiTeam[activeAiIndex];
-        const defender = playerTeam[activePlayerIndex];
-        // AI will use its first available damaging ability for now
-        const ability = activeAi.abilities?.find(a => a.ability_type === 'ACTIVE' && !a.healing_power) || activeAi.abilities?.[0];
-        if (!ability) return;
-
-        const damageResult = calculateDamage(activeAi, defender, ability);
-        setAiTeam(team => team.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m));
-        setPlayerTeam(team => team.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m));
-        addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
-        setBattleLog(prev => [...prev, `Opponent's ${activeAi.name} used ${ability.name}, dealing ${damageResult.damage} damage!`]);
-    }, false);
-  };
-
-  // --- Game Loop & Setup ---
-  useEffect(() => {
-    if (battleEnded || turn === 'pre-battle') return;
-
-    // Check for fainted monsters at the start of a turn
-    const activePlayer = playerTeam[activePlayerIndex];
-    if (turn === 'player' && activePlayer?.hp <= 0) {
-        if (playerTeam.every(m => m.hp <= 0)) { handleBattleCompletion('ai'); } 
-        else { setBattleLog(prev => [...prev, `Your ${activePlayer.monster.name} fainted! You must swap.`]); }
-        return;
-    }
-
-    if (turn === 'ai') {
-        const activeAi = aiTeam[activeAiIndex];
-        if (activeAi?.hp <= 0) {
-            const nextIndex = aiTeam.findIndex(m => m.hp > 0);
-            if (nextIndex !== -1) {
-                setBattleLog(prev => [...prev, `Opponent's ${activeAi.name} fainted! Opponent sends out ${aiTeam[nextIndex].name}.`]);
-                setActiveAiIndex(nextIndex);
-            } else {
-                handleBattleCompletion('player');
-            }
-        } else {
-            const timer = setTimeout(handleAiAbility, 1500);
-            return () => clearTimeout(timer);
-        }
-    }
-  }, [turn, battleEnded, playerTeam, aiTeam, activePlayerIndex, activeAiIndex]);
+  const [initialTeams, setInitialTeams] = useState<{ pTeam: UserMonster[], aTeam: Monster[] } | null>(null);
 
   const handleBattleStart = (selectedTeam: UserMonster[], generatedOpponent: any) => {
-    setPlayerTeam(selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp })));
-    setAiTeam(generatedOpponent.scaledMonsters); // Restored server call
-    setActivePlayerIndex(0);
-    setActiveAiIndex(0);
-    setBattleLog([`Battle begins! You send out ${selectedTeam[0].monster.name}.`]);
-    setTurn('player');
+    setInitialTeams({
+        pTeam: selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp })),
+        aTeam: generatedOpponent.scaledMonsters
+    });
     setBattleMode('combat');
   };
 
-  const battleLogRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (battleLogRef.current) { battleLogRef.current.scrollTop = battleLogRef.current.scrollHeight; } }, [battleLog]);
+  if (battleMode === 'team-select' || !initialTeams) {
+    return <BattleTeamSelector onBattleStart={handleBattleStart} />;
+  }
 
-  if (battleMode === 'team-select') return <BattleTeamSelector onBattleStart={handleBattleStart} />;
+  // A new component to contain the active battle and its state hook.
+  // This ensures the hook is only called when a battle is active.
+  return <ActiveBattleView initialTeams={initialTeams} onRetreat={onRetreat} onPlayAgain={() => setBattleMode('team-select')} />;
+}
 
-  if (battleMode === 'combat') {
-    if (playerTeam.length === 0 || aiTeam.length === 0 || !playerTeam[activePlayerIndex] || !aiTeam[activeAiIndex]) {
+// This new sub-component manages the active battle state.
+const ActiveBattleView = ({ initialTeams, onRetreat, onPlayAgain }: { initialTeams: { pTeam: UserMonster[], aTeam: Monster[] }, onRetreat: () => void, onPlayAgain: () => void }) => {
+    const { state, actions } = useBattleState(initialTeams.pTeam, initialTeams.aTeam);
+    const battleLogRef = useRef<HTMLDivElement>(null);
+
+    // This useEffect sets the initial state when the component mounts.
+    useEffect(() => {
+        actions.setPlayerTeam(initialTeams.pTeam);
+        actions.setAiTeam(initialTeams.aTeam);
+        actions.setBattleLog([`Battle begins! You send out ${initialTeams.pTeam[0].monster.name}.`]);
+        actions.setTurn('player');
+    }, [initialTeams]);
+
+    useEffect(() => {
+        if (battleLogRef.current) {
+          battleLogRef.current.scrollTop = battleLogRef.current.scrollHeight;
+        }
+    }, [state.battleLog]);
+
+    if (state.playerTeam.length === 0 || state.aiTeam.length === 0 || !state.playerTeam[state.activePlayerIndex] || !state.aiTeam[state.activeAiIndex]) {
       return <div className="text-center p-8">Loading Battle...</div>;
     }
+
     return <CombatView 
-        playerMonster={playerTeam[activePlayerIndex]}
-        opponentMonster={aiTeam[activeAiIndex]}
-        playerBench={playerTeam.filter((_, i) => i !== activePlayerIndex)}
-        opponentBench={aiTeam.filter((_, i) => i !== activeAiIndex)}
-        isPlayerTurn={turn === 'player' && !battleEnded}
-        battleLog={battleLog}
-        battleEnded={battleEnded}
-        winner={winner}
+        playerMonster={state.playerTeam[state.activePlayerIndex]}
+        opponentMonster={state.aiTeam[state.activeAiIndex]}
+        playerBench={state.playerTeam.filter((_, i) => i !== state.activePlayerIndex)}
+        opponentBench={state.aiTeam.filter((_, i) => i !== state.activeAiIndex)}
+        isPlayerTurn={state.turn === 'player' && !state.battleEnded}
+        battleLog={state.battleLog}
+        battleEnded={state.battleEnded}
+        winner={state.winner}
         logRef={battleLogRef}
-        onAbilityClick={handlePlayerAbility}
-        onSwapMonster={handleSwapMonster}
+        onAbilityClick={actions.handlePlayerAbility}
+        onSwapMonster={actions.handleSwapMonster}
         onRetreat={onRetreat}
-        onPlayAgain={() => setBattleMode('team-select')}
-        floatingTexts={floatingTexts}
-        targetingMode={targetingMode}
-        onTargetSelect={handleTargetSelect}
+        onPlayAgain={onPlayAgain}
+        floatingTexts={state.floatingTexts}
+        targetingMode={state.targetingMode}
+        onTargetSelect={actions.handleTargetSelect}
     />;
-  }
-  return null;
-}
+};
