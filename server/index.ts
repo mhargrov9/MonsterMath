@@ -13,7 +13,7 @@ function log(message: string) {
 
 const app = express();
 
-// --- Replit Path Fix Middleware ---
+// Replit Path Fix Middleware
 app.use((req, res, next) => {
   const originalPath = req.headers['x-replit-original-path'];
   if (originalPath && typeof originalPath === 'string') {
@@ -22,7 +22,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- API and other Middleware ---
+// API and other Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
@@ -43,8 +43,8 @@ app.use((req, res, next) => {
   await registerRoutes(app);
 
   // --- Serve Static Files ---
-  // This server now serves the built frontend files from the 'dist' folder
-  const distPath = path.resolve(__dirname, 'dist');
+  // This server now serves the built frontend files from the 'client/dist' folder.
+  const distPath = path.resolve(__dirname, 'client', 'dist');
   app.use(express.static(distPath));
 
   // Fallback for client-side routing
