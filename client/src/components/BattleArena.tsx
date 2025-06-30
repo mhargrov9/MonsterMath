@@ -19,29 +19,34 @@ const CombatSession: React.FC<{
   onRetreat: () => void;
   onPlayAgain: () => void;
 }> = ({ initialState, onRetreat, onPlayAgain }) => {
-  const { state, actions } = useBattleState(initialState.playerTeam, initialState.aiTeam);
+  const { battleState, isPlayerTurn, battleEnded, winner, actions } = useBattleState(initialState.playerTeam, initialState.aiTeam);
   const battleLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (battleLogRef.current) {
       battleLogRef.current.scrollTop = battleLogRef.current.scrollHeight;
     }
-  }, [state.log]);
+  }, [battleState.log]);
 
-  if (!state.playerTeam[state.activePlayerIndex] || !state.aiTeam[state.activeAiIndex]) {
-    return <div className="text-center p-8 text-white">Loading Battle...</div>;
+  // --- THIS IS THE FIX ---
+  // A more robust check to ensure active monsters exist before rendering.
+  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const opponentMonster = battleState.aiTeam[battleState.activeAiIndex];
+
+  if (!playerMonster || !opponentMonster) {
+    return <div className="text-center p-8 text-white">Initializing Battle...</div>;
   }
 
   return (
     <CombatView
-      playerMonster={state.playerTeam[state.activePlayerIndex]}
-      opponentMonster={state.aiTeam[state.activeAiIndex]}
-      playerBench={state.playerTeam.filter((_, i) => i !== state.activePlayerIndex)}
-      opponentBench={state.aiTeam.filter((_, i) => i !== state.activeAiIndex)}
-      isPlayerTurn={state.isPlayerTurn}
-      battleLog={state.log}
-      battleEnded={state.battleEnded}
-      winner={state.winner}
+      playerMonster={playerMonster}
+      opponentMonster={opponentMonster}
+      playerBench={battleState.playerTeam.filter((_, i) => i !== battleState.activePlayerIndex)}
+      opponentBench={battleState.aiTeam.filter((_, i) => i !== battleState.activeAiIndex)}
+      isPlayerTurn={isPlayerTurn}
+      battleLog={battleState.log}
+      battleEnded={battleEnded}
+      winner={winner}
       logRef={battleLogRef}
       onAbilityClick={actions.handlePlayerAbility}
       onSwapMonster={actions.handleSwapMonster}

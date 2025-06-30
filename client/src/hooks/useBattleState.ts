@@ -7,12 +7,11 @@ import {
     BattleActionResponse
 } from '@/types/game';
 
-type BattleState = {
+export type BattleState = {
     playerTeam: PlayerCombatMonster[];
     aiTeam: AiCombatMonster[];
     activePlayerIndex: number;
     activeAiIndex: number;
-    activeEffects: any[]; // Simplified for now
     log: string[];
 };
 
@@ -22,7 +21,6 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
         aiTeam: initialAiTeam,
         activePlayerIndex: 0,
         activeAiIndex: 0,
-        activeEffects: [],
         log: ['Battle Started!'],
     });
     const [turn, setTurn] = useState<'player' | 'ai' | 'game-over'>('player');
@@ -39,22 +37,19 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
             });
             const response: BattleActionResponse = await res.json();
 
-            const nextState = {
+            setBattleState({
                 ...response.nextState,
                 log: [...battleState.log, ...response.log]
-            };
-            setBattleState(nextState);
+            });
 
-            if (nextState.aiTeam.every(m => (m.hp ?? 0) <= 0) || nextState.playerTeam.every(m => (m.hp ?? 0) <= 0)) {
+            if (response.nextState.aiTeam.every(m => (m.hp ?? 0) <= 0) || response.nextState.playerTeam.every(m => (m.hp ?? 0) <= 0)) {
                 setTurn('game-over');
-                const winner = nextState.aiTeam.every(m => (m.hp ?? 0) <= 0) ? 'player' : 'ai';
-                setBattleState(s => ({...s, log: [...s.log, `--- BATTLE OVER! ${winner.toUpperCase()} WINS! ---`]}))
             } else {
                 if (turn === 'player') setTurn('ai');
             }
         } catch (error) {
             console.error("Error processing action:", error);
-            setBattleState(s => ({...s, log: [...s.log, "An error occurred."]}));
+            setBattleState(s => ({...s, log: [...s.log, "An error occurred."]}))
         } finally {
             setIsProcessing(false);
         }
@@ -79,7 +74,6 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
     const handlePlayerAbility = (ability: Ability) => {
         const attacker = battleState.playerTeam[battleState.activePlayerIndex];
         if ((attacker.hp ?? 0) <= 0 || (attacker.mp ?? 0) < (ability.mp_cost || 0)) return;
-
         const action = { 
             type: 'USE_ABILITY', 
             payload: { 
@@ -96,16 +90,15 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
         processAction(action);
     };
 
-    const winner = turn === 'game-over' ? (battleState.aiTeam.every(m => (m.hp ?? 0) <= 0) ? 'player' : 'ai') : null;
+    const battleEnded = turn === 'game-over';
+    const winner = battleEnded ? (battleState.aiTeam.every(m => (m.hp ?? 0) <= 0) ? 'player' : 'ai') : null;
 
     return {
-        state: { 
-            ...battleState,
-            isPlayerTurn: turn === 'player' && !isProcessing,
-            battleEnded: turn === 'game-over',
-            winner,
-            isProcessing
-        },
+        battleState,
+        isPlayerTurn: turn === 'player' && !isProcessing,
+        battleEnded,
+        winner,
+        isProcessing,
         actions: { handlePlayerAbility, handleSwapMonster }
     };
 };
