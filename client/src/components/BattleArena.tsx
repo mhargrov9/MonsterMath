@@ -32,7 +32,10 @@ const CombatSession: React.FC<{
     return <div className="text-center p-8 text-white">Loading Battle...</div>;
   }
 
-  return <CombatView
+  // --- THIS IS THE FIX ---
+  // We now pass all props to CombatView individually, not as spread objects.
+  return (
+    <CombatView
       playerMonster={state.playerTeam[state.activePlayerIndex]}
       opponentMonster={state.aiTeam[state.activeAiIndex]}
       playerBench={state.playerTeam.filter((_, i) => i !== state.activePlayerIndex)}
@@ -49,7 +52,8 @@ const CombatSession: React.FC<{
       floatingTexts={[]}
       targetingMode={null}
       onTargetSelect={() => {}}
-    />;
+    />
+  );
 };
 
 export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
