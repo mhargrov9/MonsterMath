@@ -16,16 +16,22 @@ interface ApiRequestOptions {
 }
 
 export const apiRequest = async (
-  url: string,
+  url: string, // e.g., '/api/auth/user'
   options: ApiRequestOptions = {},
 ): Promise<Response> => {
   const { method = 'GET', data, headers: customHeaders } = options;
 
+  // Use the environment variable for the base URL.
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
   // Ensure all API calls are correctly prefixed with /api/v1
-  let apiUrl = url;
+  let path = url;
   if (url.startsWith('/api/') && !url.startsWith('/api/v1/')) {
-    apiUrl = url.replace('/api/', '/api/v1/');
+    path = url.replace('/api/', '/api/v1/');
   }
+
+  // Construct the full, absolute URL. This now bypasses the Vite proxy entirely.
+  const apiUrl = `${API_BASE_URL}${path}`;
 
   const headers = new Headers({
     'Content-Type': 'application/json',
@@ -35,7 +41,7 @@ export const apiRequest = async (
   const config: RequestInit = {
     method,
     headers,
-    credentials: 'include', // Important for session cookies
+    credentials: 'include',
   };
 
   if (data) {

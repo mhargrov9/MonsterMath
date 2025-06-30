@@ -10,7 +10,19 @@ function log(message: string) {
 
 const app = express();
 
-// Middleware
+// --- DEFINITIVE REPLIT FIX ---
+// This middleware checks for the custom Replit header and rewrites the request URL.
+// This ensures our Express router sees the correct path.
+app.use((req, res, next) => {
+  const originalPath = req.headers['x-replit-original-path'];
+  if (originalPath && typeof originalPath === 'string') {
+    req.url = originalPath;
+  }
+  next();
+});
+
+
+// Existing Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
