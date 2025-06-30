@@ -14,10 +14,13 @@ deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
-# Port configuration table
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 24678
+externalPort = 3000
 
 # Workflows configuration
 [workflows]

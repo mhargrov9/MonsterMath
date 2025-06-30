@@ -29,6 +29,11 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],

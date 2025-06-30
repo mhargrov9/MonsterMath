@@ -3,13 +3,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useBattleState } from '@/hooks/useBattleState';
+import { useBattleSession } from '@/hooks/useBattleSession';
 import { PlayerCombatMonster, AiCombatMonster } from '@/types/game';
 import { Button } from '@/components/ui/button';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
 import MonsterCard from './MonsterCard';
 
 interface BattleInit {
+  battleId: string;
   playerTeam: PlayerCombatMonster[];
   aiTeam: AiCombatMonster[];
 }
@@ -19,7 +21,21 @@ const CombatSession: React.FC<{
   onRetreat: () => void;
   onPlayAgain: () => void;
 }> = ({ initialState, onRetreat, onPlayAgain }) => {
-  const { battleState, isPlayerTurn, targetingMode, battleEnded, winner, actions } = useBattleState(initialState.playerTeam, initialState.aiTeam);
+  const { 
+    battleState, 
+    isPlayerTurn, 
+    targetingMode, 
+    battleEnded, 
+    winner, 
+    actions,
+    isProcessing,
+    error
+  } = useBattleState(
+    initialState.playerTeam, 
+    initialState.aiTeam,
+    initialState.battleId
+  );
+
   const battleLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +48,31 @@ const CombatSession: React.FC<{
   const opponentMonster = battleState.aiTeam[battleState.activeAiIndex];
 
   if (!playerMonster || !opponentMonster) {
-    return <div className="text-center p-8 text-white">Initializing Battle...</div>;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card>
+          <CardContent className="p-8">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-center text-white">Initializing Battle...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error if any
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md">
+          <CardContent className="p-8">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+            <p className="text-center text-white mb-4">{error}</p>
+            <Button onClick={onPlayAgain} className="w-full">Return to Team Selection</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -48,7 +88,7 @@ const CombatSession: React.FC<{
       logRef={battleLogRef}
       onAbilityClick={actions.handlePlayerAbility}
       onSwapMonster={actions.handleSwapMonster}
-      onRetreat={onRetreat}
+      onRetreat={actions.handleForfeit}
       onPlayAgain={onPlayAgain}
       floatingTexts={[]}
       targetingMode={targetingMode}
@@ -58,18 +98,38 @@ const CombatSession: React.FC<{
 };
 
 export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
-  const [mode, setMode] = useState<'team-select' | 'pre-battle' | 'combat'>('team-select');
+  const [mode, setMode] = useState<'team-select' | 'pre-battle' | 'combat' | 'loading'>('loading');
   const [playerTeam, setPlayerTeam] = useState<PlayerCombatMonster[] | null>(null);
   const [leadMonsterId, setLeadMonsterId] = useState<number | null>(null);
   const [battleInit, setBattleInit] = useState<BattleInit | null>(null);
-  const [isStartingBattle, setIsStartingBattle] = useState(false);
-  const { toast } = useToast();
+  const { createBattle, checkActiveBattle, isCreatingBattle } = useBattleSession();
   const queryClient = useQueryClient();
+
+  // Check for existing battle on mount
+  useEffect(() => {
+    const checkExistingBattle = async () => {
+      const activeBattle = await checkActiveBattle();
+
+      if (activeBattle) {
+        // Resume existing battle
+        setBattleInit({
+          battleId: activeBattle.battleId,
+          playerTeam: activeBattle.state.playerTeam,
+          aiTeam: activeBattle.state.aiTeam
+        });
+        setMode('combat');
+      } else {
+        // Start fresh
+        setMode('team-select');
+      }
+    };
+
+    checkExistingBattle();
+  }, []);
 
   const handleTeamConfirm = (team: PlayerCombatMonster[]) => {
     if (team.length === 0) {
-        toast({ title: "No Monsters Selected", description: "You must select at least one monster."});
-        return;
+      return;
     }
     setPlayerTeam(team);
     setLeadMonsterId(team[0].id);
@@ -78,36 +138,50 @@ export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
 
   const handleStartBattle = async () => {
     if (!playerTeam || leadMonsterId === null) return;
-    setIsStartingBattle(true);
 
+    // Reorder team with lead monster first
     const reorderedPlayerTeam = [...playerTeam].sort((a, b) => {
-        if (a.id === leadMonsterId) return -1;
-        if (b.id === leadMonsterId) return 1;
-        return 0;
+      if (a.id === leadMonsterId) return -1;
+      if (b.id === leadMonsterId) return 1;
+      return 0;
     });
 
-    try {
-      await apiRequest("/api/battle/spend-token", { method: "POST" });
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+    const result = await createBattle(reorderedPlayerTeam);
 
-      const tpl = reorderedPlayerTeam.reduce((total, m) => total + m.level, 0);
-      const opponentResponse = await apiRequest("/api/battle/generate-opponent", { method: "POST", data: { tpl } });
-      const opponentData = await opponentResponse.json();
-
-      setBattleInit({ playerTeam: reorderedPlayerTeam, aiTeam: opponentData.scaledMonsters });
+    if (result) {
+      setBattleInit({
+        battleId: result.battleId,
+        playerTeam: reorderedPlayerTeam,
+        aiTeam: result.aiTeam
+      });
       setMode('combat');
-    } catch (error: any) {
-      toast({ title: "An Error Occurred", description: (error as Error).message || "Could not start the battle.", variant: "destructive" });
-      setIsStartingBattle(false);
+    } else {
+      // Error was handled by the hook
+      setMode('team-select');
     }
   };
 
   const resetFlow = () => {
-      setPlayerTeam(null);
-      setLeadMonsterId(null);
-      setBattleInit(null);
-      setIsStartingBattle(false);
-      setMode('team-select');
+    setPlayerTeam(null);
+    setLeadMonsterId(null);
+    setBattleInit(null);
+    setMode('team-select');
+
+    // Refresh user data to update battle tokens
+    queryClient.invalidateQueries({ queryKey: ['/api/v1/auth/user'] });
+  };
+
+  if (mode === 'loading') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card>
+          <CardContent className="p-8">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+            <p className="text-center text-white">Loading Battle Arena...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (mode === 'team-select') {
@@ -116,32 +190,63 @@ export default function BattleArena({ onRetreat }: { onRetreat: () => void }) {
 
   if (mode === 'pre-battle' && playerTeam) {
     return (
-        <div className="flex flex-col items-center justify-center h-full text-white p-4">
-            <h2 className="text-2xl font-bold mb-2">Team Selected!</h2>
-            <p className="text-white/80 mb-6">Choose your lead monster.</p>
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-                {playerTeam.map(p => (
-                    <div key={p.id} className={`rounded-lg transition-all ${leadMonsterId === p.id ? 'ring-4 ring-green-500' : 'ring-2 ring-transparent'}`}>
-                        <MonsterCard 
-                            monster={p.monster} 
-                            userMonster={p} 
-                            size="small"
-                            onCardClick={() => setLeadMonsterId(p.id)}
-                            isToggleable={false}
-                         />
-                    </div>
-                ))}
+      <div className="flex flex-col items-center justify-center h-full text-white p-4">
+        <h2 className="text-2xl font-bold mb-2">Team Selected!</h2>
+        <p className="text-white/80 mb-6">Choose your lead monster.</p>
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+          {playerTeam.map(p => (
+            <div 
+              key={p.id} 
+              className={`rounded-lg transition-all cursor-pointer ${
+                leadMonsterId === p.id ? 'ring-4 ring-green-500' : 'ring-2 ring-transparent hover:ring-white/30'
+              }`}
+              onClick={() => setLeadMonsterId(p.id)}
+            >
+              <MonsterCard 
+                monster={p.monster} 
+                userMonster={p} 
+                size="small"
+                isToggleable={false}
+              />
             </div>
-            <Button onClick={handleStartBattle} disabled={isStartingBattle || !leadMonsterId} size="lg" className="bg-red-600 hover:bg-red-700">
-                {isStartingBattle ? "Finding Opponent..." : "Start Battle!"}
-            </Button>
-            <Button onClick={resetFlow} variant="link" className="mt-4 text-white/70">Change Team</Button>
+          ))}
         </div>
-    )
+        <div className="space-y-4">
+          <Button 
+            onClick={handleStartBattle} 
+            disabled={isCreatingBattle || !leadMonsterId} 
+            size="lg" 
+            className="bg-red-600 hover:bg-red-700 min-w-[200px]"
+          >
+            {isCreatingBattle ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Finding Opponent...
+              </>
+            ) : (
+              'Start Battle!'
+            )}
+          </Button>
+          <Button 
+            onClick={resetFlow} 
+            variant="link" 
+            className="text-white/70 w-full"
+          >
+            Change Team
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (mode === 'combat' && battleInit) {
-    return <CombatSession initialState={battleInit} onRetreat={onRetreat} onPlayAgain={resetFlow} />;
+    return (
+      <CombatSession 
+        initialState={battleInit} 
+        onRetreat={onRetreat} 
+        onPlayAgain={resetFlow} 
+      />
+    );
   }
 
   return null;
