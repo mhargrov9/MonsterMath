@@ -42,7 +42,7 @@ app.use(express.urlencoded({ extended: false }));
   app.use(errorHandler);
 
   // Use port 5000 by default, or PORT environment variable
-  const PORT = process.env.PORT || 5000;
+  const PORT = parseInt(process.env.PORT || "5000", 10);
 
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server running on port ${PORT}`);

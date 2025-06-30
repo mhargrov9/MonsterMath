@@ -2,7 +2,7 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { isAuthenticated } from "./replitAuth.js";
+import { isAuthenticated, setupAuth } from "./replitAuth.js";
 import { battleEngine } from "./battleEngine.js";
 import { battleSessionManager } from "./services/BattleSessionManager.js";
 import { TurnAction } from "./types/battle.js";
@@ -23,6 +23,9 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize authentication system first
+  await setupAuth(app);
+  
   // API versioning for professional scalability
   const apiV1 = express.Router();
   app.use('/api/v1', apiV1);
