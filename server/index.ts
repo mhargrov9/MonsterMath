@@ -42,14 +42,12 @@ app.use((req, res, next) => {
   // Set up API routes and authentication
   await registerRoutes(app);
 
-  // --- Serve Static Files ---
-  // This server now serves the built frontend files from the 'client/dist' folder.
+  // Serve Static Files
   const distPath = path.resolve(__dirname, 'client', 'dist');
   app.use(express.static(distPath));
 
   // Fallback for client-side routing
   app.get('*', (req, res) => {
-    // Skip API routes from this fallback handler
     if (req.originalUrl.startsWith('/api')) {
       return notFoundHandler(req, res);
     }
@@ -60,7 +58,7 @@ app.use((req, res, next) => {
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 5002; // Port changed to 5002
   server.listen(PORT, '0.0.0.0', () => {
     log(`API server running on port ${PORT}`);
   });
