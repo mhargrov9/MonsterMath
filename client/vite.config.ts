@@ -13,12 +13,11 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 3001,
-    // Proxy API requests to the backend server
     proxy: {
-      '/api': {
+      // Forward any request to /api/v1 to the backend server
+      '/api/v1': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api/v1'), // This line is the fix
       },
     },
   },
