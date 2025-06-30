@@ -1,80 +1,84 @@
-import type { Express } from "express";
-import express from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { isAuthenticated } from "./replitAuth";
-import { processAction, getAiAction } from "./battleEngine";
+import { Request, Response, NextFunction } from 'express';
 
-const handleError = (error: unknown, res: express.Response, message: string) => {
-  console.error(message, error);
-  res.status(500).json({
-    message,
-    error: error instanceof Error ? error.message : 'Unknown error'
+export interface ApiError extends Error {
+  statusCode?: number;
+  code?: string;
+  details?: any;
+}
+
+/**
+ * Professional error handling middleware
+ * Catches all errors and returns consistent JSON responses
+ */
+export function errorHandler(
+  err: ApiError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  // Log error for monitoring
+  console.error(`[${new Date().toISOString()}] Error in ${req.method} ${req.path}:`, {
+    message: err.message,
+    stack: err.stack,
+    code: err.code,
+    details: err.details
   });
-};
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.claims.sub);
-      res.json(user);
-    } catch (error) { handleError(error, res, "Failed to fetch user"); }
-  });
+  // Determine status code
+  const statusCode = err.statusCode || 500;
 
-  app.get("/api/monster-lab-data", isAuthenticated, async (req: any, res) => {
-    try {
-      const data = await storage.getMonsterLabData(req.user.claims.sub);
-      res.json(data);
-    } catch (error) {
-      handleError(error, res, "Failed to fetch Monster Lab data");
+  // Prepare error response
+  const errorResponse = {
+    success: false,
+    error: {
+      message: err.message || 'Internal server error',
+      code: err.code || 'INTERNAL_ERROR',
+      timestamp: new Date().toISOString(),
+      path: req.path,
+      method: req.method
+    }
+  };
+
+  // Add details in development
+  if (process.env.NODE_ENV === 'development') {
+    (errorResponse.error as any).stack = err.stack;
+    (errorResponse.error as any).details = err.details;
+  }
+
+  res.status(statusCode).json(errorResponse);
+}
+
+/**
+ * Not found handler
+ */
+export function notFoundHandler(req: Request, res: Response) {
+  res.status(404).json({
+    success: false,
+    error: {
+      message: 'Resource not found',
+      code: 'NOT_FOUND',
+      path: req.path,
+      timestamp: new Date().toISOString()
     }
   });
+}
 
-  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
-    try {
-      const aiOpponent = await storage.generateAiOpponent(0);
-      res.json(aiOpponent);
-    } catch (error) { 
-      handleError(error, res, "Failed to generate opponent"); 
+/**
+ * Request validation middleware factory
+ */
+export function validateRequest(schema: any) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const { error, value } = schema.validate(req.body);
+
+    if (error) {
+      const apiError: ApiError = new Error('Validation error');
+      apiError.statusCode = 400;
+      apiError.code = 'VALIDATION_ERROR';
+      apiError.details = error.details;
+      return next(apiError);
     }
-  });
 
-  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
-      await storage.spendBattleToken(req.user.claims.sub);
-      res.json({ success: true });
-  });
-
-  app.post('/api/battle/action', isAuthenticated, async (req: any, res) => {
-    try {
-      const { battleState, action } = req.body;
-      if (!battleState || !action) {
-        return res.status(400).json({ message: "Missing battleState or action in request body." });
-      }
-      const result = await processAction(battleState, action);
-      res.json(result);
-    } catch (error) {
-      handleError(error, res, "Failed to process battle action");
-    }
-  });
-
-  app.post('/api/battle/ai-action', isAuthenticated, async (req: any, res) => {
-      try {
-          const { battleState } = req.body;
-          if (!battleState) {
-              return res.status(400).json({ message: "Missing battleState in request body." });
-          }
-          const aiAction = getAiAction(battleState);
-          res.json(aiAction);
-      } catch (error) {
-          handleError(error, res, "Failed to get AI action");
-      }
-  });
-
-  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
-      const slots = await storage.getUserBattleSlots((req.user as any).claims.sub);
-      res.json({ battleSlots: slots });
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+    req.body = value;
+    next();
+  };
 }

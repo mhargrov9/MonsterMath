@@ -10,7 +10,7 @@ import {
   TurnSnapshot,
   CurrentTurn
 } from './types/battle';
-import { PlayerCombatMonster, AiCombatMonster, Ability } from '@shared/schema';
+import { PlayerCombatMonster, AiCombatMonster, Ability } from '../shared/schema';
 
 /**
  * Server-authoritative battle engine with complete turn lifecycle
@@ -44,7 +44,8 @@ export class BattleEngine {
         phase: 'start-of-turn',
         actingMonsterId: actingMonster.id,
         action,
-        stateBeforeAction: this.createStateSnapshot(newState)
+        stateBeforeAction: this.createStateSnapshot(newState),
+        stateAfterAction: {} // Will be filled later
       };
 
       // Phase 1: Start of Turn
@@ -306,7 +307,7 @@ export class BattleEngine {
       }
 
       healing = ability.healing_power;
-      const targetName = this.getMonsterName(target);
+      const targetName = this.getMonsterName(target.monster);
       log.push(`${this.getMonsterName(attacker)} used ${ability.name}, healing ${targetName} for ${healing} HP!`);
 
       state = this.applyHealing(state, payload.targetId, healing, target.isPlayer);
@@ -327,13 +328,13 @@ export class BattleEngine {
       state = this.applyDamage(state, payload.targetId, damage, target.isPlayer);
 
       // Apply status effects if any
-      if (ability.status_effect_applies && Math.random() < (ability.status_effect_chance || 0)) {
+      if (ability.status_effect_applies && Math.random() < (parseFloat(ability.status_effect_chance as any) || 0)) {
         const statusEffect: StatusEffect = {
           id: nanoid(),
           type: ability.status_effect_applies as any,
           targetMonsterId: payload.targetId,
           duration: ability.status_effect_duration || 2,
-          value: ability.status_effect_value || 10
+          value: parseFloat(ability.status_effect_value as any) || 10
         };
 
         if (!state.statusEffects) state.statusEffects = [];
@@ -357,7 +358,11 @@ export class BattleEngine {
           duration: mod.duration || 3
         };
         state.activeEffects.push(effect);
-        log.push(`${this.getMonsterName(target!.monster)}'s ${mod.stat} was ${mod.value > 0 ? 'increased' : 'decreased'}!`);
+
+        const targetMonster = this.findMonsterById(state, payload.targetId);
+        if (targetMonster) {
+          log.push(`${this.getMonsterName(targetMonster.monster)}'s ${mod.stat} was ${mod.value > 0 ? 'increased' : 'decreased'}!`);
+        }
       }
     }
 
@@ -429,6 +434,25 @@ export class BattleEngine {
 
     // Minimum damage is always 1
     return Math.max(1, damage);
+  }
+
+  /**
+   * Calculates type effectiveness
+   */
+  private calculateTypeEffectiveness(
+    attackType: string | null | undefined,
+    defender: PlayerCombatMonster | AiCombatMonster
+  ): number {
+    if (!attackType) return 1.0;
+
+    const defenderMonster = 'monster' in defender ? defender.monster : defender;
+    const resistances = defenderMonster.resistances || [];
+    const weaknesses = defenderMonster.weaknesses || [];
+
+    if (weaknesses.includes(attackType)) return 1.5;
+    if (resistances.includes(attackType)) return 0.5;
+
+    return 1.0;
   }
 
   /**
@@ -567,4 +591,183 @@ export class BattleEngine {
     ability: Ability,
     isPlayerMonster: boolean
   ): Promise<{ state: BattleState; log: string[] }> {
-    const log: string[] =
+    const log: string[] = [];
+
+    // Handle healing passives
+    if (ability.status_effect_applies === 'HEALING') {
+      const healAmount = Math.round(
+        (sourceMonster.maxHp || 100) * (parseFloat(ability.status_effect_value as any) || 5) / 100
+      );
+
+      state = this.applyHealing(state, sourceMonster.id, healAmount, isPlayerMonster);
+      log.push(`${this.getMonsterName(sourceMonster)} restored ${healAmount} HP!`);
+    }
+
+    // Handle stat modifier passives
+    if (ability.stat_modifiers) {
+      const modifiers = ability.stat_modifiers as any[];
+      for (const mod of modifiers) {
+        const effect: ActiveEffect = {
+          id: nanoid(),
+          sourceAbilityId: ability.id,
+          targetMonsterId: sourceMonster.id,
+          stat: mod.stat,
+          type: mod.type,
+          value: mod.value,
+          duration: mod.duration || 999 // Passive effects last until battle end
+        };
+        state.activeEffects.push(effect);
+      }
+    }
+
+    return { state, log };
+  }
+
+  /**
+   * Checks for battle end conditions
+   */
+  private checkBattleEnd(state: BattleState): BattleStatus | null {
+    const playerTeamFainted = state.playerTeam.every(m => m.hp <= 0);
+    const aiTeamFainted = state.aiTeam.every(m => m.hp <= 0);
+
+    if (playerTeamFainted) return 'defeat';
+    if (aiTeamFainted) return 'victory';
+
+    return null;
+  }
+
+  /**
+   * Gets the currently acting monster
+   */
+  private getActingMonster(
+    state: BattleState,
+    isPlayerAction: boolean
+  ): PlayerCombatMonster | AiCombatMonster | null {
+    if (isPlayerAction) {
+      return state.playerTeam[state.activePlayerIndex] || null;
+    } else {
+      return state.aiTeam[state.activeAiIndex] || null;
+    }
+  }
+
+  /**
+   * Gets a monster's stat value
+   */
+  private getMonsterStat(
+    monster: PlayerCombatMonster | AiCombatMonster,
+    stat: 'power' | 'defense' | 'speed'
+  ): number {
+    if ('monster' in monster) {
+      // Player monster
+      return monster[stat] || 0;
+    } else {
+      // AI monster
+      const statMap = {
+        power: monster.basePower,
+        defense: monster.baseDefense,
+        speed: monster.baseSpeed
+      };
+      return statMap[stat] || 0;
+    }
+  }
+
+  /**
+   * Gets monster abilities from storage
+   */
+  private async getMonsterAbilities(
+    monster: PlayerCombatMonster | AiCombatMonster
+  ): Promise<Ability[]> {
+    const monsterId = 'monster' in monster ? monster.monsterId : monster.id;
+    return await storage.getMonsterAbilities(monsterId as number);
+  }
+
+  /**
+   * Gets a monster's display name
+   */
+  private getMonsterName(monster: PlayerCombatMonster | AiCombatMonster): string {
+    if ('monster' in monster) {
+      return monster.monster.name;
+    } else {
+      return monster.name;
+    }
+  }
+
+  /**
+   * Finds a monster by ID across both teams
+   */
+  private findMonsterById(
+    state: BattleState,
+    monsterId: number
+  ): { monster: PlayerCombatMonster | AiCombatMonster; isPlayer: boolean } | null {
+    const playerMonster = state.playerTeam.find(m => m.id === monsterId);
+    if (playerMonster) {
+      return { monster: playerMonster, isPlayer: true };
+    }
+
+    const aiMonster = state.aiTeam.find(m => m.id === monsterId);
+    if (aiMonster) {
+      return { monster: aiMonster, isPlayer: false };
+    }
+
+    return null;
+  }
+
+  /**
+   * Creates a snapshot of the current state for history
+   */
+  private createStateSnapshot(state: BattleState): Partial<BattleState> {
+    return {
+      playerTeam: state.playerTeam.map(m => ({
+        id: m.id,
+        hp: m.hp,
+        mp: m.mp
+      })) as any,
+      aiTeam: state.aiTeam.map(m => ({
+        id: m.id,
+        hp: m.hp,
+        mp: m.mp
+      })) as any,
+      activePlayerIndex: state.activePlayerIndex,
+      activeAiIndex: state.activeAiIndex
+    };
+  }
+
+  /**
+   * Generates an AI action based on current state
+   */
+  generateAiAction(state: BattleState): TurnAction {
+    const aiMonster = state.aiTeam[state.activeAiIndex];
+    const playerMonster = state.playerTeam[state.activePlayerIndex];
+
+    // Simple AI: Use first available damaging ability
+    const abilities = aiMonster.abilities || [];
+    const damageAbility = abilities.find(
+      a => a.ability_type === 'ACTIVE' && 
+           a.power_multiplier && 
+           (a.mp_cost || 0) <= aiMonster.mp
+    );
+
+    if (damageAbility) {
+      return {
+        type: 'USE_ABILITY',
+        payload: {
+          abilityId: damageAbility.id,
+          targetId: playerMonster.id
+        }
+      };
+    }
+
+    // Fallback to basic attack
+    const basicAttack = abilities.find(a => a.mp_cost === 0);
+    return {
+      type: 'USE_ABILITY',
+      payload: {
+        abilityId: basicAttack?.id || 1,
+        targetId: playerMonster.id
+      }
+    };
+  }
+}
+
+// Export singleton instance
+export const battleEngine = new BattleEngine();
