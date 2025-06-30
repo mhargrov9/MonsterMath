@@ -2,17 +2,18 @@ import express from 'express';
 import { createServer } from 'http';
 import { registerRoutes } from './routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import path from 'path';
+
+const __dirname = path.resolve();
 
 function log(message: string) {
   const timestamp = new Date().toLocaleTimeString();
-  console.log(`${timestamp} [api-server] ${message}`);
+  console.log(`${timestamp} [server] ${message}`);
 }
 
 const app = express();
 
-// --- DEFINITIVE REPLIT FIX ---
-// This middleware checks for the custom Replit header and rewrites the request URL.
-// This ensures our Express router sees the correct path.
+// --- Replit Path Fix Middleware ---
 app.use((req, res, next) => {
   const originalPath = req.headers['x-replit-original-path'];
   if (originalPath && typeof originalPath === 'string') {
@@ -21,8 +22,7 @@ app.use((req, res, next) => {
   next();
 });
 
-
-// Existing Middleware
+// --- API and other Middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
@@ -37,15 +37,31 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const server = createServer(app);
+
+  // Set up API routes and authentication
   await registerRoutes(app);
 
+  // --- Serve Static Files ---
+  // This server now serves the built frontend files from the 'dist' folder
+  const distPath = path.resolve(__dirname, 'dist');
+  app.use(express.static(distPath));
+
+  // Fallback for client-side routing
+  app.get('*', (req, res) => {
+    // Skip API routes from this fallback handler
+    if (req.originalUrl.startsWith('/api')) {
+      return notFoundHandler(req, res);
+    }
+    res.sendFile(path.resolve(distPath, 'index.html'));
+  });
+
+  // Error handlers must be last
   app.use(notFoundHandler);
   app.use(errorHandler);
 
   const PORT = process.env.PORT || 5000;
-  const server = createServer(app);
-
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     log(`API server running on port ${PORT}`);
   });
 })();

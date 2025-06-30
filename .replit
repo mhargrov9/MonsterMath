@@ -14,8 +14,9 @@ deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
+# This points the web preview to our single server on port 5000.
 [[ports]]
-localPort = 3001
+localPort = 5000
 externalPort = 80
 
 # Workflows configuration
