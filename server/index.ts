@@ -2,15 +2,17 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./replitAuth";
+import path from 'path'; // Import the 'path' module
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // --- THIS IS THE FIX ---
-// Serve static files from the 'attached_assets' directory
-// This must come BEFORE the vite/static handler for the main app
-app.use('/attached_assets', express.static('attached_assets'));
+// Serve static files from the 'attached_assets' directory using an absolute path.
+const assetsPath = path.resolve(process.cwd(), 'attached_assets');
+app.use('/attached_assets', express.static(assetsPath));
+log(`Serving static assets from: ${assetsPath}`);
 
 
 app.use((req, res, next) => {

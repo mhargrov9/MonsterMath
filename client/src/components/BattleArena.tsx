@@ -26,22 +26,20 @@ const CombatSession: React.FC<{
     if (battleLogRef.current) {
       battleLogRef.current.scrollTop = battleLogRef.current.scrollHeight;
     }
-  }, [state.battleLog]);
+  }, [state.log]);
 
   if (!state.playerTeam[state.activePlayerIndex] || !state.aiTeam[state.activeAiIndex]) {
     return <div className="text-center p-8 text-white">Loading Battle...</div>;
   }
 
-  // --- THIS IS THE FIX ---
-  // We now pass all props to CombatView individually, not as spread objects.
   return (
     <CombatView
       playerMonster={state.playerTeam[state.activePlayerIndex]}
       opponentMonster={state.aiTeam[state.activeAiIndex]}
       playerBench={state.playerTeam.filter((_, i) => i !== state.activePlayerIndex)}
       opponentBench={state.aiTeam.filter((_, i) => i !== state.activeAiIndex)}
-      isPlayerTurn={!state.isProcessing && state.turn === 'player' && !state.battleEnded}
-      battleLog={state.battleLog}
+      isPlayerTurn={state.isPlayerTurn}
+      battleLog={state.log}
       battleEnded={state.battleEnded}
       winner={state.winner}
       logRef={battleLogRef}

@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
-import { processTurn } from "./battleEngine";
+import { processAction, getAiAction } from "./battleEngine"; // Updated import
 
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch user"); }
   });
 
-  // --- MONSTER LAB ---
+  // --- MONSTER LAB & DATA ---
   app.get("/api/monster-lab-data", isAuthenticated, async (req: any, res) => {
     try {
       const data = await storage.getMonsterLabData(req.user.claims.sub);
@@ -35,53 +35,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // --- BATTLE ARENA ---
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
-      // --- THIS IS THE TEST ---
-      // We are bypassing the storage function and returning a hardcoded opponent
-      // to isolate the source of the runtime freeze.
-      console.log("[routes] Bypassing storage. BUIDLING HARDCODED OPPONENT.");
-      const hardcodedOpponent = {
-        name: "Test Dummy",
-        scaledMonsters: [
-          {
-            id: 10, name: 'Cinder-Tail Salamander', type: 'fire',
-            basePower: 100, baseSpeed: 110, baseDefense: 70,
-            baseHp: 75, baseMp: 160, goldCost: 350,
-            hp: 75, maxHp: 75, mp: 160, maxMp: 160,
-            abilities: [
-              { id: 1, name: 'Basic Attack', mp_cost: 0, ability_type: 'ACTIVE' },
-              { id: 2, name: 'Ember Spit', mp_cost: 30, ability_type: 'ACTIVE' }
-            ]
-          }
-        ]
-      };
-      res.json(hardcodedOpponent);
+      const aiOpponent = await storage.generateAiOpponent(0);
+      res.json(aiOpponent);
     } catch (error) { 
       handleError(error, res, "Failed to generate opponent"); 
     }
   });
 
+  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
+      await storage.spendBattleToken(req.user.claims.sub);
+      res.json({ success: true });
+  });
+
+  // Player action endpoint
   app.post('/api/battle/action', isAuthenticated, async (req: any, res) => {
     try {
       const { battleState, action } = req.body;
       if (!battleState || !action) {
         return res.status(400).json({ message: "Missing battleState or action in request body." });
       }
-      const result = await processTurn(battleState, action);
+      const result = await processAction(battleState, action);
       res.json(result);
     } catch (error) {
       handleError(error, res, "Failed to process battle action");
     }
   });
 
+  // AI action endpoint
+  app.post('/api/battle/ai-action', isAuthenticated, async (req: any, res) => {
+      try {
+          const { battleState } = req.body;
+          if (!battleState) {
+              return res.status(400).json({ message: "Missing battleState in request body." });
+          }
+          const aiAction = getAiAction(battleState);
+          res.json(aiAction);
+      } catch (error) {
+          handleError(error, res, "Failed to get AI action");
+      }
+  });
+
+
   // Other routes...
   app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req: any, res) => { /* ... */ });
   app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => { /* ... */ });
-  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
-      await storage.spendBattleToken(req.user.claims.sub);
-      res.json({ success: true });
-  });
   app.get('/api/questions', isAuthenticated, async (req: any, res) => { /* ... */ });
   app.post('/api/questions/answer', isAuthenticated, async (req: any, res) => { /* ... */ });
+  app.get('/api/inventory', isAuthenticated, async (req: any, res) => { /* ... */ });
 
 
   const httpServer = createServer(app);

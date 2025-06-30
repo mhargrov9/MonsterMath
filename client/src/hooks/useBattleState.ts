@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { 
     Ability, 
@@ -12,24 +12,25 @@ type BattleState = {
     aiTeam: AiCombatMonster[];
     activePlayerIndex: number;
     activeAiIndex: number;
+    activeEffects: any[]; // Simplified for now
+    log: string[];
 };
 
 export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initialAiTeam: AiCombatMonster[]) => {
-    const [playerTeam, setPlayerTeam] = useState<PlayerCombatMonster[]>(initialPlayerTeam);
-    const [aiTeam, setAiTeam] = useState<AiCombatMonster[]>(initialAiTeam);
-    const [activePlayerIndex, setActivePlayerIndex] = useState(0);
-    const [activeAiIndex, setActiveAiIndex] = useState(0);
-    const [turn, setTurn] = useState<'player' | 'ai' | 'pre-battle'>('player');
-    const [battleLog, setBattleLog] = useState<string[]>([]);
-    const [battleEnded, setBattleEnded] = useState(false);
-    const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
+    const [battleState, setBattleState] = useState<BattleState>({
+        playerTeam: initialPlayerTeam,
+        aiTeam: initialAiTeam,
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        activeEffects: [],
+        log: ['Battle Started!'],
+    });
+    const [turn, setTurn] = useState<'player' | 'ai' | 'game-over'>('player');
     const [isProcessing, setIsProcessing] = useState(false);
 
-    const postAction = async (action: any) => {
-        if (isProcessing || battleEnded) return;
+    const processAction = async (action: any) => {
+        if (isProcessing || turn === 'game-over') return;
         setIsProcessing(true);
-
-        const battleState: BattleState = { playerTeam, aiTeam, activePlayerIndex, activeAiIndex };
 
         try {
             const res = await apiRequest('/api/battle/action', {
@@ -38,47 +39,73 @@ export const useBattleState = (initialPlayerTeam: PlayerCombatMonster[], initial
             });
             const response: BattleActionResponse = await res.json();
 
-            const { nextState, log } = response;
+            const nextState = {
+                ...response.nextState,
+                log: [...battleState.log, ...response.log]
+            };
+            setBattleState(nextState);
 
-            setPlayerTeam(nextState.playerTeam);
-            setAiTeam(nextState.aiTeam);
-            setActivePlayerIndex(nextState.activePlayerIndex);
-            setActiveAiIndex(nextState.activeAiIndex);
-            setBattleLog(prev => [...prev, ...log]);
-
-            if (nextState.aiTeam.every((m) => (m.hp ?? 0) <= 0)) {
-                setBattleEnded(true);
-                setWinner('player');
-                setBattleLog(prev => [...prev, '--- YOU ARE VICTORIOUS! ---']);
-            } else if (nextState.playerTeam.every((m) => (m.hp ?? 0) <= 0)) {
-                setBattleEnded(true);
-                setWinner('ai');
-                setBattleLog(prev => [...prev, '--- YOU HAVE BEEN DEFEATED ---']);
+            if (nextState.aiTeam.every(m => (m.hp ?? 0) <= 0) || nextState.playerTeam.every(m => (m.hp ?? 0) <= 0)) {
+                setTurn('game-over');
+                const winner = nextState.aiTeam.every(m => (m.hp ?? 0) <= 0) ? 'player' : 'ai';
+                setBattleState(s => ({...s, log: [...s.log, `--- BATTLE OVER! ${winner.toUpperCase()} WINS! ---`]}))
+            } else {
+                if (turn === 'player') setTurn('ai');
             }
         } catch (error) {
             console.error("Error processing action:", error);
-            setBattleLog(prev => [...prev, "An error occurred."]);
+            setBattleState(s => ({...s, log: [...s.log, "An error occurred."]}));
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const handlePlayerAbility = (ability: Ability) => {
-        const attacker = playerTeam[activePlayerIndex];
-        if ((attacker.hp ?? 0) <= 0 || (attacker.mp ?? 0) < (ability.mp_cost || 0)) {
-            return;
+    useEffect(() => {
+        if (turn === 'ai' && !isProcessing) {
+            const aiTurnHandler = setTimeout(async () => {
+                const res = await apiRequest('/api/battle/ai-action', {
+                    method: 'POST',
+                    data: { battleState }
+                });
+                const aiAction = await res.json();
+                await processAction(aiAction);
+                setTurn('player');
+            }, 1500);
+
+            return () => clearTimeout(aiTurnHandler);
         }
-        const action = { type: 'USE_ABILITY', payload: { abilityId: ability.id } };
-        postAction(action);
+    }, [turn, isProcessing, battleState]);
+
+    const handlePlayerAbility = (ability: Ability) => {
+        const attacker = battleState.playerTeam[battleState.activePlayerIndex];
+        if ((attacker.hp ?? 0) <= 0 || (attacker.mp ?? 0) < (ability.mp_cost || 0)) return;
+
+        const action = { 
+            type: 'USE_ABILITY', 
+            payload: { 
+                abilityId: ability.id,
+                casterId: attacker.id,
+                targetId: battleState.aiTeam[battleState.activeAiIndex].id
+            } 
+        };
+        processAction(action);
     };
 
     const handleSwapMonster = (monsterId: number) => {
         const action = { type: 'SWAP_MONSTER', payload: { monsterId } };
-        postAction(action);
+        processAction(action);
     };
 
+    const winner = turn === 'game-over' ? (battleState.aiTeam.every(m => (m.hp ?? 0) <= 0) ? 'player' : 'ai') : null;
+
     return {
-        state: { playerTeam, aiTeam, activePlayerIndex, activeAiIndex, turn, battleLog, battleEnded, winner, isProcessing },
+        state: { 
+            ...battleState,
+            isPlayerTurn: turn === 'player' && !isProcessing,
+            battleEnded: turn === 'game-over',
+            winner,
+            isProcessing
+        },
         actions: { handlePlayerAbility, handleSwapMonster }
     };
 };
