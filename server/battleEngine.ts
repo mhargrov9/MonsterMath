@@ -1,36 +1,25 @@
-import { UserMonster, Monster, Ability, PlayerCombatMonster, AiCombatMonster, ActiveEffect, StatModifier } from '../shared/schema';
+import { UserMonster, Monster, Ability, PlayerCombatMonster, AiCombatMonster } from '../shared/schema';
 import { storage } from './storage';
-import { nanoid } from 'nanoid';
 
 // --- Type Definitions ---
-interface ActiveEffect {
-    id: string;
-    sourceAbilityId: number;
-    targetMonsterId: number | string;
-    modifier?: StatModifier; 
-    status?: string;
-    duration: number;
-    damagePerTurn?: number;
-}
 type BattleState = {
     playerTeam: PlayerCombatMonster[];
     aiTeam: AiCombatMonster[];
     activePlayerIndex: number;
     activeAiIndex: number;
-    activeEffects: ActiveEffect[];
     log: string[];
 };
+
 type Action = {
     type: 'USE_ABILITY' | 'SWAP_MONSTER';
-    payload: {
-        abilityId?: number;
-        casterId?: number;
+    payload: { 
+        abilityId?: number; 
+        casterId?: number | string;
         targetId?: number | string;
         monsterId?: number;
     };
 };
 
-// --- Helper Functions ---
 const calculateDamage = (attacker: PlayerCombatMonster | AiCombatMonster, defender: PlayerCombatMonster | AiCombatMonster, ability: Ability): number => {
     const power = 'monster' in attacker ? attacker.power : attacker.basePower;
     const defense = 'monster' in defender ? defender.defense : defender.baseDefense;
@@ -39,14 +28,12 @@ const calculateDamage = (attacker: PlayerCombatMonster | AiCombatMonster, defend
     return Math.max(1, damage);
 };
 
-// --- Main Action Processor ---
 export async function processAction(initialState: BattleState, action: Action): Promise<{ nextState: BattleState, log: string[] }> {
     let state: BattleState = JSON.parse(JSON.stringify(initialState));
     state.log = [];
-    state.activeEffects = state.activeEffects || [];
 
     if (action.type === 'USE_ABILITY') {
-        const isPlayerAction = state.playerTeam.some(p => p.id === action.payload.casterId);
+        const isPlayerAction = !!state.playerTeam.find(p => p.id === action.payload.casterId);
 
         const attacker = isPlayerAction 
             ? state.playerTeam.find(p => p.id === action.payload.casterId)
@@ -56,20 +43,22 @@ export async function processAction(initialState: BattleState, action: Action): 
             ? state.aiTeam.find(a => a.id === action.payload.targetId)
             : state.playerTeam.find(p => p.id === action.payload.targetId);
 
-        if (!attacker || !defender) throw new Error("Attacker or Defender not found in battle state.");
-
-        const attackerName = 'monster' in attacker ? attacker.monster.name : attacker.name;
+        if (!attacker || !defender) throw new Error("Attacker or Defender not found");
 
         const abilities = await storage.getMonsterAbilities('monster' in attacker ? attacker.monsterId : attacker.id as number);
         const ability = abilities.find((a: Ability) => a.id === action.payload.abilityId);
 
         if ((attacker.hp ?? 0) > 0 && ability) {
+            const attackerName = 'monster' in attacker ? attacker.monster.name : attacker.name;
+
             if (ability.healing_power && ability.healing_power > 0) {
-                const healAmount = ability.healing_power;
-                if ('monster' in defender) {
-                    const targetName = defender.monster.name;
-                    state.log.push(`${attackerName} used ${ability.name}, healing ${targetName} for ${healAmount} HP!`);
-                    state.playerTeam = state.playerTeam.map(p => p.id === defender!.id ? { ...p, hp: Math.min(p.maxHp!, (p.hp ?? 0) + healAmount) } : p);
+                const target = state.playerTeam.find(p => p.id === action.payload.targetId);
+                if (target) {
+                    const healAmount = ability.healing_power;
+                    state.log.push(`${attackerName} used ${ability.name}, healing ${target.monster.name} for ${healAmount} HP!`);
+                    state.playerTeam = state.playerTeam.map(p => 
+                        p.id === target.id ? { ...p, hp: Math.min(p.maxHp!, (p.hp ?? 0) + healAmount) } : p
+                    );
                 }
             } else {
                 const defenderName = 'monster' in defender ? defender.monster.name : defender.name;
@@ -90,11 +79,10 @@ export async function processAction(initialState: BattleState, action: Action): 
             }
         }
     } else if (action.type === 'SWAP_MONSTER') {
-        const newIndex = state.playerTeam.findIndex((p: PlayerCombatMonster) => p.id === action.payload.monsterId);
-        if (newIndex !== -1 && (state.playerTeam[newIndex].hp ?? 0) > 0 && newIndex !== state.activePlayerIndex) {
-            state.log.push(`You withdrew ${state.playerTeam[state.activePlayerIndex].monster.name}.`);
+        const newIndex = state.playerTeam.findIndex(p => p.id === action.payload.monsterId);
+        if (newIndex !== -1 && (state.playerTeam[newIndex].hp ?? 0) > 0) {
+            state.log.push(`You withdrew ${state.playerTeam[state.activePlayerIndex].monster.name}. Go, ${state.playerTeam[newIndex].monster.name}!`);
             state.activePlayerIndex = newIndex;
-            state.log.push(`Go, ${state.playerTeam[state.activePlayerIndex].monster.name}!`);
         }
     }
 

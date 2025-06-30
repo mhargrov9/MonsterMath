@@ -19,7 +19,7 @@ const CombatSession: React.FC<{
   onRetreat: () => void;
   onPlayAgain: () => void;
 }> = ({ initialState, onRetreat, onPlayAgain }) => {
-  const { battleState, isPlayerTurn, battleEnded, winner, actions } = useBattleState(initialState.playerTeam, initialState.aiTeam);
+  const { battleState, isPlayerTurn, targetingMode, battleEnded, winner, actions } = useBattleState(initialState.playerTeam, initialState.aiTeam);
   const battleLogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,8 +28,6 @@ const CombatSession: React.FC<{
     }
   }, [battleState.log]);
 
-  // --- THIS IS THE FIX ---
-  // A more robust check to ensure active monsters exist before rendering.
   const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
   const opponentMonster = battleState.aiTeam[battleState.activeAiIndex];
 
@@ -41,7 +39,7 @@ const CombatSession: React.FC<{
     <CombatView
       playerMonster={playerMonster}
       opponentMonster={opponentMonster}
-      playerBench={battleState.playerTeam.filter((_, i) => i !== battleState.activePlayerIndex)}
+      playerTeam={battleState.playerTeam}
       opponentBench={battleState.aiTeam.filter((_, i) => i !== battleState.activeAiIndex)}
       isPlayerTurn={isPlayerTurn}
       battleLog={battleState.log}
@@ -53,8 +51,8 @@ const CombatSession: React.FC<{
       onRetreat={onRetreat}
       onPlayAgain={onPlayAgain}
       floatingTexts={[]}
-      targetingMode={null}
-      onTargetSelect={() => {}}
+      targetingMode={targetingMode}
+      onTargetSelect={actions.handleTargetSelect}
     />
   );
 };

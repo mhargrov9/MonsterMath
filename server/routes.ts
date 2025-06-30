@@ -3,7 +3,7 @@ import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
-import { processAction, getAiAction } from "./battleEngine"; // Updated import
+import { processAction, getAiAction } from "./battleEngine";
 
 const handleError = (error: unknown, res: express.Response, message: string) => {
   console.error(message, error);
@@ -14,7 +14,6 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // --- AUTH & USER ---
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);
@@ -22,7 +21,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) { handleError(error, res, "Failed to fetch user"); }
   });
 
-  // --- MONSTER LAB & DATA ---
   app.get("/api/monster-lab-data", isAuthenticated, async (req: any, res) => {
     try {
       const data = await storage.getMonsterLabData(req.user.claims.sub);
@@ -32,7 +30,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // --- BATTLE ARENA ---
   app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
     try {
       const aiOpponent = await storage.generateAiOpponent(0);
@@ -47,7 +44,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
   });
 
-  // Player action endpoint
   app.post('/api/battle/action', isAuthenticated, async (req: any, res) => {
     try {
       const { battleState, action } = req.body;
@@ -61,7 +57,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI action endpoint
   app.post('/api/battle/ai-action', isAuthenticated, async (req: any, res) => {
       try {
           const { battleState } = req.body;
@@ -75,14 +70,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
   });
 
-
-  // Other routes...
-  app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req: any, res) => { /* ... */ });
-  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => { /* ... */ });
-  app.get('/api/questions', isAuthenticated, async (req: any, res) => { /* ... */ });
-  app.post('/api/questions/answer', isAuthenticated, async (req: any, res) => { /* ... */ });
-  app.get('/api/inventory', isAuthenticated, async (req: any, res) => { /* ... */ });
-
+  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
+      const slots = await storage.getUserBattleSlots((req.user as any).claims.sub);
+      res.json({ battleSlots: slots });
+  });
 
   const httpServer = createServer(app);
   return httpServer;
