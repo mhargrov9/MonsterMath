@@ -111,8 +111,8 @@ app.use((req, res, next) => {
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  const PORT = process.env.PORT || 5002; // Port changed to 5002
-  server.listen(PORT, '0.0.0.0', () => {
+  const PORT = process.env.PORT || 3000;
+  server.listen(Number(PORT), '0.0.0.0', () => {
     log(`API server running on port ${PORT}`);
   });
 })();

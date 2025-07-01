@@ -184,8 +184,8 @@ export class DatabaseStorage implements IStorage {
         ability: abilities
       })
       .from(monsterAbilities)
-      .innerJoin(abilities, eq(monsterAbilities.abilityId, abilities.id))
-      .where(eq(monsterAbilities.monsterId, monsterId));
+      .innerJoin(abilities, eq(monsterAbilities.ability_id, abilities.id))
+      .where(eq(monsterAbilities.monster_id, monsterId));
     
     return result.map(row => row.ability);
   }
@@ -216,7 +216,20 @@ export class DatabaseStorage implements IStorage {
       );
 
     if (answeredIds.length > 0) {
-      query = query.where(sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`);
+      // Filter out already answered questions
+      const result = await db
+        .select()
+        .from(questions)
+        .where(
+          and(
+            eq(questions.subject, subject),
+            eq(questions.difficulty, difficulty),
+            sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`
+          )
+        )
+        .orderBy(sql`RANDOM()`)
+        .limit(1);
+      return result[0] || null;
     }
 
     const result = await query.orderBy(sql`RANDOM()`).limit(1);
@@ -262,8 +275,8 @@ export class DatabaseStorage implements IStorage {
       .from(aiTeams)
       .where(
         and(
-          gte(aiTeams.teamPowerLevel, minTpl),
-          lt(aiTeams.teamPowerLevel, maxTpl)
+          gte(aiTeams.minTPL, minTpl),
+          lt(aiTeams.maxTPL, maxTpl)
         )
       );
 
@@ -272,7 +285,7 @@ export class DatabaseStorage implements IStorage {
       const fallbackTeams = await db
         .select()
         .from(aiTeams)
-        .orderBy(sql`ABS(${aiTeams.teamPowerLevel} - ${tpl})`)
+        .orderBy(sql`ABS(${aiTeams.minTPL} - ${tpl})`)
         .limit(1);
       
       return fallbackTeams[0] || null;
