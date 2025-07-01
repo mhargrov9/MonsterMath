@@ -8,7 +8,7 @@ import BattleArena from "@/components/BattleArena";
 import CurrencyDisplay from "@/components/CurrencyDisplay";
 import PlayerInventory from "@/components/PlayerInventory";
 import StoryManager from "@/components/StoryManager";
-import { GameTab } from "@/types/game";
+import { GameTab } from "@/shared/types";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {

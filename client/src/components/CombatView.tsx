@@ -2,7 +2,7 @@ import React from 'react';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Swords } from 'lucide-react';
-import { UserMonster, Monster, Ability, FloatingText } from '@/types/game';
+import { UserMonster, Monster, Ability, FloatingText } from '@/shared/types';
 
 interface CombatViewProps {
   playerMonster: UserMonster;

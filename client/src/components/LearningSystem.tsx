@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Question, Subject } from "@/types/game";
+import { Question, Subject } from "@/shared/types";
 
 export default function LearningSystem() {
   const [selectedSubject, setSelectedSubject] = useState<Subject>("mixed");
