@@ -1,2 +1,2 @@
 #!/bin/bash
-npm run build && npm run start
+tsx server/index.ts
