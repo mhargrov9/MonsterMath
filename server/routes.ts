@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage, startBattle } from "./battleEngine";
+import { calculateDamage, applyDamage, startBattle, processAiTurn } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -431,20 +431,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Battle action processing endpoint (server-authoritative damage application)
+  // Battle action processing endpoint (server-authoritative turn management)
   app.post('/api/battle/perform-action', isAuthenticated, async (req: any, res) => {
     try {
-      const { attacker, defender, ability } = req.body;
+      const { battleId, ability } = req.body;
 
-      if (!attacker || !defender || !ability) {
-        return res.status(400).json({ message: 'Missing required battle data (attacker, defender, ability)' });
+      if (!battleId || !ability) {
+        return res.status(400).json({ message: 'Missing required battle data (battleId, ability)' });
       }
 
-      const actionResult = applyDamage(attacker, defender, ability);
+      const actionResult = applyDamage(battleId, ability);
       res.json(actionResult);
 
     } catch (error) {
       handleError(error, res, "Failed to perform battle action");
+    }
+  });
+
+  // AI turn processing endpoint
+  app.post('/api/battle/ai-turn', isAuthenticated, async (req: any, res) => {
+    try {
+      const { battleId } = req.body;
+
+      if (!battleId) {
+        return res.status(400).json({ message: 'Missing battleId' });
+      }
+
+      const aiTurnResult = await processAiTurn(battleId);
+      res.json(aiTurnResult);
+
+    } catch (error) {
+      handleError(error, res, "Failed to process AI turn");
     }
   });
 

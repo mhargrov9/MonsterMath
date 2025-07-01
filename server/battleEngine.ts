@@ -52,23 +52,68 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
   return { damage: finalDamage, isCritical, affinityMultiplier };
 };
 
-// Server-authoritative damage application function
-export const applyDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability) => {
-  // First calculate the damage using existing function
+// Server-authoritative damage application function with battle session management
+export const applyDamage = (battleId: string, ability: Ability) => {
+  // Retrieve battle state from sessions
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) {
+    throw new Error(`Battle session ${battleId} not found`);
+  }
+
+  // Identify attacker and defender based on current turn
+  let attacker: UserMonster | Monster;
+  let defender: UserMonster | Monster;
+  let attackerTeam: (UserMonster | Monster)[];
+  let defenderTeam: (UserMonster | Monster)[];
+  let attackerIndex: number;
+  let defenderIndex: number;
+
+  if (battleState.turn === 'player') {
+    attacker = battleState.playerTeam[battleState.activePlayerIndex];
+    defender = battleState.aiTeam[battleState.activeAiIndex];
+    attackerTeam = battleState.playerTeam;
+    defenderTeam = battleState.aiTeam;
+    attackerIndex = battleState.activePlayerIndex;
+    defenderIndex = battleState.activeAiIndex;
+  } else {
+    attacker = battleState.aiTeam[battleState.activeAiIndex];
+    defender = battleState.playerTeam[battleState.activePlayerIndex];
+    attackerTeam = battleState.aiTeam;
+    defenderTeam = battleState.playerTeam;
+    attackerIndex = battleState.activeAiIndex;
+    defenderIndex = battleState.activePlayerIndex;
+  }
+
+  // Calculate damage using existing function
   const damageResult = calculateDamage(attacker, defender, ability);
   
-  // Calculate new HP for defender (ensuring we have a valid HP value)
+  // Calculate new HP for defender
   const currentDefenderHp = defender.hp ?? 0;
   const newHp = Math.max(0, currentDefenderHp - damageResult.damage);
   
-  // Calculate new MP for attacker (ensuring we have a valid MP value)
+  // Calculate new MP for attacker
   const currentAttackerMp = attacker.mp ?? 0;
   const newMp = Math.max(0, currentAttackerMp - (ability.mp_cost || 0));
-  
+
+  // Update battle state with new HP/MP values
+  attackerTeam[attackerIndex] = { ...attacker, mp: newMp };
+  defenderTeam[defenderIndex] = { ...defender, hp: newHp };
+
+  // Switch turns
+  battleState.turn = battleState.turn === 'player' ? 'ai' : 'player';
+
+  // Check for battle end conditions
+  if (newHp <= 0) {
+    battleState.battleEnded = true;
+    battleState.winner = battleState.turn === 'ai' ? 'player' : 'ai'; // Winner is opposite of current turn since turn already switched
+  }
+
+  // Update the battle session
+  battleSessions.set(battleId, battleState);
+
   return {
     damageResult,
-    newHp,
-    newMp
+    battleState
   };
 };
 
@@ -96,4 +141,43 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     battleId,
     battleState
   };
+};
+
+// Server-side AI turn processing
+export const processAiTurn = async (battleId: string) => {
+  // Retrieve battle state from sessions
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) {
+    throw new Error(`Battle session ${battleId} not found`);
+  }
+
+  if (battleState.turn !== 'ai') {
+    throw new Error('Not AI turn');
+  }
+
+  // Get current AI monster
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+  
+  // Simple AI: Choose a random available ability (with mana check)
+  const availableAbilities = [
+    { id: 1, name: "Basic Attack", mp_cost: 0, power_multiplier: "0.6", ability_type: "active" },
+    // Add more abilities based on monster's actual abilities
+    // For now, using basic attack as fallback
+  ];
+
+  // Filter abilities AI can afford
+  const affordableAbilities = availableAbilities.filter(ability => 
+    (aiMonster.mp ?? 0) >= (ability.mp_cost || 0)
+  );
+
+  if (affordableAbilities.length === 0) {
+    // Force basic attack if no other abilities available
+    affordableAbilities.push(availableAbilities[0]);
+  }
+
+  // Choose random ability
+  const chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+
+  // Apply the AI's chosen ability
+  return applyDamage(battleId, chosenAbility);
 };

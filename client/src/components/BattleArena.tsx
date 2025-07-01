@@ -84,13 +84,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const handlePlayerAbility = async (ability: Ability) => {
-    if (turn !== 'player' || battleEnded) return;
+    if (turn !== 'player' || battleEnded || !battleId) return;
+    
     const attacker = playerTeam[activePlayerIndex];
     if (attacker.mp < (ability.mp_cost || 0)) {
         setBattleLog(prev => [...prev, "Not enough MP!"]);
         return;
     }
-    const defender = aiTeam[activeAiIndex];
     
     try {
       const response = await fetch('/api/battle/perform-action', {
@@ -100,8 +100,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         },
         credentials: 'include',
         body: JSON.stringify({
-          attacker,
-          defender,
+          battleId,
           ability
         })
       });
@@ -111,28 +110,31 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       }
       
       const actionResult = await response.json();
-      const { damageResult, newHp, newMp } = actionResult;
+      const { damageResult, battleState } = actionResult;
       
-      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
-      if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, false);
+      // Update all client state from server response
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setActiveAiIndex(battleState.activeAiIndex);
+      setTurn(battleState.turn);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      
+      // Add visual feedback
+      const defender = battleState.turn === 'ai' ? battleState.aiTeam[battleState.activeAiIndex] : battleState.playerTeam[battleState.activePlayerIndex];
+      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'ai');
+      if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'ai');
+      
       const newLog = [`Your ${attacker.monster.name} used ${ability.name}!`];
       if (damageResult.isCritical) newLog.push("A critical hit!");
       newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      
-      // Update teams with server-authoritative state
-      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: newHp } : m);
-      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: newMp } : m);
-      
       setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
-      if (nextAiTeam[activeAiIndex].hp <= 0) {
-          setBattleLog(prev => [...prev, `Opponent's ${nextAiTeam[activeAiIndex].name} has been defeated!`]);
-          if (nextAiTeam.every(m => m.hp <= 0)) {
-              handleBattleCompletion('player');
-          }
+
+      if (battleState.battleEnded) {
+        handleBattleCompletion(battleState.winner || 'ai');
       }
-      setPlayerTeam(nextPlayerTeam);
-      setAiTeam(nextAiTeam);
-      setTurn('ai');
+      
     } catch (error) {
       console.error('Error performing battle action:', error);
       setBattleLog(prev => [...prev, "Error performing action! Please try again."]);

@@ -1,0 +1,52 @@
+Prompt for Replit AI: Task 7 - Server-Authoritative Turn Management
+By the book, scalable: Yes.
+
+Goal: Refactor the perform-action endpoint so that it uses the battleId to look up the current battle state from the server's memory. The client will no longer send the attacker and defender objects.
+
+Instructions:
+
+Enhance the battleEngine.ts:
+
+Modify the applyDamage function. It should now accept battleId and ability as its main arguments.
+
+Inside the function, it must first retrieve the correct battleState from the battleSessions Map using the battleId. If no session is found, it should throw an error.
+
+Using the retrieved battleState, it should identify the correct attacker and defender based on whose turn it is.
+
+The rest of the function will remain the same: it will calculate damage, determine the new HP/MP, and then it must update the battleState in the battleSessions Map with the new team states.
+
+Finally, it should return the complete, updated battleState object.
+
+Update the Server Endpoint:
+
+In server/routes.ts, modify the /api/battle/perform-action endpoint.
+
+The endpoint should now expect a request body containing only the battleId and the ability used.
+
+It will call the updated applyDamage function, passing these arguments.
+
+It will return the complete, updated battleState from the function's result.
+
+Simplify the Client Logic:
+
+In client/src/components/BattleArena.tsx, update the fetch call inside handlePlayerAbility.
+
+The request body should now only send the battleId and the chosen ability.
+
+When it receives the response, it will get the entire updated battleState. Use this response to update all relevant client states (setPlayerTeam, setAiTeam, setTurn, etc.) to perfectly mirror the server's state.
+
+Crucially, you must also update handleAiAbility. This function should now be almost empty. Since the server now manages the AI's turn, the client's handleAiAbility should simply make a POST request to a new endpoint, /api/battle/ai-turn, sending only the battleId. The server will handle the rest.
+
+Create the AI Turn Endpoint:
+
+Create a new function in battleEngine.ts called processAiTurn(battleId). This function will contain the logic that is currently in the client's handleAiAbility (choosing a random ability, etc.). It will call applyDamage and return the updated battleState.
+
+In server/routes.ts, create a new POST endpoint at /api/battle/ai-turn that calls this new processAiTurn function.
+
+Verification Steps (To be confirmed by the Developer):
+
+The application must still run and be fully playable.
+
+The battle flow should work exactly as before. The player takes a turn, then the AI takes a turn. The only difference is that the server is now the single source of truth for the entire battle state and turn progression.
+
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code).
