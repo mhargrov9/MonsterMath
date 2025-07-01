@@ -1,0 +1,46 @@
+Prompt for Replit AI: Task 3 - Migrate Damage Calculation
+By the book, scalable: Yes.
+
+Goal: Move the calculateDamage function from the client (BattleArena.tsx) to the server. The client will now ask the server to calculate damage instead of doing it itself.
+
+Instructions:
+
+Create the Game Engine File:
+
+In the server directory, create a new file named battleEngine.ts. This file will be the future home for all our game logic.
+
+Find the calculateDamage function in client/src/components/BattleArena.tsx. Copy this entire function and paste it into the new server/battleEngine.ts file. Export the function.
+
+Also find the helper functions that calculateDamage depends on: getModifiedStat and getAffinityMultiplier. Copy these two functions from BattleArena.tsx and paste them into battleEngine.ts as well. They do not need to be exported.
+
+Create the Server Endpoint:
+
+In server/routes.ts, import the calculateDamage function from your new server/battleEngine.ts.
+
+Create a new POST endpoint at /api/battle/calculate-damage.
+
+This endpoint should expect a JSON body containing attacker, defender, and ability objects.
+
+Inside the endpoint, call the imported calculateDamage function with the data from the request body.
+
+Send the result of the calculation back as a JSON response.
+
+Update the Client Logic:
+
+In client/src/components/BattleArena.tsx, find the handlePlayerAbility function.
+
+Modify this function to be async.
+
+Instead of calling the local calculateDamage function, use await fetch(...) to call the new /api/battle/calculate-damage endpoint. Remember to use the 'POST' method and send the attacker, defender, and ability in the request body as a JSON string.
+
+Use the damage result from the server's response to continue the rest of the function's logic.
+
+Clean Up:
+
+Once the client is successfully using the server endpoint, delete the now-unused calculateDamage, getModifiedStat, and getAffinityMultiplier functions from client/src/components/BattleArena.tsx.
+
+Verification Steps (To be confirmed by the Developer):
+
+The application must still run and be fully playable.
+
+When a player attacks in the battle arena, the damage should be calculated and applied correctly, exactly as before. The only difference is that the calculation is now happening on the server.

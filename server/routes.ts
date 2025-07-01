@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
+import { calculateDamage } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
