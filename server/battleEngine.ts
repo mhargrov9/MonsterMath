@@ -1,5 +1,9 @@
 // Import shared types for the battle system
 import { DamageResult, UserMonster, Monster, Ability } from '../shared/types.js';
+import crypto from 'crypto';
+
+// In-memory store for active battle sessions
+const battleSessions = new Map();
 
 // Helper function to get modified stats (can be expanded with activeEffects later)
 const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
@@ -65,5 +69,31 @@ export const applyDamage = (attacker: UserMonster | Monster, defender: UserMonst
     damageResult,
     newHp,
     newMp
+  };
+};
+
+// Server-side battle session management
+export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monster[]) => {
+  // Generate unique battle ID
+  const battleId = crypto.randomUUID();
+  
+  // Create initial battle state
+  const battleState = {
+    playerTeam: [...playerTeam], // Deep copy to avoid mutations
+    aiTeam: [...opponentTeam],   // Deep copy to avoid mutations
+    activePlayerIndex: 0,
+    activeAiIndex: 0,
+    turn: 'player' as 'player' | 'ai',
+    battleEnded: false,
+    winner: null as 'player' | 'ai' | null,
+    battleLog: [] as string[]
+  };
+  
+  // Store battle session
+  battleSessions.set(battleId, battleState);
+  
+  return {
+    battleId,
+    battleState
   };
 };

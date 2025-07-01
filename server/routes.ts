@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage } from "./battleEngine";
+import { calculateDamage, applyDamage, startBattle } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -407,6 +407,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch(error) {
       handleError(error, res, "Failed to complete battle and award XP");
+    }
+  });
+
+  // Battle session creation endpoint
+  app.post('/api/battle/start', isAuthenticated, async (req: any, res) => {
+    try {
+      const { playerTeam, opponentTeam } = req.body;
+
+      if (!playerTeam || !opponentTeam || !Array.isArray(playerTeam) || !Array.isArray(opponentTeam)) {
+        return res.status(400).json({ message: 'Missing or invalid team data (playerTeam, opponentTeam must be arrays)' });
+      }
+
+      if (playerTeam.length === 0 || opponentTeam.length === 0) {
+        return res.status(400).json({ message: 'Teams cannot be empty' });
+      }
+
+      const battleSession = await startBattle(playerTeam, opponentTeam);
+      res.json(battleSession);
+
+    } catch (error) {
+      handleError(error, res, "Failed to start battle session");
     }
   });
 

@@ -31,6 +31,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
+  const [battleId, setBattleId] = useState<string | null>(null);
 
   const addFloatingText = (text: string, type: 'damage' | 'heal' | 'crit', targetId: number, isPlayerTarget: boolean) => {
     const newText: FloatingText = {
@@ -229,17 +230,52 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   }, [turn, battleEnded, activeAiIndex, playerTeam]);
 
-  const handleBattleStart = (selectedTeam: UserMonster[], generatedOpponent: any) => {
+  const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
     setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
-    const playerTeamWithFullHealth = selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp }));
-    setPlayerTeam(playerTeamWithFullHealth);
+    
+    try {
+      // Prepare team data for server
+      const playerTeamWithFullHealth = selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp }));
+      const opponentTeam = generatedOpponent.scaledMonsters;
 
-    // The opponent data from the server now includes abilities, so we can use it directly.
-    setAiTeam(generatedOpponent.scaledMonsters);
+      // Request server to create battle session
+      const response = await fetch('/api/battle/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          playerTeam: playerTeamWithFullHealth,
+          opponentTeam: opponentTeam
+        })
+      });
 
-    setBattleLog([`Battle is about to begin! Select your starting monster.`]);
-    setBattleMode('lead-select');
-    setIsLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to start battle session');
+      }
+
+      const battleSession = await response.json();
+      const { battleId, battleState } = battleSession;
+
+      // Set all battle state from server response
+      setBattleId(battleId);
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setActiveAiIndex(battleState.activeAiIndex);
+      setTurn(battleState.turn);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      setBattleLog([`Battle is about to begin! Select your starting monster.`]);
+      setBattleMode('lead-select');
+      setIsLoading(false);
+
+    } catch (error) {
+      console.error('Error starting battle session:', error);
+      setBattleLog(['Error starting battle! Please try again.']);
+      setIsLoading(false);
+    }
   };
 
   const selectLeadMonster = (index: number) => {
