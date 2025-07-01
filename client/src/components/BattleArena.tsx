@@ -142,70 +142,54 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const handleAiAbility = async () => {
-    if (battleEnded) return;
-    let activeAi = aiTeam[activeAiIndex];
-    if (activeAi.hp <= 0) {
-        const nextIndex = aiTeam.findIndex(m => m.hp > 0);
-        if (nextIndex !== -1) {
-            setActiveAiIndex(nextIndex);
-            activeAi = aiTeam[nextIndex];
-            setBattleLog(prev => [...prev, `Opponent sends out ${activeAi.name}!`]);
-        } else {
-            handleBattleCompletion('player');
-            return;
-        }
-    }
-    const usableAbilities = activeAi.abilities?.filter(a => a.ability_type === 'ACTIVE' && (a.mp_cost || 0) <= activeAi.mp) || [];
-    if (usableAbilities.length === 0) {
-        setBattleLog(prev => [...prev, `Opponent's ${activeAi.name} is out of moves!`]);
-        setTurn('player');
-        return;
-    }
-    const ability = usableAbilities[Math.floor(Math.random() * usableAbilities.length)];
-    const defender = playerTeam[activePlayerIndex];
+    if (battleEnded || !battleId || turn !== 'ai') return;
     
     try {
-      const response = await fetch('/api/battle/perform-action', {
+      const response = await fetch('/api/battle/ai-turn', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
-          attacker: activeAi,
-          defender,
-          ability
+          battleId
         })
       });
       
       if (!response.ok) {
-        throw new Error('Failed to perform battle action');
+        throw new Error('Failed to process AI turn');
       }
       
-      const actionResult = await response.json();
-      const { damageResult, newHp, newMp } = actionResult;
+      const aiTurnResult = await response.json();
+      const { damageResult, battleState } = aiTurnResult;
       
-      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
-       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
-      const newLog = [`Opponent's ${activeAi.name} used ${ability.name}!`];
+      // Update all client state from server response
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setActiveAiIndex(battleState.activeAiIndex);
+      setTurn(battleState.turn);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      
+      // Add visual feedback
+      const defender = battleState.turn === 'player' ? battleState.playerTeam[battleState.activePlayerIndex] : battleState.aiTeam[battleState.activeAiIndex];
+      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'player');
+      if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'player');
+      
+      const activeAi = battleState.aiTeam[battleState.activeAiIndex];
+      const newLog = [`Opponent's ${activeAi.name} used an ability!`];
       if (damageResult.isCritical) newLog.push("A critical hit!");
       newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      // Update teams with server-authoritative state
-      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: newHp } : m);
-      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: newMp } : m);
       setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
-      if (nextPlayerTeam[activePlayerIndex].hp <= 0) {
-          setBattleLog(prev => [...prev, `Your ${nextPlayerTeam[activePlayerIndex].monster.name} has been defeated!`]);
-          if (nextPlayerTeam.every(m => m.hp <= 0)) {
-              handleBattleCompletion('ai');
-          }
+
+      if (battleState.battleEnded) {
+        handleBattleCompletion(battleState.winner || 'player');
       }
-      setPlayerTeam(nextPlayerTeam);
-      setAiTeam(nextAiTeam);
-      setTurn('player');
+      
     } catch (error) {
-      console.error('Error performing AI battle action:', error);
-      setBattleLog(prev => [...prev, "AI action error! Battle continues."]);
+      console.error('Error performing AI action:', error);
+      setBattleLog(prev => [...prev, "Error during AI turn! Continuing..."]);
       setTurn('player');
     }
   };

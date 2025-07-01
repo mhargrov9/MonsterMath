@@ -394,6 +394,17 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Server now generates and manages complete battle state (teams, turn order, indices)
   - Client receives authoritative battle state from server instead of creating it locally
   - Foundation established for persistent sessions, reconnection, and multiplayer features
+- July 1, 2025: Server-Authoritative Turn Management
+  - Enhanced applyDamage function to use battleId for session lookup instead of direct attacker/defender objects
+  - Added automatic turn switching and battle end detection on server side
+  - Created processAiTurn function for server-side AI decision making and action execution
+  - Updated /api/battle/perform-action endpoint to accept only battleId and ability parameters
+  - Added /api/battle/ai-turn endpoint for complete server-controlled AI turns
+  - Modified client handlePlayerAbility to send minimal data and receive complete battle state updates
+  - Simplified client handleAiAbility to make single API call with battleId only
+  - Server now manages all battle logic: turn order, action validation, state updates, and win conditions
+  - Client receives and applies complete authoritative battle state from every server response
+  - Eliminated all client-side battle logic for fully server-controlled gameplay
 
 ## User Preferences
 
