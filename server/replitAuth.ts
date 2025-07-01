@@ -12,7 +12,6 @@ import { storage } from './storage';
 
 const getOidcConfig = memoize(
   async () => {
-    // This check is now safer.
     if (!process.env.ISSUER_URL) {
       console.warn('OIDC issuer URL not provided, Replit auth may not function.');
       return null;
@@ -30,17 +29,19 @@ export function getSession() {
   const PgStore = connectPg(session);
   const sessionStore = new PgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: true, // Set to true to ensure table exists in new DB
+    createTableIfMissing: true,
     tableName: 'sessions',
   });
   return session({
-    secret: process.env.SESSION_SECRET || 'a-default-secret-for-dev', // Provide a default for dev
+    secret: process.env.SESSION_SECRET || 'a-default-secret-for-dev',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Secure only in production
+      secure: true, // Required for HTTPS environments like Codespaces
+      proxy: true, // Required for proxied environments
+      sameSite: 'none', // Required for cross-site cookie context
       maxAge: sessionTtl,
     },
   });
@@ -67,7 +68,7 @@ async function upsertUser(claims: any) {
 }
 
 export async function setupAuth(app: Express) {
-  app.set('trust proxy', 1);
+  app.set('trust proxy', 1); // Important for the cookie proxy setting to work
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
@@ -106,10 +107,8 @@ export async function setupAuth(app: Express) {
       },
     ),
   );
-
-  // --- REPLIT OAUTH FIX ---
-  // The Replit-specific setup is now wrapped in a condition to only run
-  // if the necessary environment variables are present.
+  
+  // Replit-specific setup (remains optional)
   if (process.env.REPLIT_DOMAINS && process.env.ISSUER_URL) {
     console.log('REPLIT_DOMAINS detected, setting up Replit OAuth...');
     const config = await getOidcConfig();
@@ -140,7 +139,6 @@ export async function setupAuth(app: Express) {
           passport.use(strategy);
         }
 
-        // OAuth login endpoint
         app.get('/api/login/oauth', (req, res, next) => {
           passport.authenticate(`replitauth:${req.hostname}`, {
             prompt: 'login consent',
@@ -183,7 +181,7 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
+export const isAuthenticated: RequestHandler = (req, res, next) => {
   if (req.isAuthenticated()) {
     return next();
   }

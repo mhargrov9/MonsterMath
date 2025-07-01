@@ -2,20 +2,13 @@ import express from 'express';
 import { createServer } from 'http';
 import { registerRoutes } from './routes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
-import path from 'path';
-
-const __dirname = path.resolve();
-
-function log(message: string) {
-  const timestamp = new Date().toLocaleTimeString();
-  console.log(`${timestamp} [server] ${message}`);
-}
+import { setupVite, serveStatic, log } from './vite.js';
 
 const app = express();
 
-// Replit Path Fix Middleware
+// Path Fix Middleware
 app.use((req, res, next) => {
-  const originalPath = req.headers['x-replit-original-path'];
+  const originalPath = req.headers['x-replit-original-path'] || req.headers['x-forwarded-path'];
   if (originalPath && typeof originalPath === 'string') {
     req.url = originalPath;
   }
@@ -26,7 +19,10 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header(
     'Access-Control-Allow-Headers',
@@ -42,24 +38,20 @@ app.use((req, res, next) => {
   // Set up API routes and authentication
   await registerRoutes(app);
 
-  // Serve Static Files
-  const distPath = path.resolve(__dirname, 'client', 'dist');
-  app.use(express.static(distPath));
-
-  // Fallback for client-side routing
-  app.get('*', (req, res) => {
-    if (req.originalUrl.startsWith('/api')) {
-      return notFoundHandler(req, res);
-    }
-    res.sendFile(path.resolve(distPath, 'index.html'));
-  });
+  if (process.env.NODE_ENV === 'development') {
+    // In development, Vite handles serving the frontend.
+    await setupVite(app, server);
+  } else {
+    // In production, Express serves the built static files.
+    serveStatic(app);
+  }
 
   // Error handlers must be last
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  const PORT = process.env.PORT || 5002; // Port changed to 5002
+  const PORT = process.env.PORT || 5002;
   server.listen(PORT, '0.0.0.0', () => {
-    log(`API server running on port ${PORT}`);
+    log(`API server and client running on port ${PORT}`);
   });
 })();
