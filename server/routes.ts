@@ -410,6 +410,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Battle damage calculation endpoint
+  app.post('/api/battle/calculate-damage', isAuthenticated, async (req: any, res) => {
+    try {
+      const { attacker, defender, ability } = req.body;
+
+      if (!attacker || !defender || !ability) {
+        return res.status(400).json({ message: 'Missing required battle data (attacker, defender, ability)' });
+      }
+
+      const damageResult = calculateDamage(attacker, defender, ability);
+      res.json(damageResult);
+
+    } catch (error) {
+      handleError(error, res, "Failed to calculate damage");
+    }
+  });
+
   // Battle token spending endpoint
   app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
     try {

@@ -31,6 +31,8 @@ export interface Monster {
   resistances?: any[];
   weaknesses?: any[];
   levelUpgrades?: any;
+  hp?: number;
+  mp?: number;
 }
 
 export interface UserMonster {
@@ -46,6 +48,10 @@ export interface UserMonster {
   upgradeChoices: Record<string, any>;
   acquiredAt?: string | Date | null;
   monster: Monster;
+  hp: number;
+  mp: number;
+  maxHp?: number;
+  maxMp?: number;
 }
 
 export interface Question {
@@ -73,3 +79,35 @@ export interface Battle {
 
 export type Subject = "math" | "spelling" | "mixed";
 export type GameTab = "learn" | "lab" | "battle" | "story";
+
+export interface Ability {
+  id: number;
+  name: string;
+  description?: string;
+  ability_type: string;
+  mp_cost?: number;
+  affinity?: string | null;
+  power_multiplier?: string;
+  scaling_stat?: string;
+}
+
+export interface DamageResult {
+  damage: number;
+  isCritical: boolean;
+  affinityMultiplier: number;
+}
+
+export interface ActiveEffect {
+  id: number;
+  type: string;
+  value: number;
+  duration: number;
+}
+
+export interface FloatingText {
+  id: number;
+  text: string;
+  type: 'damage' | 'heal' | 'crit';
+  targetId: number;
+  isPlayerTarget: boolean;
+}

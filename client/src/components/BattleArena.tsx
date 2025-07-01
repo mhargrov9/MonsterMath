@@ -46,8 +46,8 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }, 1500);
   };
 
+  // Helper function for getModifiedStat (needed for speed comparison in selectLeadMonster)
   const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-    // This function can be expanded with activeEffects later
     if ('monster' in monster) { // It's a UserMonster
         return monster[statName];
     }
@@ -58,32 +58,6 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         speed: 'baseSpeed'
     };
     return (monster as any)[baseStatMap[statName]] || 0;
-  };
-
-  const getAffinityMultiplier = (attackAffinity: string | undefined, defender: Monster): number => {
-    if (!attackAffinity) return 1.0;
-    const lower = attackAffinity.toLowerCase();
-    if (defender.weaknesses?.map(w => w.toLowerCase()).includes(lower)) return 2.0;
-    if (defender.resistances?.map(r => r.toLowerCase()).includes(lower)) return 0.5;
-    return 1.0;
-  };
-
-  const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability): DamageResult => {
-    const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
-    const attackingPower = getModifiedStat(attacker, scalingStatName);
-    const defendingDefense = getModifiedStat(defender, 'defense');
-    const attackPower = attackingPower * (parseFloat(ability.power_multiplier as any) || 0.5);
-    const damageMultiplier = 100 / (100 + defendingDefense);
-    let rawDamage = attackPower * damageMultiplier;
-    const defenderMonster = 'monster' in defender ? defender.monster : defender;
-    const affinityMultiplier = getAffinityMultiplier(ability.affinity, defenderMonster);
-    rawDamage *= affinityMultiplier;
-    const isCritical = Math.random() < 0.05;
-    if (isCritical) rawDamage *= 1.5;
-    const variance = 0.9 + Math.random() * 0.2;
-    rawDamage *= variance;
-    const finalDamage = Math.round(Math.max(1, rawDamage));
-    return { damage: finalDamage, isCritical, affinityMultiplier };
   };
 
   const getEffectivenessMessage = (multiplier: number): string => {
@@ -108,7 +82,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   };
 
-  const handlePlayerAbility = (ability: Ability) => {
+  const handlePlayerAbility = async (ability: Ability) => {
     if (turn !== 'player' || battleEnded) return;
     const attacker = playerTeam[activePlayerIndex];
     if (attacker.mp < (ability.mp_cost || 0)) {
@@ -116,27 +90,51 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         return;
     }
     const defender = aiTeam[activeAiIndex];
-    const damageResult = calculateDamage(attacker, defender, ability);
-    addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
-    if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, false);
-    const newLog = [`Your ${attacker.monster.name} used ${ability.name}!`];
-    if (damageResult.isCritical) newLog.push("A critical hit!");
-    newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-    const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
-    const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
-    setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
-    if (nextAiTeam[activeAiIndex].hp <= 0) {
-        setBattleLog(prev => [...prev, `Opponent's ${nextAiTeam[activeAiIndex].name} has been defeated!`]);
-        if (nextAiTeam.every(m => m.hp <= 0)) {
-            handleBattleCompletion('player');
-        }
+    
+    try {
+      const response = await fetch('/api/battle/calculate-damage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          attacker,
+          defender,
+          ability
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to calculate damage');
+      }
+      
+      const damageResult = await response.json();
+      
+      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, false);
+      if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, false);
+      const newLog = [`Your ${attacker.monster.name} used ${ability.name}!`];
+      if (damageResult.isCritical) newLog.push("A critical hit!");
+      newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
+      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
+      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+      setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+      if (nextAiTeam[activeAiIndex].hp <= 0) {
+          setBattleLog(prev => [...prev, `Opponent's ${nextAiTeam[activeAiIndex].name} has been defeated!`]);
+          if (nextAiTeam.every(m => m.hp <= 0)) {
+              handleBattleCompletion('player');
+          }
+      }
+      setPlayerTeam(nextPlayerTeam);
+      setAiTeam(nextAiTeam);
+      setTurn('ai');
+    } catch (error) {
+      console.error('Error calculating damage:', error);
+      setBattleLog(prev => [...prev, "Error calculating damage! Please try again."]);
     }
-    setPlayerTeam(nextPlayerTeam);
-    setAiTeam(nextAiTeam);
-    setTurn('ai');
   };
 
-  const handleAiAbility = () => {
+  const handleAiAbility = async () => {
     if (battleEnded) return;
     let activeAi = aiTeam[activeAiIndex];
     if (activeAi.hp <= 0) {
@@ -158,24 +156,49 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
     const ability = usableAbilities[Math.floor(Math.random() * usableAbilities.length)];
     const defender = playerTeam[activePlayerIndex];
-    const damageResult = calculateDamage(activeAi, defender, ability);
-    addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
-     if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
-    const newLog = [`Opponent's ${activeAi.name} used ${ability.name}!`];
-    if (damageResult.isCritical) newLog.push("A critical hit!");
-    newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-    const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
-    const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
-    setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
-    if (nextPlayerTeam[activePlayerIndex].hp <= 0) {
-        setBattleLog(prev => [...prev, `Your ${nextPlayerTeam[activePlayerIndex].monster.name} has been defeated!`]);
-        if (nextPlayerTeam.every(m => m.hp <= 0)) {
-            handleBattleCompletion('ai');
-        }
+    
+    try {
+      const response = await fetch('/api/battle/calculate-damage', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          attacker: activeAi,
+          defender,
+          ability
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to calculate damage');
+      }
+      
+      const damageResult = await response.json();
+      
+      addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
+       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
+      const newLog = [`Opponent's ${activeAi.name} used ${ability.name}!`];
+      if (damageResult.isCritical) newLog.push("A critical hit!");
+      newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
+      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
+      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+      setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+      if (nextPlayerTeam[activePlayerIndex].hp <= 0) {
+          setBattleLog(prev => [...prev, `Your ${nextPlayerTeam[activePlayerIndex].monster.name} has been defeated!`]);
+          if (nextPlayerTeam.every(m => m.hp <= 0)) {
+              handleBattleCompletion('ai');
+          }
+      }
+      setPlayerTeam(nextPlayerTeam);
+      setAiTeam(nextAiTeam);
+      setTurn('player');
+    } catch (error) {
+      console.error('Error calculating AI damage:', error);
+      setBattleLog(prev => [...prev, "AI calculation error! Battle continues."]);
+      setTurn('player');
     }
-    setPlayerTeam(nextPlayerTeam);
-    setAiTeam(nextAiTeam);
-    setTurn('player');
   };
 
   const handleSwapMonster = (monsterId: number) => {
