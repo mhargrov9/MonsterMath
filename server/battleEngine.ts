@@ -99,13 +99,47 @@ export const applyDamage = (battleId: string, ability: Ability) => {
   attackerTeam[attackerIndex] = { ...attacker, mp: newMp };
   defenderTeam[defenderIndex] = { ...defender, hp: newHp };
 
-  // Switch turns
-  battleState.turn = battleState.turn === 'player' ? 'ai' : 'player';
-
-  // Check for battle end conditions
+  // Handle fainted defender consequences
   if (newHp <= 0) {
-    battleState.battleEnded = true;
-    battleState.winner = battleState.turn === 'ai' ? 'player' : 'ai'; // Winner is opposite of current turn since turn already switched
+    // Get defender name correctly based on type
+    const defenderName = 'monster' in defender ? defender.monster.name : defender.name;
+    battleState.battleLog.push(`${defenderName} has been defeated!`);
+    
+    // Determine which team the defender belonged to
+    const isDefenderPlayer = battleState.turn === 'player' ? false : true; // Defender is opposite of current turn
+    
+    if (isDefenderPlayer) {
+      // Player monster was defeated - check for available replacements
+      const availablePlayerMonsters = battleState.playerTeam.filter((m: UserMonster) => m.hp > 0);
+      if (availablePlayerMonsters.length > 0) {
+        // Find next available monster index
+        const nextPlayerIndex = battleState.playerTeam.findIndex((m: UserMonster) => m.hp > 0);
+        battleState.activePlayerIndex = nextPlayerIndex;
+        battleState.battleLog.push(`${battleState.playerTeam[nextPlayerIndex].monster.name} is sent into battle!`);
+      } else {
+        // No player monsters left - AI wins
+        battleState.battleEnded = true;
+        battleState.winner = 'ai';
+      }
+    } else {
+      // AI monster was defeated - check for available replacements
+      const availableAiMonsters = battleState.aiTeam.filter((m: Monster) => m.hp > 0);
+      if (availableAiMonsters.length > 0) {
+        // Find next available monster index
+        const nextAiIndex = battleState.aiTeam.findIndex((m: Monster) => m.hp > 0);
+        battleState.activeAiIndex = nextAiIndex;
+        battleState.battleLog.push(`Opponent sends out ${battleState.aiTeam[nextAiIndex].name}!`);
+      } else {
+        // No AI monsters left - Player wins
+        battleState.battleEnded = true;
+        battleState.winner = 'player';
+      }
+    }
+  }
+
+  // Only switch turns if battle hasn't ended
+  if (!battleState.battleEnded) {
+    battleState.turn = battleState.turn === 'player' ? 'ai' : 'player';
   }
 
   // Update the battle session
@@ -177,6 +211,9 @@ export const processAiTurn = async (battleId: string) => {
 
   // Choose random ability
   const chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+
+  // Add battle log message before applying damage
+  battleState.battleLog.push(`Opponent's ${aiMonster.name} used ${chosenAbility.name}!`);
 
   // Apply the AI's chosen ability
   return applyDamage(battleId, chosenAbility);
