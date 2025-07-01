@@ -1,3 +1,5 @@
+import { db } from "./db.js";
+import { eq, and, desc, asc, sql, lt, gte } from "drizzle-orm";
 import {
   users,
   monsters,
@@ -8,197 +10,317 @@ import {
   aiTeams,
   abilities,
   monsterAbilities,
-  ranks,
   type User,
-  type Rank,
-  type UpsertUser,
   type Monster,
   type UserMonster,
   type Question,
   type Battle,
   type InventoryItem,
   type AiTeam,
-  type InsertMonster,
-  type InsertUserMonster,
-  type InsertQuestion,
-  type InsertBattle,
-  type InsertInventoryItem,
-  type InsertAiTeam,
-} from "../shared/schema";
+  type Ability,
+  type UpsertUser,
+} from "../shared/schema.js";
+import bcrypt from "bcrypt";
 
-import { db } from "./db";
-import { eq, and, ne, sql, desc, asc, lte, gt, notInArray } from "drizzle-orm";
-
+/**
+ * Storage interface defines all database operations
+ * This is the single source of truth for data access according to the Prime Directive
+ */
 export interface IStorage {
-  // ... (other interface methods)
+  // User management
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   createLocalUser(username: string, email: string, passwordHash: string): Promise<User>;
+  
+  // Monster management
   getAllMonsters(): Promise<Monster[]>;
   getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]>;
   getMonsterAbilities(monsterId: number): Promise<any[]>;
   getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }>;
+  
+  // Learning system
   getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null>;
   saveQuestionResult(userId: string, questionId: number, isCorrect: boolean, goldReward: number): Promise<User>;
+  
+  // Battle system
   generateAiOpponent(playerTPL: number): Promise<any>;
   spendBattleToken(userId: string): Promise<User>;
   awardRankXp(userId: string, xp: number): Promise<User>;
   getUserBattleSlots(userId: string): Promise<number>;
 }
 
+/**
+ * Database storage implementation - The Data Access Layer (DAL)
+ * All database operations must go through this class according to the architectural mandate
+ */
 export class DatabaseStorage implements IStorage {
-  // ... (other storage methods)
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
   }
 
   async createLocalUser(username: string, email: string, passwordHash: string): Promise<User> {
-    const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const [user] = await db.insert(users).values({ id: userId, username, email, passwordHash, authProvider: 'local' }).returning();
-    return user;
+    const newUser = {
+      id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      username,
+      email,
+      passwordHash,
+      authProvider: 'local' as const,
+      firstName: username,
+      lastName: '',
+      profileImageUrl: null,
+      gold: 500,
+      diamonds: 0,
+      currentSubject: 'mixed',
+      questionsAnswered: 0,
+      correctAnswers: 0,
+      currentStreak: 0,
+      answeredQuestionIds: [],
+      battleTokens: 5,
+      battleTokensLastRefresh: new Date(),
+      battleSlots: 2,
+      rankPoints: 0,
+      rank_xp: 0,
+      storyProgress: 'Node_Start_01',
+      player_tier: 1,
+      subscriptionIntent: null,
+      notificationEmail: null
+    };
+
+    const result = await db.insert(users).values(newUser).returning();
+    return result[0];
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).onConflictDoUpdate({ target: users.id, set: { ...userData, updatedAt: new Date() } }).returning();
-    return user;
+    const existingUser = await this.getUser(userData.id);
+    
+    if (existingUser) {
+      const updated = await db
+        .update(users)
+        .set({
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profileImageUrl: userData.profileImageUrl,
+        })
+        .where(eq(users.id, userData.id))
+        .returning();
+      return updated[0];
+    } else {
+      const newUser = {
+        ...userData,
+        authProvider: 'replit' as const,
+        gold: 500,
+        diamonds: 0,
+        currentSubject: 'mixed',
+        questionsAnswered: 0,
+        correctAnswers: 0,
+        currentStreak: 0,
+        answeredQuestionIds: [],
+        battleTokens: 5,
+        battleTokensLastRefresh: new Date(),
+        battleSlots: 2,
+        rankPoints: 0,
+        rank_xp: 0,
+        storyProgress: 'Node_Start_01',
+        player_tier: 1,
+        subscriptionIntent: null,
+        notificationEmail: null
+      };
+
+      const result = await db.insert(users).values(newUser).returning();
+      return result[0];
+    }
   }
 
   async getAllMonsters(): Promise<Monster[]> {
-    return await db.select().from(monsters).orderBy(asc(monsters.goldCost));
+    console.log("[storage] Attempting to fetch all monsters...");
+    try {
+      const result = await db.select().from(monsters).orderBy(asc(monsters.id));
+      console.log("[storage] Successfully fetched all monsters.");
+      return result;
+    } catch (error) {
+      console.error("[storage] Error fetching monsters:", error);
+      throw error;
+    }
   }
 
   async getUserMonsters(userId: string): Promise<(UserMonster & { monster: Monster })[]> {
-    const results = await db.select().from(userMonsters).innerJoin(monsters, eq(userMonsters.monsterId, monsters.id)).where(eq(userMonsters.userId, userId)).orderBy(desc(userMonsters.acquiredAt));
-    return results.map(r => ({ ...r.user_monsters, monster: r.monsters }));
+    console.log("[storage] Attempting to fetch user monsters...");
+    try {
+      const result = await db
+        .select()
+        .from(userMonsters)
+        .innerJoin(monsters, eq(userMonsters.monsterId, monsters.id))
+        .where(eq(userMonsters.userId, userId))
+        .orderBy(asc(userMonsters.acquiredAt));
+      
+      console.log("[storage] Successfully fetched user monsters.");
+      return result.map(row => ({
+        ...row.user_monsters,
+        monster: row.monsters
+      }));
+    } catch (error) {
+      console.error("[storage] Error fetching user monsters:", error);
+      throw error;
+    }
   }
 
   async getMonsterAbilities(monsterId: number) {
-    const result = await db.select().from(abilities).innerJoin(monsterAbilities, eq(abilities.id, monsterAbilities.ability_id)).where(eq(monsterAbilities.monster_id, monsterId));
-    return result.map(({ abilities, monster_abilities }) => ({ ...abilities, affinity: monster_abilities.override_affinity || abilities.affinity }));
+    const result = await db
+      .select({
+        ability: abilities
+      })
+      .from(monsterAbilities)
+      .innerJoin(abilities, eq(monsterAbilities.abilityId, abilities.id))
+      .where(eq(monsterAbilities.monsterId, monsterId));
+    
+    return result.map(row => row.ability);
   }
 
   async getMonsterLabData(userId: string): Promise<{ allMonsters: Monster[], userMonsters: (UserMonster & { monster: Monster })[] }> {
-    console.log("[storage] Attempting to fetch all monsters...");
-    const baseMonsters = await this.getAllMonsters();
-    console.log("[storage] Successfully fetched all monsters.");
+    const [allMonsters, userMonsters] = await Promise.all([
+      this.getAllMonsters(),
+      this.getUserMonsters(userId)
+    ]);
 
-    console.log("[storage] Attempting to fetch user monsters...");
-    const userMonstersData = await this.getUserMonsters(userId);
-    console.log("[storage] Successfully fetched user monsters.");
-
-    // --- THIS IS THE FIX ---
-    // Fetch abilities for all monsters and attach them.
-    const allMonstersWithAbilities = await Promise.all(
-        baseMonsters.map(async (monster) => {
-            const abilities = await this.getMonsterAbilities(monster.id as number);
-            return { ...monster, abilities };
-        })
-    );
-
-    const userMonstersWithAbilities = await Promise.all(
-        userMonstersData.map(async (userMonster) => {
-            const abilities = await this.getMonsterAbilities(userMonster.monsterId);
-            return { ...userMonster, monster: { ...userMonster.monster, abilities } };
-        })
-    );
-
-    return { allMonsters: allMonstersWithAbilities, userMonsters: userMonstersWithAbilities };
+    return { allMonsters, userMonsters };
   }
 
   async getQuestion(userId: string, subject: string, difficulty: number): Promise<Question | null> {
     const user = await this.getUser(userId);
-    const answeredIds = user?.answeredQuestionIds as number[] || [];
+    if (!user) return null;
 
-    let query = db.select().from(questions).where(
-      and(
-        eq(questions.difficulty, difficulty),
-        answeredIds.length > 0 ? notInArray(questions.id, answeredIds) : undefined
-      )
-    ).orderBy(sql`RANDOM()`).limit(1);
+    const answeredIds = Array.isArray(user.answeredQuestionIds) ? user.answeredQuestionIds : [];
+    
+    let query = db
+      .select()
+      .from(questions)
+      .where(
+        and(
+          eq(questions.subject, subject),
+          eq(questions.difficulty, difficulty)
+        )
+      );
 
-    if (subject !== 'mixed') {
-        query = db.select().from(questions).where(
-            and(
-                eq(questions.subject, subject),
-                eq(questions.difficulty, difficulty),
-                answeredIds.length > 0 ? notInArray(questions.id, answeredIds) : undefined
-            )
-        ).orderBy(sql`RANDOM()`).limit(1);
+    if (answeredIds.length > 0) {
+      query = query.where(sql`${questions.id} NOT IN (${sql.join(answeredIds.map(id => sql`${id}`), sql`, `)})`);
     }
 
-    const [question] = await query;
-    return question || null;
+    const result = await query.orderBy(sql`RANDOM()`).limit(1);
+    return result[0] || null;
   }
 
   async saveQuestionResult(userId: string, questionId: number, isCorrect: boolean, goldReward: number): Promise<User> {
-      const user = await this.getUser(userId);
-      if (!user) throw new Error("User not found");
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
 
-      const answeredQuestionIds = [...(user.answeredQuestionIds as number[]), questionId];
-      let gold = user.gold;
-      let correctAnswers = user.correctAnswers;
+    const answeredIds = Array.isArray(user.answeredQuestionIds) ? user.answeredQuestionIds : [];
+    const updatedAnsweredIds = [...answeredIds, questionId];
 
-      if(isCorrect) {
-          gold += goldReward;
-          correctAnswers += 1;
-      }
+    const updates: Partial<User> = {
+      answeredQuestionIds: updatedAnsweredIds,
+      questionsAnswered: user.questionsAnswered + 1,
+      gold: user.gold + goldReward
+    };
 
-      const [updatedUser] = await db.update(users).set({
-          answeredQuestionIds,
-          gold,
-          correctAnswers,
-          questionsAnswered: (user.questionsAnswered || 0) + 1,
-      }).where(eq(users.id, userId)).returning();
+    if (isCorrect) {
+      updates.correctAnswers = user.correctAnswers + 1;
+      updates.currentStreak = user.currentStreak + 1;
+    } else {
+      updates.currentStreak = 0;
+    }
 
-      return updatedUser;
+    const result = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
+
+    return result[0];
   }
 
   async generateAiOpponent(tpl: number) {
-    let monsterPool = await db.select().from(monsters).where(eq(monsters.starterSet, true));
-    if (monsterPool.length === 0) {
-      throw new Error("There are no starter monsters in the database to generate a team.");
+    // Find AI teams within TPL range (±10%)
+    const minTpl = Math.floor(tpl * 0.9);
+    const maxTpl = Math.ceil(tpl * 1.1);
+    
+    const availableTeams = await db
+      .select()
+      .from(aiTeams)
+      .where(
+        and(
+          gte(aiTeams.teamPowerLevel, minTpl),
+          lt(aiTeams.teamPowerLevel, maxTpl)
+        )
+      );
+
+    if (availableTeams.length === 0) {
+      // Fallback to closest team
+      const fallbackTeams = await db
+        .select()
+        .from(aiTeams)
+        .orderBy(sql`ABS(${aiTeams.teamPowerLevel} - ${tpl})`)
+        .limit(1);
+      
+      return fallbackTeams[0] || null;
     }
-    const actualTeamSize = Math.min(3, monsterPool.length);
-    const teamMonsters = [...monsterPool].sort(() => 0.5 - Math.random()).slice(0, actualTeamSize);
 
-    const scaledMonstersWithAbilities = await Promise.all(teamMonsters.map(async (monster) => {
-      const monsterAbilities = await this.getMonsterAbilities(monster.id as number);
-      return { ...monster, hp: monster.baseHp, maxHp: monster.baseHp, mp: monster.baseMp, maxMp: monster.baseMp, abilities: monsterAbilities };
-    }));
-
-    return { name: "AI Challenger", scaledMonsters: scaledMonstersWithAbilities };
+    // Random selection from available teams
+    const randomIndex = Math.floor(Math.random() * availableTeams.length);
+    return availableTeams[randomIndex];
   }
 
   async spendBattleToken(userId: string): Promise<User> {
-    const user = await db.select().from(users).where(eq(users.id, userId));
-    if (!user[0] || user[0].battleTokens <= 0) throw new Error("NO_BATTLE_TOKENS");
-    const [updatedUser] = await db.update(users).set({ battleTokens: user[0].battleTokens - 1 }).where(eq(users.id, userId)).returning();
-    return updatedUser;
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+    
+    if (user.battleTokens <= 0) {
+      throw new Error('No battle tokens available');
+    }
+
+    const result = await db
+      .update(users)
+      .set({ battleTokens: user.battleTokens - 1 })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return result[0];
   }
 
   async awardRankXp(userId: string, xp: number): Promise<User> {
-    const [updated] = await db.update(users).set({ rank_xp: sql`${users.rank_xp} + ${xp}` }).where(eq(users.id, userId)).returning();
-    if (!updated) throw new Error("User not found");
-    return updated;
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('User not found');
+
+    const result = await db
+      .update(users)
+      .set({ 
+        rankPoints: user.rankPoints + xp,
+        rank_xp: user.rank_xp + xp 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    return result[0];
   }
 
   async getUserBattleSlots(userId: string): Promise<number> {
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    return user?.battleSlots || 3;
+    const user = await this.getUser(userId);
+    return user?.battleSlots || 2;
   }
 }
 
+// Export the singleton instance according to the established pattern
 export const storage = new DatabaseStorage();
