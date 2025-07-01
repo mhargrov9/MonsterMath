@@ -1,0 +1,44 @@
+Prompt for Replit AI: Task 5 - Make the Server Authoritative on Damage
+By the book, scalable: Yes.
+
+Goal: Refactor the damage calculation flow so the server not only calculates the damage but also applies it and returns the updated game state. The client will become even "dumber" and will simply accept the new state from the server.
+
+Instructions:
+
+Enhance the battleEngine.ts:
+
+Create a new exported function in server/battleEngine.ts called applyDamage.
+
+This function will take three arguments: attacker, defender, and ability.
+
+Inside applyDamage, it should first call the existing calculateDamage function to get the damage result.
+
+Then, it should calculate the defender's new HP (defender.hp - damageResult.damage).
+
+It should also calculate the attacker's new MP (attacker.mp - ability.mp_cost).
+
+The function should return an object containing the damageResult, the defender's newHp, and the attacker's newMp.
+
+Update the Server Endpoint:
+
+In server/routes.ts, modify the /api/battle/calculate-damage endpoint. Rename it to /api/battle/perform-action to better reflect its new role.
+
+Update the endpoint to call the new applyDamage function from battleEngine.ts instead of calculateDamage.
+
+The endpoint should now return the full result from applyDamage (the object containing damageResult, newHp, and newMp).
+
+Simplify the Client Logic:
+
+In client/src/components/BattleArena.tsx, update the fetch call inside handlePlayerAbility and handleAiAbility to point to the new /api/battle/perform-action endpoint.
+
+After receiving the response from the server, use the newHp and newMp values from the response payload to update the state of the player and AI teams directly.
+
+You will no longer need to calculate the new HP or MP on the client side. This simplifies the client's responsibility significantly. The client's job is now just to update its local state to match the authoritative state sent by the server.
+
+Verification Steps (To be confirmed by the Developer):
+
+The application must still run and be fully playable.
+
+When an attack occurs, damage should be applied, and HP/MP bars should update correctly. The functionality should appear identical to the user, but we will know that the state changes are now being dictated by the server, which is a major architectural improvement.
+
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code).
