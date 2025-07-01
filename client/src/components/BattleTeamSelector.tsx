@@ -7,7 +7,7 @@ import InterestTest from "./InterestTest";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Users, Zap } from "lucide-react";
-import { UserMonster, Ability } from "@/types/game";
+import { UserMonster, Ability } from "@/shared/types";
 
 interface BattleTeamSelectorProps {
   onBattleStart: (selectedMonsters: UserMonster[], aiOpponent: any) => void;

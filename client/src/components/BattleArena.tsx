@@ -3,7 +3,7 @@ import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText } from '@/types/game';
+import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText } from '@/shared/types';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 

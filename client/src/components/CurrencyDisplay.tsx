@@ -1,4 +1,4 @@
-import { GameUser } from "@/types/game";
+import { GameUser } from "@/shared/types";
 
 interface CurrencyDisplayProps {
   user?: GameUser;

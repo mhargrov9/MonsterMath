@@ -1,4 +1,4 @@
-// Shared types for the battle system - single source of truth
+// Shared types for the entire application - single source of truth
 
 export interface DamageResult {
   damage: number;
@@ -17,9 +17,12 @@ export interface UserMonster {
   experience: number;
   evolutionStage: number;
   upgradeChoices: Record<string, any>;
+  acquiredAt?: string | Date | null;
+  monster: Monster;
   hp: number;
   mp: number;
-  monster: Monster;
+  maxHp?: number;
+  maxMp?: number;
 }
 
 export interface Monster {
@@ -54,3 +57,59 @@ export interface Ability {
   power_multiplier?: string;
   scaling_stat?: string;
 }
+
+export interface GameUser {
+  id: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  profileImageUrl?: string;
+  gold: number;
+  diamonds: number;
+  currentSubject?: string;
+  questionsAnswered: number;
+  correctAnswers: number;
+  currentStreak: number;
+  battleTokens: number;
+}
+
+export interface Question {
+  id: number;
+  subject: string;
+  difficulty: number;
+  questionText: string;
+  correctAnswer: string;
+  options: string[];
+  hint?: string;
+  goldReward: number;
+}
+
+export interface Battle {
+  id: number;
+  attackerId: string;
+  defenderId: string;
+  attackerMonsterId: number;
+  defenderMonsterId: number;
+  winnerId: string;
+  goldFee: number;
+  diamondsAwarded: number;
+  battleAt?: string;
+}
+
+export interface ActiveEffect {
+  id: number;
+  type: string;
+  value: number;
+  duration: number;
+}
+
+export interface FloatingText {
+  id: number;
+  text: string;
+  type: 'damage' | 'heal' | 'crit';
+  targetId: number;
+  isPlayerTarget: boolean;
+}
+
+export type Subject = "math" | "spelling" | "mixed";
+export type GameTab = "learn" | "lab" | "battle" | "story";
