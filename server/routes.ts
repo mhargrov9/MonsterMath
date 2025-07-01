@@ -58,6 +58,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.use('/attached_assets', express.static('attached_assets'));
 
+  // Health endpoint for server status verification
+  app.get('/api/health', (req, res) => {
+    res.json({ status: "ok" });
+  });
+
   // GET endpoint for monster images (unauthenticated for collage use)
   app.get('/api/generate/monster-image', async (req, res) => {
     try {
