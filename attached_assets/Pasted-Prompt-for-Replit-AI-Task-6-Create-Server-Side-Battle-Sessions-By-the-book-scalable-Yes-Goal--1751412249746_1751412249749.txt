@@ -1,0 +1,55 @@
+Prompt for Replit AI: Task 6 - Create Server-Side Battle Sessions
+By the book, scalable: Yes.
+
+Goal: Refactor the start of a battle so that the server creates, stores, and manages the battle state in a new "battle session." The client will no longer create the battle state itself; it will ask the server to do it.
+
+Instructions:
+
+Create a Battle Session Store:
+
+In server/battleEngine.ts, create a new, simple in-memory store to hold active battle sessions. A const battleSessions = new Map(); at the top of the file is perfect for this.
+
+This Map will store battle state objects, using a unique battleId as the key.
+
+Create a startBattle Function:
+
+In server/battleEngine.ts, create a new exported async function named startBattle.
+
+This function will accept the playerTeam and the opponentTeam as arguments.
+
+Inside the function, it should:
+
+Generate a unique battleId (using crypto.randomUUID() is a good choice).
+
+Create a battleState object that contains all the necessary information for a battle to begin: playerTeam, aiTeam, activePlayerIndex, activeAiIndex, turn, battleEnded, winner, etc.
+
+Store this battleState object in the battleSessions Map using the battleId as the key.
+
+Return an object containing the initial battleState and the battleId.
+
+Create the "Start Battle" Endpoint:
+
+In server/routes.ts, create a new POST endpoint at /api/battle/start.
+
+This endpoint will receive the playerTeam and opponentTeam in its request body.
+
+It should call the new startBattle function from battleEngine.ts and return the result to the client.
+
+Update the Client's handleBattleStart:
+
+In client/src/components/BattleArena.tsx, modify the handleBattleStart function.
+
+It should now make a POST request to the new /api/battle/start endpoint, sending the selected player team and the generated opponent team.
+
+It will then use the battleState from the server's response to set all of its initial React states (setPlayerTeam, setAiTeam, setTurn, etc.).
+
+It must also create a new React state variable, const [battleId, setBattleId] = useState(null);, and store the battleId from the server's response.
+
+Verification Steps (To be confirmed by the Developer):
+
+The application must still run and be fully playable.
+
+Starting a new battle from the BattleTeamSelector should work exactly as before. The user should see no difference, but we will know that the battle session is now being created and managed on the server, which sets the stage for our next steps.
+
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code).
+
