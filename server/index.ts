@@ -43,7 +43,7 @@ app.use((req, res, next) => {
   await registerRoutes(app);
 
   // Serve Static Files
-  const distPath = path.resolve(__dirname, 'client', 'dist');
+  const distPath = path.resolve(__dirname, '..', 'client', 'dist');
   app.use(express.static(distPath));
 
   // Fallback for client-side routing
