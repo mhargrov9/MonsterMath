@@ -10,12 +10,6 @@ interface VeoBattleVideoProps {
   onVideoEnd?: () => void;
 }
 
-interface VideoResponse {
-    success: boolean;
-    videoData?: string;
-    message?: string;
-}
-
 export default function VeoBattleVideo({ 
   playerMonsterId, 
   aiMonsterId, 
@@ -37,26 +31,25 @@ export default function VeoBattleVideo({
   const generateBattleVideo = async () => {
     setIsLoading(true);
     setError(null);
-
+    
     try {
-      const res = await apiRequest('/api/generate/battle-video', {
+      const response = await apiRequest('/api/generate/battle-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        data: {
+        body: JSON.stringify({
           playerMonsterId,
           aiMonsterId,
           playerUpgrades,
           aiUpgrades
-        }
+        })
       });
-      const response: VideoResponse = await res.json();
 
       if (response.success && response.videoData) {
         setVideoData(response.videoData);
       } else {
-        throw new Error(response.message || 'Failed to generate battle video');
+        throw new Error('Failed to generate battle video');
       }
     } catch (err) {
       console.error('Error generating battle video:', err);

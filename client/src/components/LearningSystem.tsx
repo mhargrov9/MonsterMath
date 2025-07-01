@@ -1,22 +1,10 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Question, Subject } from "@/types/game";
-
-const fetchApiJson = async (path: string) => {
-    const res = await fetch(path);
-    if (!res.ok) {
-        // For 404s (no more questions), we don't want to throw an error, just return null.
-        if (res.status === 404) return null;
-        throw new Error(`Request to ${path} failed with status ${res.status}`);
-    }
-    // Handle cases where the response might be empty
-    const text = await res.text();
-    return text ? JSON.parse(text) : null;
-};
 
 export default function LearningSystem() {
   const [selectedSubject, setSelectedSubject] = useState<Subject>("mixed");
@@ -24,32 +12,45 @@ export default function LearningSystem() {
   const [showHint, setShowHint] = useState(false);
   const [usedHint, setUsedHint] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const { data: question, isLoading, refetch } = useQuery<Question | null>({
-    queryKey: ["/api/questions", selectedSubject],
-    queryFn: () => fetchApiJson(`/api/questions?subject=${selectedSubject}&difficulty=2`),
-    refetchOnWindowFocus: false,
+  const { data: question, isLoading, refetch } = useQuery<Question>({
+    queryKey: ["/api/questions", selectedSubject, 2],
+    queryFn: async () => {
+      const response = await fetch(`/api/questions?subject=${selectedSubject}&difficulty=2`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch question");
+      return response.json();
+    },
   });
 
   const answerMutation = useMutation({
-    mutationFn: async ({ answer, questionId, isCorrect, goldReward }: { answer: string, questionId: number, isCorrect: boolean, goldReward: number }) => {
-      return apiRequest("/api/questions/answer", {
-        method: 'POST',
-        data: {
-          questionId,
-          isCorrect,
-          goldReward: isCorrect ? goldReward : 0,
-        }
+    mutationFn: async ({ answer, isCorrect }: { answer: string; isCorrect: boolean }) => {
+      const response = await apiRequest("POST", "/api/questions/answer", {
+        questionId: question?.id,
+        answer,
+        isCorrect,
+        usedHint,
+        subject: selectedSubject,
+        difficulty: 2
       });
+      return await response.json();
     },
-    onSuccess: (data, variables) => {
-      if (variables.isCorrect) {
+    onSuccess: (data) => {
+      if (data.isCorrect) {
         toast({
           title: "Correct! 🎉",
-          description: `You earned ${variables.goldReward} Gold!`,
+          description: `You earned ${data.goldEarned} Gold!`,
           className: "bg-lime-green text-white",
         });
+
+        // If there's a next question, update the cache with it
+        if (data.nextQuestion) {
+          queryClient.setQueryData(["/api/questions", selectedSubject, 2], data.nextQuestion);
+        } else {
+          // No more questions available, refetch to potentially reset
+          refetch();
+        }
       } else {
         toast({
           title: "Incorrect ❌",
@@ -57,35 +58,19 @@ export default function LearningSystem() {
           variant: "destructive",
         });
       }
+
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      handleNewQuestion();
+      setSelectedAnswer("");
+      setShowHint(false);
+      setUsedHint(false);
     },
-    onError: (error) => {
-        toast({
-            title: "Error",
-            description: `Could not submit answer. ${error.message}`,
-            variant: "destructive",
-        });
-    }
   });
 
   const handleAnswerSelect = (answer: string) => {
-    if (!question) return;
     setSelectedAnswer(answer);
-    const isCorrect = answer === question.correctAnswer;
-    answerMutation.mutate({ answer, questionId: question.id, isCorrect, goldReward: question.goldReward });
+    const isCorrect = answer === question?.correctAnswer;
+    answerMutation.mutate({ answer, isCorrect });
   };
-
-  const handleSubjectSelect = (subject: Subject) => {
-    setSelectedSubject(subject);
-    setSelectedAnswer("");
-    setShowHint(false);
-    setUsedHint(false);
-    queryClient.removeQueries({ queryKey: ["/api/questions"] });
-    setTimeout(() => {
-        queryClient.prefetchQuery({ queryKey: ["/api/questions", subject] });
-    }, 100);
-  }
 
   const handleNewQuestion = () => {
     setSelectedAnswer("");
@@ -98,14 +83,6 @@ export default function LearningSystem() {
     setShowHint(true);
     setUsedHint(true);
   };
-
-  useEffect(() => {
-    // Reset state when subject changes
-    setSelectedAnswer("");
-    setShowHint(false);
-    setUsedHint(false);
-  }, [selectedSubject]);
-
 
   if (isLoading) {
     return (
@@ -127,7 +104,12 @@ export default function LearningSystem() {
         <h3 className="font-fredoka text-xl sm:text-2xl text-white mb-3 sm:mb-4">Choose Your Challenge</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Button
-            onClick={() => handleSubjectSelect("math")}
+            onClick={() => {
+              setSelectedSubject("math");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
               selectedSubject === "math"
                 ? "bg-gradient-to-r from-bright-orange to-gold-yellow text-white"
@@ -139,7 +121,12 @@ export default function LearningSystem() {
           </Button>
 
           <Button
-            onClick={() => handleSubjectSelect("spelling")}
+            onClick={() => {
+              setSelectedSubject("spelling");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
               selectedSubject === "spelling"
                 ? "bg-gradient-to-r from-vibrant-purple to-electric-blue text-white"
@@ -151,7 +138,12 @@ export default function LearningSystem() {
           </Button>
 
           <Button
-            onClick={() => handleSubjectSelect("mixed")}
+            onClick={() => {
+              setSelectedSubject("mixed");
+              setSelectedAnswer("");
+              setShowHint(false);
+              setUsedHint(false);
+            }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
               selectedSubject === "mixed"
                 ? "bg-gradient-to-r from-lime-green to-diamond-blue text-white"
@@ -165,7 +157,7 @@ export default function LearningSystem() {
       </div>
 
       {/* Current Question Card */}
-      {question ? (
+      {question && (
         <Card className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl border-4 border-electric-blue">
           <CardContent className="p-4 sm:p-6 lg:p-8">
             <div className="text-center mb-4 sm:mb-6">
@@ -184,6 +176,7 @@ export default function LearningSystem() {
               <div className="w-24 h-1 bg-gradient-to-r from-electric-blue to-vibrant-purple mx-auto rounded-full"></div>
             </div>
 
+            {/* Show hint if requested */}
             {showHint && question.hint && (
               <div className="bg-bright-orange/20 border border-bright-orange rounded-xl p-3 sm:p-4 mb-4 sm:mb-6 text-center">
                 <p className="text-gray-700 font-medium text-sm sm:text-base">
@@ -192,6 +185,7 @@ export default function LearningSystem() {
               </div>
             )}
 
+            {/* Answer Options */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
               {question.options.map((option, index) => (
                 <Button
@@ -205,10 +199,11 @@ export default function LearningSystem() {
               ))}
             </div>
 
+            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:justify-between sm:items-center">
               <Button
                 onClick={handleGetHint}
-                disabled={!question.hint || showHint || answerMutation.isPending}
+                disabled={showHint || answerMutation.isPending}
                 className="bg-bright-orange text-white px-4 sm:px-6 py-3 rounded-xl font-bold hover:bg-bright-orange/80 transition-colors touch-manipulation"
               >
                 <i className="fas fa-lightbulb mr-2"></i>
@@ -227,9 +222,22 @@ export default function LearningSystem() {
             </div>
           </CardContent>
         </Card>
-      ) : (
-        <Card className="bg-white/10 border-white/20"><CardContent className="p-6 text-center"><p className="text-white/80 font-semibold">No more questions available in this category. Try another one!</p></CardContent></Card>
       )}
+
+      {/* Progress Tracking */}
+      <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="font-fredoka text-xl text-white">Today's Progress</h4>
+          <span className="text-gold-yellow font-bold">Keep Learning! 🔥</span>
+        </div>
+        <div className="bg-white/20 rounded-full h-4 mb-2">
+          <div className="bg-gradient-to-r from-lime-green to-gold-yellow h-4 rounded-full" style={{width: "70%"}}></div>
+        </div>
+        <div className="flex justify-between text-sm text-white/80">
+          <span>Great progress today!</span>
+          <span>Keep up the great work!</span>
+        </div>
+      </div>
     </div>
   );
 }

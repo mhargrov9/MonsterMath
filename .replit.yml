@@ -1,7 +1,0 @@
-run:
-  - name: "Start application"
-    cmd: "npm run dev"
-    
-workflows:
-  Start application:
-    runner: "npm run dev"

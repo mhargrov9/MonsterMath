@@ -1,50 +1,60 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryFunction } from "@tanstack/react-query";
+
+async function throwIfResNotOk(res: Response) {
+  if (!res.ok) {
+    const text = (await res.text()) || res.statusText;
+    throw new Error(`${res.status}: ${text}`);
+  }
+}
+
+export const apiRequest = async (url: string, { method, data, headers: customHeaders }: { method: string, data?: unknown, headers?: Record<string, string> }): Promise<Response> => {
+  const headers: Record<string, string> = { ...customHeaders };
+  let body;
+
+  if (data) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(data);
+  }
+
+  const response = await fetch(url, {
+    method,
+    headers,
+    body,
+    credentials: "include", // Include cookies for authentication
+  });
+
+  return response;
+};
+
+type UnauthorizedBehavior = "returnNull" | "throw";
+export const getQueryFn: <T>(options: {
+  on401: UnauthorizedBehavior;
+}) => QueryFunction<T> =
+  ({ on401: unauthorizedBehavior }) =>
+  async ({ queryKey }) => {
+    const res = await fetch(queryKey[0] as string, {
+      credentials: "include",
+    });
+
+    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      return null;
+    }
+
+    await throwIfResNotOk(res);
+    return await res.json();
+  };
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
       refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      retry: false,
+    },
+    mutations: {
+      retry: false,
     },
   },
 });
-
-interface ApiRequestOptions {
-  method?: string;
-  data?: unknown;
-  headers?: Record<string, string>;
-}
-
-export const apiRequest = async (
-  url: string,
-  options: ApiRequestOptions = {},
-): Promise<Response> => {
-  const { method = 'GET', data, headers: customHeaders } = options;
-
-  const apiUrl = url;
-
-  const headers = new Headers({
-    'Content-Type': 'application/json',
-    ...customHeaders,
-  });
-
-  const config: RequestInit = {
-    method,
-    headers,
-    credentials: 'include',
-  };
-
-  if (data) {
-    config.body = JSON.stringify(data);
-  }
-
-  const response = await fetch(apiUrl, config);
-
-  if (response.status >= 500) {
-    const errorBody = await response.text();
-    console.error('API Request Failed:', errorBody);
-    throw new Error(`Request to ${apiUrl} failed with status ${response.status}`);
-  }
-
-  return response;
-};

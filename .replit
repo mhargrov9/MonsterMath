@@ -1,14 +1,42 @@
-modules = ["nodejs-20"]
-
+# Top-level configurations
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
+onBoot = "nix-env -iA nixpkgs.curl"
+hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
+# Nix configuration table
+[nix]
+channel = "stable-24_05"
+
+# Deployment configuration table
 [deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
+# Port configuration table
 [[ports]]
-localPort = 3000
-externalPort = 3000
-
-[[ports]]
-localPort = 5002
+localPort = 5000
 externalPort = 80
+
+# Workflows configuration
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000

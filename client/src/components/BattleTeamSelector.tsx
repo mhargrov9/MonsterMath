@@ -1,84 +1,168 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MonsterCard from "./MonsterCard";
+import InterestTest from "./InterestTest";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Users, Zap } from "lucide-react";
-import { PlayerCombatMonster, Monster } from "@/types/game";
+import { UserMonster, Ability } from "@/types/game";
 
 interface BattleTeamSelectorProps {
-  onTeamConfirm: (selectedMonsters: PlayerCombatMonster[]) => void;
+  onBattleStart: (selectedMonsters: UserMonster[], aiOpponent: any) => void;
 }
 
-interface MonsterLabData {
-    userMonsters: PlayerCombatMonster[];
-}
-
-export function BattleTeamSelector({ onTeamConfirm }: BattleTeamSelectorProps) {
-  const [selectedMonsters, setSelectedMonsters] = useState<PlayerCombatMonster[]>([]);
+export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
+  const [selectedMonsters, setSelectedMonsters] = useState<UserMonster[]>([]);
+  const [monstersWithAbilities, setMonstersWithAbilities] = useState<UserMonster[]>([]);
+  const [isStartingBattle, setIsStartingBattle] = useState(false);
+  const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const { data: userMonsters, isLoading: loadingMonsters } = useQuery({
-    queryKey: ["/api/monster-lab-data"],
-    queryFn: async (): Promise<MonsterLabData> => {
-        const res = await apiRequest('/api/monster-lab-data', { method: 'GET' });
-        return res.json();
-    },
-    select: (data) => data.userMonsters,
+  const { data: userMonsters, isLoading: loadingMonsters } = useQuery<UserMonster[]>({
+    queryKey: ["/api/user/monsters"],
   });
 
-  const { data: battleSlotsData } = useQuery({
+  useEffect(() => {
+    if (!userMonsters) return;
+
+    let isMounted = true;
+    const fetchAbilitiesForAll = async () => {
+      const abilitiesMap: Record<number, Ability[]> = {};
+      await Promise.all(
+        userMonsters.map(async (um) => {
+          try {
+            const res = await fetch(`/api/monster-abilities/${um.monster.id}`);
+            if (res.ok) {
+              abilitiesMap[um.monster.id] = await res.json();
+            }
+          } catch (e) {
+            console.error(`Failed to fetch abilities for monster ${um.monster.id}`, e);
+          }
+        })
+      );
+
+      if (isMounted) {
+        const populatedMonsters = userMonsters.map(um => ({
+          ...um,
+          monster: { ...um.monster, abilities: abilitiesMap[um.monster.id] || [] },
+        }));
+        setMonstersWithAbilities(populatedMonsters);
+      }
+    };
+
+    fetchAbilitiesForAll();
+
+    return () => { isMounted = false; };
+  }, [userMonsters]);
+
+  const { data: battleSlotsData } = useQuery<{ battleSlots: number }>({
     queryKey: ["/api/user/battle-slots"],
-    queryFn: () => apiRequest('/api/user/battle-slots', { method: 'GET' }).then(res => res.json()),
   });
 
-  const battleSlots = battleSlotsData?.battleSlots || 3;
-  const availableMonsters = userMonsters?.filter((m) => (m.hp ?? 0) > 0) || [];
+  const battleSlots = battleSlotsData?.battleSlots || 7; // Temporarily increased for testing
+  const availableMonsters = monstersWithAbilities.filter((m) => m.hp > 0);
+  const currentTPL = selectedMonsters.reduce((total, m) => total + m.level, 0);
 
-  const handleMonsterSelect = (monster: PlayerCombatMonster) => {
+  const handleMonsterSelect = (monster: UserMonster) => {
     setSelectedMonsters(prev => {
       const isSelected = prev.some(m => m.id === monster.id);
-      if (isSelected) return prev.filter(m => m.id !== monster.id);
-      if (prev.length < battleSlots) return [...prev, monster];
-      toast({ title: "Battle Slots Full", description: `You can only select ${battleSlots} monsters.`});
+      if (isSelected) {
+        return prev.filter(m => m.id !== monster.id);
+      }
+      if (prev.length < battleSlots) {
+        return [...prev, monster];
+      }
+      toast({ title: "Battle Slots Full", description: `You can only select ${battleSlots} monsters.`, variant: "destructive" });
       return prev;
     });
   };
 
+  const handleStartBattle = async () => {
+    if (selectedMonsters.length === 0) {
+      toast({ title: "No Monsters Selected", description: "Please select at least one monster.", variant: "destructive" });
+      return;
+    }
+
+    setIsStartingBattle(true);
+    try {
+      const tokenResponse = await apiRequest("/api/battle/spend-token", { method: "POST" });
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        throw new Error(errorData.message || "Failed to spend battle token.");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+
+      const opponentResponse = await apiRequest("/api/battle/generate-opponent", { method: "POST", data: { tpl: currentTPL } });
+      if (!opponentResponse.ok) throw new Error("Failed to generate an opponent.");
+
+      const opponentData = await opponentResponse.json();
+      onBattleStart(selectedMonsters, opponentData);
+
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("NO_BATTLE_TOKENS")) {
+        setShowSubscriptionGate(true);
+      } else {
+        toast({ title: "An Error Occurred", description: (error as Error).message || "Could not start the battle.", variant: "destructive" });
+      }
+    } finally {
+      setIsStartingBattle(false);
+    }
+  };
+
+  if (loadingMonsters) return <div className="text-center p-8">Loading your monsters...</div>;
+
+  if (!loadingMonsters && availableMonsters.length === 0) {
+    return (
+       <Card className="w-full max-w-4xl mx-auto"><CardContent className="p-6 text-center"><h3 className="text-xl font-bold mb-4">No Available Monsters</h3><p className="text-muted-foreground">You need healthy monsters to enter battle.</p></CardContent></Card>
+    );
+  }
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 p-4">
-      <Card><CardContent className="p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Assemble Your Battle Team</h2>
-            <p>Select up to {battleSlots} monsters.</p>
+    <div className="w-full max-w-6xl mx-auto space-y-6">
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-2">Assemble Your Battle Team</h2>
+              <p className="text-muted-foreground">Select up to {battleSlots} monsters. Your Team Power Level (TPL) determines your opponent.</p>
+            </div>
+            <div className="flex flex-col gap-2 min-w-[200px] text-right">
+                <div className="flex items-center justify-end gap-2"><Users className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">Slots: {selectedMonsters.length}/{battleSlots}</span></div>
+                <div className="flex items-center justify-end gap-2"><Zap className="w-5 h-5 text-muted-foreground" /> <span className="font-medium">TPL: {currentTPL}</span></div>
+                {selectedMonsters.length > 0 && (
+                  <Button onClick={handleStartBattle} disabled={isStartingBattle} className="bg-red-600 hover:bg-red-700 w-full mt-2">
+                    {isStartingBattle ? "Finding Opponent..." : "Start Battle!"}
+                  </Button>
+                )}
+            </div>
           </div>
-          <Button onClick={() => onTeamConfirm(selectedMonsters)} disabled={selectedMonsters.length === 0}>
-              Confirm Team
-          </Button>
-        </div>
-      </CardContent></Card>
-      <Card><CardContent className="p-6">
-        <h3>Your Available Monsters</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {availableMonsters.map((userMonster) => {
-            const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
-            return (
-              <div key={userMonster.id} className={`transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : ''}`}>
-                <MonsterCard 
-                  monster={userMonster.monster} 
-                  userMonster={userMonster} 
-                  size="small"
-                  onCardClick={() => handleMonsterSelect(userMonster)}
-                  isToggleable={false}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </CardContent></Card>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-lg font-bold mb-4">Available Monsters For Battle</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {availableMonsters.map((userMonster) => {
+              const isSelected = selectedMonsters.some(m => m.id === userMonster.id);
+              return (
+                <div key={userMonster.id} className={`transition-all rounded-lg ${isSelected ? 'ring-4 ring-green-500' : ''}`}>
+                  <MonsterCard 
+                    monster={userMonster.monster} 
+                    userMonster={userMonster} 
+                    size="small"
+                    onCardClick={() => handleMonsterSelect(userMonster)} // <-- PASSING THE HANDLER DIRECTLY
+                    isToggleable={false} // Prevent card from toggling itself
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+      {showSubscriptionGate && <InterestTest onComplete={() => setShowSubscriptionGate(false)} />}
     </div>
   );
 }
