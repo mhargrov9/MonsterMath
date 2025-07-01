@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage } from "./battleEngine";
+import { calculateDamage, applyDamage } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -410,8 +410,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Battle damage calculation endpoint
-  app.post('/api/battle/calculate-damage', isAuthenticated, async (req: any, res) => {
+  // Battle action processing endpoint (server-authoritative damage application)
+  app.post('/api/battle/perform-action', isAuthenticated, async (req: any, res) => {
     try {
       const { attacker, defender, ability } = req.body;
 
@@ -419,11 +419,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required battle data (attacker, defender, ability)' });
       }
 
-      const damageResult = calculateDamage(attacker, defender, ability);
-      res.json(damageResult);
+      const actionResult = applyDamage(attacker, defender, ability);
+      res.json(actionResult);
 
     } catch (error) {
-      handleError(error, res, "Failed to calculate damage");
+      handleError(error, res, "Failed to perform battle action");
     }
   });
 

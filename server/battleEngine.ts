@@ -47,3 +47,23 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
   const finalDamage = Math.round(Math.max(1, rawDamage));
   return { damage: finalDamage, isCritical, affinityMultiplier };
 };
+
+// Server-authoritative damage application function
+export const applyDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability) => {
+  // First calculate the damage using existing function
+  const damageResult = calculateDamage(attacker, defender, ability);
+  
+  // Calculate new HP for defender (ensuring we have a valid HP value)
+  const currentDefenderHp = defender.hp ?? 0;
+  const newHp = Math.max(0, currentDefenderHp - damageResult.damage);
+  
+  // Calculate new MP for attacker (ensuring we have a valid MP value)
+  const currentAttackerMp = attacker.mp ?? 0;
+  const newMp = Math.max(0, currentAttackerMp - (ability.mp_cost || 0));
+  
+  return {
+    damageResult,
+    newHp,
+    newMp
+  };
+};
