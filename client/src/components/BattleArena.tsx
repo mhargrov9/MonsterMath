@@ -162,7 +162,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     const defender = playerTeam[activePlayerIndex];
     
     try {
-      const response = await fetch('/api/battle/calculate-damage', {
+      const response = await fetch('/api/battle/perform-action', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,18 +176,20 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to calculate damage');
+        throw new Error('Failed to perform battle action');
       }
       
-      const damageResult = await response.json();
+      const actionResult = await response.json();
+      const { damageResult, newHp, newMp } = actionResult;
       
       addFloatingText(`-${damageResult.damage}`, 'damage', defender.id, true);
        if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id, true);
       const newLog = [`Opponent's ${activeAi.name} used ${ability.name}!`];
       if (damageResult.isCritical) newLog.push("A critical hit!");
       newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: Math.max(0, m.hp - damageResult.damage) } : m);
-      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: m.mp - (ability.mp_cost || 0) } : m);
+      // Update teams with server-authoritative state
+      const nextPlayerTeam = playerTeam.map((m, i) => i === activePlayerIndex ? { ...m, hp: newHp } : m);
+      const nextAiTeam = aiTeam.map((m, i) => i === activeAiIndex ? { ...m, mp: newMp } : m);
       setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
       if (nextPlayerTeam[activePlayerIndex].hp <= 0) {
           setBattleLog(prev => [...prev, `Your ${nextPlayerTeam[activePlayerIndex].monster.name} has been defeated!`]);
@@ -199,8 +201,8 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       setAiTeam(nextAiTeam);
       setTurn('player');
     } catch (error) {
-      console.error('Error calculating AI damage:', error);
-      setBattleLog(prev => [...prev, "AI calculation error! Battle continues."]);
+      console.error('Error performing AI battle action:', error);
+      setBattleLog(prev => [...prev, "AI action error! Battle continues."]);
       setTurn('player');
     }
   };
