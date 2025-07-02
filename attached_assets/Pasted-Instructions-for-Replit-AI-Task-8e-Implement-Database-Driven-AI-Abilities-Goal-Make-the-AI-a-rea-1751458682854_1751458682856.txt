@@ -1,0 +1,42 @@
+Instructions for Replit AI: Task 8e - Implement Database-Driven AI Abilities
+Goal: Make the AI a real opponent by having it use its actual abilities from the database. This involves fetching all monster abilities when a battle starts and rewriting the AI's decision-making logic to use this authentic data. This task is critical for architectural compliance.
+
+File 1 of 3: server/storage.ts (Database Access)
+Create a new exported function named getAbilitiesForMonsters:
+
+This function must accept an array of monster IDs.
+
+It needs to perform a single, efficient database query. This query should join the monsterAbilities table with the abilities table to find all abilities linked to any of the monster IDs in the provided array.
+
+The function should process the query results and return them as a map or an object where each key is a monster_id and its value is an array of all the ability objects associated with that monster.
+
+File 2 of 3: server/battleEngine.ts (Battle Logic)
+Import the new getAbilitiesForMonsters function from ./storage.
+
+In the startBattle function:
+
+After the playerTeam and aiTeam are created, collect all of their unique monster IDs into a single array. Remember that for the player's team, the ID is monster.monsterId, and for the AI's team, it's monster.id.
+
+Call the new storage.getAbilitiesForMonsters function, passing it the array of all monster IDs in the battle.
+
+Modify the battleState object: Add a new property to the battleState, perhaps named abilities_map. Store the result from the getAbilitiesForMonsters call in this new property. This ensures the abilities are loaded once and stored for the entire duration of the battle.
+
+Rewrite the processAiTurn function:
+
+Delete the entire hardcoded availableAbilities array.
+
+The new logic should be:
+
+Get the current AI monster object from the battle state.
+
+Using the AI monster's ID, retrieve its specific list of abilities from the abilities_map you stored in the battle state.
+
+Filter this list of abilities to create a new list of only the ones the AI has enough mp to use.
+
+Implement a choice algorithm:
+
+If the list of affordable abilities is empty, find the monster's designated basic attack from its full ability list and select that one.
+
+If there are affordable abilities, randomly select one from that list.
+
+This selected ability is now the chosenAbility. Pass this authentic chosenAbility object to the applyDamage function.
