@@ -177,11 +177,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'player');
       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'player');
       
-      const activeAi = battleState.aiTeam[battleState.activeAiIndex];
-      const newLog = [`Opponent's ${activeAi.name} used an ability!`];
-      if (damageResult.isCritical) newLog.push("A critical hit!");
-      newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+      // Server now handles AI ability log message - just add additional feedback
+      const additionalLog = [];
+      if (damageResult.isCritical) additionalLog.push("A critical hit!");
+      additionalLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
+      
+      // Update battle log with server's authoritative log plus additional feedback
+      setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
 
       if (battleState.battleEnded) {
         handleBattleCompletion(battleState.winner || 'player');

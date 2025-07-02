@@ -178,6 +178,9 @@ export const processAiTurn = async (battleId: string) => {
   // Choose random ability
   const chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
 
+  // Add AI action to battle log
+  battleState.battleLog.push(`Opponent's ${aiMonster.name} used ${chosenAbility.name}!`);
+
   // Apply the AI's chosen ability
   return applyDamage(battleId, chosenAbility);
 };
