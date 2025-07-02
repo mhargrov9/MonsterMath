@@ -538,6 +538,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Eliminates stale data issue where Monster Stable showed outdated HP/MP values after battles
   - Ensures users immediately see authentic post-battle monster damage in their roster
   - Completes persistent battle state system with proper client-server data synchronization
+- July 2, 2025: Strict 3-Phase Turn Lifecycle Implementation (Phase 1 Foundation)
+  - Refactored server/battleEngine.ts with explicit 3-phase turn structure: Start-of-Turn, Action Phase, End-of-Turn
+  - Created handleStartOfTurn() function for status effects, DoT application, and turn-skipping logic
+  - Created handleActionPhase() function encapsulating ability execution with existing damage calculations
+  - Created handleEndOfTurn() function for passive triggers, duration countdown, and turn switching
+  - Extracted executeAbility() and handleMonsterDefeatLogic() helper functions for clean separation
+  - Updated applyDamage() and processAiTurn() to use strict phase ordering with non-negotiable sequence
+  - Established foundation for advanced mechanics: PARALYZED, BURNED, POISONED, and passive abilities
+  - All phases maintain server authority with database-driven values and authentic monster data
+  - Framework ready for unlimited status effects, bench passives, and complex turn-based interactions
 
 ## User Preferences
 

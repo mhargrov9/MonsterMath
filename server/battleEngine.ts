@@ -34,6 +34,179 @@ const getAffinityMultiplier = (attackAffinity: string | null | undefined, defend
   return 1.0;
 };
 
+// PHASE 1: Start of Turn - Handle status effects, DoT, and turn-skipping
+const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipped: boolean } => {
+  const currentTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
+  const activeIndex = isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex;
+  const activeMonster = currentTeam[activeIndex];
+  const teamName = isPlayerTurn ? "Your" : "Opponent's";
+  
+  // TODO: Check for turn-skipping status effects (PARALYZED, FROZEN, etc.)
+  // This will be implemented when status effects system is added
+  // For now, no turn skipping occurs
+  
+  // TODO: Apply damage-over-time effects (BURNED, POISONED, etc.)
+  // This will be implemented when status effects system is added
+  
+  // TODO: Trigger "start of turn" passive abilities
+  // This will be implemented when passive abilities system is added
+  
+  battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`);
+  
+  return { turnSkipped: false };
+};
+
+// PHASE 2: Action Phase - Handle the chosen action (ability or swap)
+const handleActionPhase = async (battleState: any, ability: Ability): Promise<DamageResult> => {
+  // This encapsulates the existing ability execution logic
+  // All existing damage calculation and application logic goes here
+  return await executeAbility(battleState, ability);
+};
+
+// PHASE 3: End of Turn - Handle passives, duration countdown, and turn switching
+const handleEndOfTurn = (battleState: any): void => {
+  // TODO: Apply "end of turn" passive abilities including bench passives
+  // This will be implemented when passive abilities system is added
+  
+  // TODO: Decrement duration counters for status effects and remove expired effects
+  // This will be implemented when status effects system is added
+  
+  // Switch turn control to opposing team
+  if (battleState.turn === 'player') {
+    battleState.turn = 'ai';
+  } else if (battleState.turn === 'ai') {
+    battleState.turn = 'player';
+  }
+};
+
+// Helper function to execute ability (extracted from existing applyDamage logic)
+const executeAbility = async (battleState: any, ability: Ability): Promise<DamageResult> => {
+  const isPlayerTurn = battleState.turn === 'player';
+  const attackingTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
+  const defendingTeam = isPlayerTurn ? battleState.aiTeam : battleState.playerTeam;
+  const attackerIndex = isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex;
+  const defenderIndex = isPlayerTurn ? battleState.activeAiIndex : battleState.activePlayerIndex;
+  
+  const attacker = attackingTeam[attackerIndex];
+  const defender = defendingTeam[defenderIndex];
+  
+  // Calculate damage using existing logic
+  const damageResult = calculateDamage(attacker, defender, ability);
+  
+  // Apply MP cost to attacker
+  const mpCost = ability.mp_cost || 0;
+  if ('battleMp' in attacker) {
+    attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
+  } else {
+    attacker.mp = (attacker.mp || 0) - mpCost;
+  }
+  
+  // Apply damage to defender
+  const currentHp = defender.battleHp !== undefined ? defender.battleHp : (defender.hp || 0);
+  const newHp = Math.max(0, currentHp - damageResult.damage);
+  
+  if ('battleHp' in defender) {
+    defender.battleHp = newHp;
+  } else {
+    defender.hp = newHp;
+  }
+  
+  // Add action to battle log
+  const attackerName = attacker.monster?.name || attacker.name;
+  const abilityName = ability.name || 'an ability';
+  battleState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attackerName} used ${abilityName}!`);
+  
+  return damageResult;
+};
+
+// Helper function to handle monster defeat, forced swaps, and battle end conditions
+const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
+  // Check both teams for defeated monsters
+  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+  
+  const playerHp = playerMonster.battleHp !== undefined ? playerMonster.battleHp : (playerMonster.hp || 0);
+  const aiHp = aiMonster.battleHp !== undefined ? aiMonster.battleHp : (aiMonster.hp || 0);
+  
+  // Handle player monster defeat
+  if (playerHp <= 0) {
+    const defeatedMonsterName = playerMonster.monster.name;
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    
+    // Check if all player monsters are defeated
+    const playerTeamDefeated = battleState.playerTeam.every((monster: any) => {
+      const hp = monster.battleHp !== undefined ? monster.battleHp : (monster.hp || 0);
+      return hp <= 0;
+    });
+    
+    if (playerTeamDefeated) {
+      battleState.battleEnded = true;
+      battleState.winner = 'ai';
+      
+      // Save final battle state for all player monsters
+      try {
+        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
+      } catch (error) {
+        console.error('Error saving final battle state:', error);
+      }
+    } else {
+      // Force player to swap
+      battleState.turn = 'player-must-swap';
+    }
+  }
+  
+  // Handle AI monster defeat
+  if (aiHp <= 0) {
+    const defeatedMonsterName = aiMonster.name;
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    
+    // Check if all AI monsters are defeated
+    const aiTeamDefeated = battleState.aiTeam.every((monster: any) => {
+      const hp = monster.battleHp !== undefined ? monster.battleHp : (monster.hp || 0);
+      return hp <= 0;
+    });
+    
+    if (aiTeamDefeated) {
+      battleState.battleEnded = true;
+      battleState.winner = 'player';
+      
+      // Server-authoritative battle completion with automatic XP awarding
+      const playerTeam = battleState.playerTeam as UserMonster[];
+      if (playerTeam.length > 0 && playerTeam[0].userId) {
+        const winnerId = playerTeam[0].userId;
+        const xpAmount = 50; // Standard XP award for battle victory
+        
+        try {
+          await storage.concludeBattle(winnerId, xpAmount);
+          battleState.battleLog.push(`Victory! Awarded ${xpAmount} XP!`);
+        } catch (error) {
+          console.error('Error awarding battle XP:', error);
+          battleState.battleLog.push('Victory achieved but XP award failed!');
+        }
+      }
+      
+      // Save final battle state for all player monsters
+      try {
+        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
+      } catch (error) {
+        console.error('Error saving final battle state:', error);
+      }
+    } else {
+      // AI automatic swap - find next healthy AI monster
+      const healthyAiIndex = battleState.aiTeam.findIndex((monster: any) => {
+        const hp = monster.battleHp !== undefined ? monster.battleHp : (monster.hp || 0);
+        return hp > 0;
+      });
+      
+      if (healthyAiIndex !== -1) {
+        battleState.activeAiIndex = healthyAiIndex;
+        const newAiMonster = battleState.aiTeam[healthyAiIndex];
+        battleState.battleLog.push(`Opponent sends out ${newAiMonster.name}!`);
+      }
+    }
+  }
+};
+
 // Main damage calculation function
 export const calculateDamage = (attacker: UserMonster | Monster, defender: UserMonster | Monster, ability: Ability): DamageResult => {
   const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
@@ -53,7 +226,7 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
   return { damage: finalDamage, isCritical, affinityMultiplier };
 };
 
-// Server-authoritative damage application function with battle session management
+// Server-authoritative damage application function with 3-phase turn lifecycle
 export const applyDamage = async (battleId: string, ability: Ability) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
@@ -61,9 +234,24 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
     throw new Error(`Battle session ${battleId} not found`);
   }
 
-  // Server-side MP validation - check if attacker has enough MP before any action
+  const isPlayerTurn = battleState.turn === 'player';
+  
+  // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
+  const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
+  
+  // If turn is skipped due to status effects, skip action phase and go to end of turn
+  if (startOfTurnResult.turnSkipped) {
+    handleEndOfTurn(battleState);
+    battleSessions.set(battleId, battleState);
+    return {
+      damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 },
+      battleState
+    };
+  }
+
+  // Server-side MP validation - check if attacker has enough MP before action phase
   let currentAttacker: UserMonster | Monster;
-  if (battleState.turn === 'player') {
+  if (isPlayerTurn) {
     currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
   } else {
     currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
@@ -76,144 +264,14 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
     throw new Error('Not enough MP');
   }
 
-  // Identify attacker and defender based on current turn
-  let attacker: UserMonster | Monster;
-  let defender: UserMonster | Monster;
-  let attackerTeam: (UserMonster | Monster)[];
-  let defenderTeam: (UserMonster | Monster)[];
-  let attackerIndex: number;
-  let defenderIndex: number;
+  // PHASE 2: ACTION PHASE - Execute the chosen ability
+  const damageResult = await handleActionPhase(battleState, ability);
 
-  if (battleState.turn === 'player') {
-    attacker = battleState.playerTeam[battleState.activePlayerIndex];
-    defender = battleState.aiTeam[battleState.activeAiIndex];
-    attackerTeam = battleState.playerTeam;
-    defenderTeam = battleState.aiTeam;
-    attackerIndex = battleState.activePlayerIndex;
-    defenderIndex = battleState.activeAiIndex;
-  } else {
-    attacker = battleState.aiTeam[battleState.activeAiIndex];
-    defender = battleState.playerTeam[battleState.activePlayerIndex];
-    attackerTeam = battleState.aiTeam;
-    defenderTeam = battleState.playerTeam;
-    attackerIndex = battleState.activeAiIndex;
-    defenderIndex = battleState.activePlayerIndex;
-  }
+  // Check for monster defeat and handle forced swaps/battle end conditions
+  await handleMonsterDefeatLogic(battleState);
 
-  // Log the action being performed (server-authoritative action logging)
-  let attackerName: string;
-  if (battleState.turn === 'player') {
-    // Player's monster is a UserMonster object - name is at attacker.monster.name
-    attackerName = (attacker as UserMonster).monster.name;
-  } else {
-    // AI's monster is a Monster object - name is at attacker.name
-    attackerName = (attacker as Monster).name;
-  }
-  
-  // Create and add the action log message
-  const actionMessage = `${attackerName} used ${ability.name}!`;
-  battleState.battleLog.push(actionMessage);
-
-  // Calculate damage using existing function
-  const damageResult = calculateDamage(attacker, defender, ability);
-  
-  // Calculate new HP for defender
-  const currentDefenderHp = defender.hp ?? 0;
-  const newHp = Math.max(0, currentDefenderHp - damageResult.damage);
-  
-  // Calculate new MP for attacker
-  const currentAttackerMp = attacker.mp ?? 0;
-  const newMp = Math.max(0, currentAttackerMp - (ability.mp_cost || 0));
-
-  // Update battle state with new HP/MP values
-  attackerTeam[attackerIndex] = { ...attacker, mp: newMp };
-  defenderTeam[defenderIndex] = { ...defender, hp: newHp };
-
-  // Switch turns
-  battleState.turn = battleState.turn === 'player' ? 'ai' : 'player';
-
-  // Check for battle end conditions
-  if (newHp <= 0) {
-    // Fix the Logic: The defender is the one who was just attacked
-    // Since turn has already switched, we need to determine who was just attacked
-    let defeatedMonsterName: string;
-    let defeatedTeam: (UserMonster | Monster)[];
-    let opposingTeam: 'player' | 'ai';
-    let isAiDefeated: boolean;
-    
-    if (battleState.turn === 'ai') {
-      // Turn switched to AI, so player just attacked AI team
-      defeatedMonsterName = (defender as Monster).name;
-      defeatedTeam = battleState.aiTeam;
-      opposingTeam = 'player';
-      isAiDefeated = true;
-    } else {
-      // Turn switched to player, so AI just attacked player team
-      defeatedMonsterName = (defender as UserMonster).monster.name;
-      defeatedTeam = battleState.playerTeam;
-      opposingTeam = 'ai';
-      isAiDefeated = false;
-    }
-    
-    // Log the Faint
-    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
-    
-    // Check for Team Defeat
-    const teamDefeated = defeatedTeam.every(monster => (monster.hp ?? 0) <= 0);
-    
-    // Handle Win Condition
-    if (teamDefeated) {
-      battleState.battleEnded = true;
-      battleState.winner = opposingTeam;
-      
-      // Server-authoritative battle completion with automatic XP awarding
-      if (opposingTeam === 'player') {
-        // Player won - need to find the player's user ID from their team
-        const playerTeam = battleState.playerTeam as UserMonster[];
-        if (playerTeam.length > 0 && playerTeam[0].userId) {
-          const winnerId = playerTeam[0].userId;
-          const xpAmount = 50; // Standard XP award for battle victory
-          
-          try {
-            await storage.concludeBattle(winnerId, xpAmount);
-            battleState.battleLog.push(`Victory! Awarded ${xpAmount} XP!`);
-          } catch (error) {
-            console.error('Error awarding battle XP:', error);
-            battleState.battleLog.push('Victory achieved but XP award failed!');
-          }
-        }
-      }
-      
-      // Save final battle state for all player monsters (win or lose)
-      try {
-        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
-      } catch (error) {
-        console.error('Error saving final battle state:', error);
-      }
-    }
-    // Implement AI Forced Swap
-    else if (isAiDefeated) {
-      // AI monster was defeated but team isn't fully defeated - find next healthy AI monster
-      const healthyAiIndex = battleState.aiTeam.findIndex(monster => (monster.hp ?? 0) > 0);
-      
-      if (healthyAiIndex !== -1) {
-        // Update active AI monster index
-        battleState.activeAiIndex = healthyAiIndex;
-        
-        // Get the new AI monster's name
-        const newAiMonster = battleState.aiTeam[healthyAiIndex];
-        const newAiMonsterName = (newAiMonster as Monster).name;
-        
-        // Add swap message to battle log
-        battleState.battleLog.push(`Opponent sends out ${newAiMonsterName}!`);
-      }
-    }
-    // Implement Player Forced Swap
-    else if (!battleState.battleEnded && !isAiDefeated) {
-      // Player monster was defeated but battle hasn't ended - force player to swap
-      battleState.turn = 'player-must-swap';
-    }
-  }
+  // PHASE 3: END OF TURN - Handle passives, duration countdown, and turn switching
+  handleEndOfTurn(battleState);
 
   // Update the battle session
   battleSessions.set(battleId, battleState);
@@ -307,7 +365,7 @@ export const selectLeadAndDetermineTurn = (battleId: string, playerMonsterIndex:
   return battleState;
 };
 
-// Server-side AI turn processing
+// Server-side AI turn processing with 3-phase lifecycle
 export const processAiTurn = async (battleId: string) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
@@ -317,6 +375,19 @@ export const processAiTurn = async (battleId: string) => {
 
   if (battleState.turn !== 'ai') {
     throw new Error('Not AI turn');
+  }
+
+  // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
+  const startOfTurnResult = handleStartOfTurn(battleState, false); // false = AI turn
+  
+  // If turn is skipped due to status effects, skip action phase and go to end of turn
+  if (startOfTurnResult.turnSkipped) {
+    handleEndOfTurn(battleState);
+    battleSessions.set(battleId, battleState);
+    return {
+      damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 },
+      battleState
+    };
   }
 
   // Get current AI monster
@@ -330,7 +401,7 @@ export const processAiTurn = async (battleId: string) => {
   }
   
   // Filter abilities the AI can afford based on current MP
-  const affordableAbilities = monsterAbilities.filter(ability => 
+  const affordableAbilities = monsterAbilities.filter((ability: any) => 
     (aiMonster.mp ?? 0) >= (ability.mp_cost || 0)
   );
 
@@ -338,7 +409,7 @@ export const processAiTurn = async (battleId: string) => {
   
   if (affordableAbilities.length === 0) {
     // Find the monster's basic attack from its full ability list
-    const basicAttack = monsterAbilities.find(ability => 
+    const basicAttack = monsterAbilities.find((ability: any) => 
       ability.name.toLowerCase().includes('basic') || 
       ability.name.toLowerCase().includes('attack') ||
       ability.mp_cost === 0
@@ -355,8 +426,22 @@ export const processAiTurn = async (battleId: string) => {
     chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
   }
 
-  // Apply the AI's chosen ability (applyDamage will handle action logging)
-  return await applyDamage(battleId, chosenAbility);
+  // PHASE 2: ACTION PHASE - Execute the chosen ability
+  const damageResult = await handleActionPhase(battleState, chosenAbility);
+
+  // Check for monster defeat and handle forced swaps/battle end conditions
+  await handleMonsterDefeatLogic(battleState);
+
+  // PHASE 3: END OF TURN - Handle passives, duration countdown, and turn switching
+  handleEndOfTurn(battleState);
+
+  // Update the battle session
+  battleSessions.set(battleId, battleState);
+
+  return {
+    damageResult,
+    battleState
+  };
 };
 
 // Server-authoritative monster swapping function
