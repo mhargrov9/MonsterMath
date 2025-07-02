@@ -58,7 +58,6 @@ export interface IStorage {
   updateMonsterStats(userId: string, userMonsterId: number, hp: number, mp: number): Promise<UserMonster>;
   shatterMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   repairMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
-  saveFinalBattleState(playerTeam: UserMonster[]): Promise<void>;
 
   // Question operations
   getRandomQuestion(subject: string, difficulty: number, userId?: string): Promise<Question | undefined>;
@@ -255,30 +254,6 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db.update(userMonsters).set({ hp: maxHp, isShattered: false }).where(and(eq(userMonsters.id, userMonsterId), eq(userMonsters.userId, userId))).returning();
     if (!updated) throw new Error("Monster not found or not owned by user");
     return updated;
-  }
-
-  async saveFinalBattleState(playerTeam: UserMonster[]): Promise<void> {
-    if (playerTeam.length === 0) return;
-    
-    // Build bulk update using SQL CASE statements for efficiency
-    const hpCases = playerTeam.map(monster => 
-      `WHEN id = ${monster.id} THEN ${monster.hp || 0}`
-    ).join(' ');
-    
-    const mpCases = playerTeam.map(monster => 
-      `WHEN id = ${monster.id} THEN ${monster.mp || 0}`
-    ).join(' ');
-    
-    const monsterIds = playerTeam.map(monster => monster.id).join(',');
-    
-    // Execute bulk update in a single transaction
-    await db.execute(sql`
-      UPDATE user_monsters 
-      SET 
-        hp = CASE ${sql.raw(hpCases)} END,
-        mp = CASE ${sql.raw(mpCases)} END
-      WHERE id IN (${sql.raw(monsterIds)})
-    `);
   }
 
   async getMonsterAbilities(monsterId: number) {

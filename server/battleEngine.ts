@@ -183,13 +183,6 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
           }
         }
       }
-      
-      // Save final battle state for all player monsters (win or lose)
-      try {
-        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
-      } catch (error) {
-        console.error('Error saving final battle state:', error);
-      }
     }
     // Implement AI Forced Swap
     else if (isAiDefeated) {
