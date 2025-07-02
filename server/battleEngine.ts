@@ -64,9 +64,54 @@ const handleActionPhase = async (battleState: any, ability: Ability): Promise<Da
 };
 
 // PHASE 3: End of Turn - Handle passives, duration countdown, and turn switching
-const handleEndOfTurn = (battleState: any): void => {
-  // TODO: Apply "end of turn" passive abilities including bench passives
-  // This will be implemented when passive abilities system is added
+const handleEndOfTurn = async (battleState: any): Promise<void> => {
+  // Step A: Identify the team whose turn just ended
+  const currentTurn = battleState.turn;
+  let teamWhoseTurnEnded: (UserMonster | Monster)[];
+  let activeMonsterIndex: number;
+  
+  if (currentTurn === 'player') {
+    teamWhoseTurnEnded = battleState.playerTeam;
+    activeMonsterIndex = battleState.activePlayerIndex;
+  } else if (currentTurn === 'ai') {
+    teamWhoseTurnEnded = battleState.aiTeam;
+    activeMonsterIndex = battleState.activeAiIndex;
+  } else {
+    // Handle other turn states (like 'player-must-swap') - no passive triggers
+    return;
+  }
+  
+  // Step B: Scan for and apply END_OF_TURN passive abilities
+  for (let i = 0; i < teamWhoseTurnEnded.length; i++) {
+    const monster = teamWhoseTurnEnded[i];
+    const isActiveMonster = (i === activeMonsterIndex);
+    
+    // Get monster ID (different structure for UserMonster vs Monster)
+    const monsterId = 'monster' in monster ? monster.monster.id : monster.id;
+    
+    // Get abilities for this monster from the abilities_map
+    const monsterAbilities = battleState.abilities_map[monsterId] || [];
+    
+    // Check each ability for END_OF_TURN passive triggers
+    for (const ability of monsterAbilities) {
+      // Check if ability meets END_OF_TURN passive criteria
+      if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'END_OF_TURN') {
+        
+        // Check activation scope
+        let shouldActivate = false;
+        if (ability.activation_scope === 'ACTIVE' && isActiveMonster) {
+          shouldActivate = true;
+        } else if (ability.activation_scope === 'BENCH' && !isActiveMonster) {
+          shouldActivate = true;
+        }
+        
+        if (shouldActivate) {
+          // Step C: Execute the effect and log it
+          await executePassiveAbility(battleState, monster, ability, currentTurn);
+        }
+      }
+    }
+  }
   
   // TODO: Decrement duration counters for status effects and remove expired effects
   // This will be implemented when status effects system is added
@@ -117,6 +162,69 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   battleState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attackerName} used ${abilityName}!`);
   
   return damageResult;
+};
+
+// Helper function to execute passive ability effects
+const executePassiveAbility = async (battleState: any, monster: UserMonster | Monster, ability: any, currentTurn: string): Promise<void> => {
+  // Get monster name for logging
+  const monsterName = 'monster' in monster ? monster.monster.name : monster.name;
+  
+  // Execute specific passive ability effects based on ability name/properties
+  switch (ability.name) {
+    case 'Soothing Aura':
+      // Heal the active monster for a percentage of its Max HP
+      await applySoothingAuraEffect(battleState, monsterName, currentTurn);
+      break;
+    
+    case 'Static Charge':
+    case 'Crystalize':
+    case 'Tailwind':
+    case 'Soot Cloud':
+      // Future passive abilities will be implemented here
+      battleState.battleLog.push(`${monsterName}'s ${ability.name} activates! (Effect not yet implemented)`);
+      break;
+    
+    default:
+      // Generic passive activation message for unknown abilities
+      battleState.battleLog.push(`${monsterName}'s ${ability.name} activates!`);
+      break;
+  }
+};
+
+// Helper function to apply Soothing Aura healing effect
+const applySoothingAuraEffect = async (battleState: any, casterName: string, currentTurn: string): Promise<void> => {
+  // Determine which team and active monster to heal
+  let targetTeam: (UserMonster | Monster)[];
+  let activeIndex: number;
+  
+  if (currentTurn === 'player') {
+    targetTeam = battleState.playerTeam;
+    activeIndex = battleState.activePlayerIndex;
+  } else {
+    targetTeam = battleState.aiTeam;
+    activeIndex = battleState.activeAiIndex;
+  }
+  
+  const activeMonster = targetTeam[activeIndex];
+  const activeMonsterName = 'monster' in activeMonster ? activeMonster.monster.name : activeMonster.name;
+  
+  // Get current and max HP
+  const currentHp = activeMonster.battleHp !== undefined ? activeMonster.battleHp : (activeMonster.hp || 0);
+  const maxHp = activeMonster.maxHp || 0;
+  
+  // Calculate healing amount (3% of max HP as per database design document)
+  const healingAmount = Math.floor(maxHp * 0.03);
+  const newHp = Math.min(maxHp, currentHp + healingAmount);
+  
+  // Apply healing
+  if ('battleHp' in activeMonster) {
+    activeMonster.battleHp = newHp;
+  } else {
+    activeMonster.hp = newHp;
+  }
+  
+  // Add descriptive message to battle log
+  battleState.battleLog.push(`${casterName}'s Soothing Aura heals ${activeMonsterName} for ${healingAmount} HP.`);
 };
 
 // Helper function to handle monster defeat, forced swaps, and battle end conditions
@@ -271,7 +379,7 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
   await handleMonsterDefeatLogic(battleState);
 
   // PHASE 3: END OF TURN - Handle passives, duration countdown, and turn switching
-  handleEndOfTurn(battleState);
+  await handleEndOfTurn(battleState);
 
   // Update the battle session
   battleSessions.set(battleId, battleState);
@@ -382,7 +490,7 @@ export const processAiTurn = async (battleId: string) => {
   
   // If turn is skipped due to status effects, skip action phase and go to end of turn
   if (startOfTurnResult.turnSkipped) {
-    handleEndOfTurn(battleState);
+    await handleEndOfTurn(battleState);
     battleSessions.set(battleId, battleState);
     return {
       damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 },
@@ -433,7 +541,7 @@ export const processAiTurn = async (battleId: string) => {
   await handleMonsterDefeatLogic(battleState);
 
   // PHASE 3: END OF TURN - Handle passives, duration countdown, and turn switching
-  handleEndOfTurn(battleState);
+  await handleEndOfTurn(battleState);
 
   // Update the battle session
   battleSessions.set(battleId, battleState);

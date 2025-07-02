@@ -548,6 +548,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Established foundation for advanced mechanics: PARALYZED, BURNED, POISONED, and passive abilities
   - All phases maintain server authority with database-driven values and authentic monster data
   - Framework ready for unlimited status effects, bench passives, and complex turn-based interactions
+- July 2, 2025: END_OF_TURN Passive Abilities Implementation (Phase 2 Completion)
+  - Implemented complete passive ability trigger system within handleEndOfTurn function
+  - Added database-driven passive ability scanning for both active and bench monsters
+  - Created executePassiveAbility function with specific handling for each passive type
+  - Implemented Soothing Aura healing effect (3% max HP healing per turn for bench River-Spirit Axolotl)
+  - Added comprehensive battle log feedback for all passive ability activations
+  - System correctly identifies activation_trigger=END_OF_TURN and activation_scope=BENCH/ACTIVE
+  - Completed 3-phase turn lifecycle making it fully operational for advanced battle mechanics
+  - All passive abilities now execute server-authoritatively with authentic database-driven effects
 
 ## User Preferences
 
