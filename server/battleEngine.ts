@@ -240,8 +240,8 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
   
   // Create initial battle state
   const battleState = {
-    playerTeam: [...playerTeam], // Deep copy to avoid mutations
-    aiTeam: [...opponentTeam],   // Deep copy to avoid mutations
+    playerTeam: JSON.parse(JSON.stringify(playerTeam)), // Deep copy to avoid mutations
+    aiTeam: JSON.parse(JSON.stringify(opponentTeam)),   // Deep copy to avoid mutations
     activePlayerIndex: 0,
     activeAiIndex: 0,
     turn: 'pre-battle' as Turn,

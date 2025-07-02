@@ -518,6 +518,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Completed server-authoritative migration with clean, single-responsibility architecture
   - XP now awarded exactly once by server when battle ends, preventing double rewards
   - Final client-server separation: server handles logic, client handles display only
+- July 2, 2025: Critical Deep Copy Fix for Battle State (Task 9f)
+  - Fixed data corruption bug in startBattle function that was resetting monster HP to full
+  - Replaced shallow copy ([...playerTeam]) with proper deep copy using JSON.parse(JSON.stringify())
+  - Battle sessions now create completely isolated monster objects preventing data corruption
+  - Original monster roster data remains untouched during battles, preserving authentic HP/MP values
+  - Enables proper implementation of persistent monster stats after battle completion
+  - Eliminated root cause of HP reset bug while maintaining correct MP behavior
 
 ## User Preferences
 
