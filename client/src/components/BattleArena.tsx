@@ -126,10 +126,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'ai');
       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'ai');
       
-      const newLog = [`Your ${attacker.monster.name} used ${ability.name}!`];
-      if (damageResult.isCritical) newLog.push("A critical hit!");
-      newLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      setBattleLog(prev => [...prev, ...newLog.filter(Boolean)]);
+      // Use server's authoritative battle log and add additional feedback
+      const additionalLog = [];
+      if (damageResult.isCritical) additionalLog.push("A critical hit!");
+      additionalLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
+      
+      // Update battle log with server's authoritative log plus additional feedback
+      setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
 
       if (battleState.battleEnded) {
         handleBattleCompletion(battleState.winner || 'ai');

@@ -84,6 +84,20 @@ export const applyDamage = (battleId: string, ability: Ability) => {
     defenderIndex = battleState.activePlayerIndex;
   }
 
+  // Log the action being performed (server-authoritative action logging)
+  let attackerName: string;
+  if (battleState.turn === 'player') {
+    // Player's monster is a UserMonster object - name is at attacker.monster.name
+    attackerName = (attacker as UserMonster).monster.name;
+  } else {
+    // AI's monster is a Monster object - name is at attacker.name
+    attackerName = (attacker as Monster).name;
+  }
+  
+  // Create and add the action log message
+  const actionMessage = `${attackerName} used ${ability.name}!`;
+  battleState.battleLog.push(actionMessage);
+
   // Calculate damage using existing function
   const damageResult = calculateDamage(attacker, defender, ability);
   
@@ -162,7 +176,7 @@ export const selectLeadAndDetermineTurn = (battleId: string, playerMonsterIndex:
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
 
   // Add two new string messages to the battleLog array
-  battleState.battleLog.push(`${playerMonster.name} enters the battle!`);
+  battleState.battleLog.push(`${playerMonster.monster.name} enters the battle!`);
   battleState.battleLog.push(`Opponent's ${aiMonster.name} appears!`);
 
   // Compare the speed stat of the player's monster to the speed stat of the AI's monster
@@ -218,9 +232,6 @@ export const processAiTurn = async (battleId: string) => {
   // Choose random ability
   const chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
 
-  // Add AI action to battle log
-  battleState.battleLog.push(`Opponent's ${aiMonster.name} used ${chosenAbility.name}!`);
-
-  // Apply the AI's chosen ability
+  // Apply the AI's chosen ability (applyDamage will handle action logging)
   return applyDamage(battleId, chosenAbility);
 };

@@ -1,0 +1,40 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code).
+
+Instructions for Replit AI: Task 8c - Implement Fully Server-Authoritative Battle Logging
+Goal: Fix the two critical logging bugs. The server must correctly log the player's monster name and must be the single source of truth for all action log messages (both player and AI) to prevent the client's log from being overwritten.
+
+File 1 of 2: server/battleEngine.ts
+In the selectLeadAndDetermineTurn function:
+
+Locate where the initial log messages are created for monsters entering the battle.
+
+Modify the logic for getting the player's monster name. The player's monster is a UserMonster object and has its name at playerMonster.monster.name. The AI's monster is a Monster object and has its name at aiMonster.name. Ensure the code correctly accesses the name for each type of monster so "undefined" no longer appears.
+
+In the applyDamage function:
+
+This is the most important change. At the beginning of this function, before damage is calculated, we need to log the action being performed.
+
+Add this new logic:
+
+First, get the attacker object from the battle state based on whose turn it currently is.
+
+Next, get the attacker's name. You must use the same logic as above: check if it's a player UserMonster (name is at attacker.monster.name) or an AI Monster (name is at attacker.name).
+
+Get the ability name from the ability object that is passed into the function.
+
+Create the log message string, for example: "[Attacker Name] used [Ability Name]!".
+
+Push this new message into the battleState.battleLog array.
+
+File 2 of 2: client/src/components/BattleArena.tsx
+In the handlePlayerAbility function:
+
+The server is now responsible for logging the player's attack. We must remove the client-side logging to prevent conflicts.
+
+Delete the lines that create newLog and the setBattleLog call that appends newLog.
+
+After the /api/battle/perform-action request returns the actionResult, update the client's battle log directly from the server's response. The actionResult contains the updated battleState, so you should call setBattleLog(battleState.battleLog). This ensures the client displays the authoritative log from the server.
+
+In the handleAiAbility function:
+
+Review the setBattleLog call. It currently takes the server's log and concatenates extra feedback like "A critical hit!". This is correct. No changes are needed here, as it properly uses the server's log as the base.

@@ -420,6 +420,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Server now handles all aspects of battle initialization including AI lead selection and turn order
   - Eliminated client-server state mismatch that caused "Error during AI turn" messages
   - Established proper battle lifecycle: initialize → lead selection → combat begins → server-controlled turns
+- July 2, 2025: Complete Server-Authoritative Battle Logging
+  - Fixed monster name access in selectLeadAndDetermineTurn using correct UserMonster.monster.name structure
+  - Added comprehensive action logging to applyDamage function for both player and AI attacks
+  - Removed duplicate AI action logging from processAiTurn to prevent message duplication
+  - Updated client handlePlayerAbility to use server's authoritative battle log instead of generating own messages
+  - Server now generates ALL battle action messages using authentic database monster names and ability names
+  - Fixed "undefined enters the battle!" bug and eliminated player attack log disappearing issue
+  - Completed migration: server is single source of truth for all battle logging with persistent message history
 
 ## User Preferences
 
