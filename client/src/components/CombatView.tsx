@@ -10,6 +10,7 @@ interface CombatViewProps {
   playerBench: UserMonster[];
   opponentBench: Monster[];
   isPlayerTurn: boolean;
+  canSwap: boolean;
   battleLog: string[];
   battleEnded: boolean;
   winner: 'player' | 'ai' | null;
@@ -64,6 +65,7 @@ export const CombatView: React.FC<CombatViewProps> = ({
   playerBench,
   opponentBench,
   isPlayerTurn,
+  canSwap,
   battleLog,
   battleEnded,
   winner,
@@ -157,7 +159,7 @@ export const CombatView: React.FC<CombatViewProps> = ({
                   <h3 className="text-xl font-semibold text-cyan-400 text-center">Your Bench</h3>
                   <div className="flex gap-2 items-end justify-center h-full">
                       {playerBench.map(monster => (
-                          <BenchCard key={monster.id} monster={monster} isPlayer={true} onSwap={onSwapMonster} disabled={!isPlayerTurn || battleEnded} />
+                          <BenchCard key={monster.id} monster={monster} isPlayer={true} onSwap={onSwapMonster} disabled={!canSwap || battleEnded} />
                       ))}
                   </div>
                </div>

@@ -379,6 +379,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         playerBench={playerTeam.filter((_, i) => i !== activePlayerIndex)}
         opponentBench={aiTeam.filter((_, i) => i !== activeAiIndex)}
         isPlayerTurn={turn === 'player' && !battleEnded}
+        canSwap={turn === 'player' || turn === 'player-must-swap'}
         battleLog={battleLog}
         battleEnded={battleEnded}
         winner={winner}
