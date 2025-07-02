@@ -405,6 +405,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Server now manages all battle logic: turn order, action validation, state updates, and win conditions
   - Client receives and applies complete authoritative battle state from every server response
   - Eliminated all client-side battle logic for fully server-controlled gameplay
+- July 1, 2025: Server-Side AI Battle Logging Enhancement
+  - Enhanced processAiTurn function to add specific AI ability usage messages to server battle log
+  - Server now generates "Opponent's [Monster Name] used [Ability Name]!" messages with authentic data
+  - Removed redundant client-side AI log message generation in handleAiAbility
+  - Client now displays server's authoritative battle log instead of generating generic messages
+  - Fixed bug where battle log showed "used an ability" instead of specific ability names
+  - Improved battle log accuracy and consistency for better user experience
 
 ## User Preferences
 
