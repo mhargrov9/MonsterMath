@@ -412,6 +412,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Client now displays server's authoritative battle log instead of generating generic messages
   - Fixed bug where battle log showed "used an ability" instead of specific ability names
   - Improved battle log accuracy and consistency for better user experience
+- July 2, 2025: Server-Authoritative First Turn Implementation
+  - Modified startBattle function to initialize battles with turn: 'pre-battle' instead of 'player'
+  - Created selectLeadAndDetermineTurn function for server-side turn order determination
+  - Added /api/battle/select-lead endpoint for lead monster selection and speed comparison
+  - Updated client selectLeadMonster function to use server API instead of local speed calculation
+  - Server now handles all aspects of battle initialization including AI lead selection and turn order
+  - Eliminated client-server state mismatch that caused "Error during AI turn" messages
+  - Established proper battle lifecycle: initialize → lead selection → combat begins → server-controlled turns
 
 ## User Preferences
 
