@@ -555,6 +555,24 @@ export class DatabaseStorage implements IStorage {
 
     return abilitiesMap;
   }
+
+  async saveFinalBattleState(playerTeam: UserMonster[]): Promise<void> {
+    if (playerTeam.length === 0) return;
+    
+    // Execute all monster updates within a single database transaction
+    await db.transaction(async (tx) => {
+      await Promise.all(
+        playerTeam.map(monster =>
+          tx.update(userMonsters)
+            .set({ 
+              hp: monster.hp || 0, 
+              mp: monster.mp || 0 
+            })
+            .where(eq(userMonsters.id, monster.id))
+        )
+      );
+    });
+  }
 }
 
 export const storage = new DatabaseStorage();

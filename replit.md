@@ -525,6 +525,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Original monster roster data remains untouched during battles, preserving authentic HP/MP values
   - Enables proper implementation of persistent monster stats after battle completion
   - Eliminated root cause of HP reset bug while maintaining correct MP behavior
+- July 2, 2025: Persistent Battle State Saving (Task 9g - Redo with Transactions)
+  - Created saveFinalBattleState function using database transactions with Promise.all() for atomic operations
+  - Integrated persistent state saving into applyDamage function during battle completion
+  - All player monsters' final HP/MP values automatically saved to database when battles end
+  - Implements persistent resource loss system - monsters retain damage between battles
+  - Database transactions ensure ACID compliance and prevent partial updates
+  - Completes server-authoritative persistent monster stats architecture with reliable data integrity
 
 ## User Preferences
 
