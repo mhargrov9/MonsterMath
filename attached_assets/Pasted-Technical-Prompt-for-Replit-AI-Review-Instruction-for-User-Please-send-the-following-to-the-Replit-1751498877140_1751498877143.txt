@@ -1,0 +1,68 @@
+Technical Prompt for Replit AI Review
+(Instruction for User: Please send the following to the Replit AI Developer.)
+
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+
+Problem 1: Critical Hardcoding Violation: The executePassiveAbility function in server/battleEngine.ts uses a hardcoded switch statement for ability effects, directly violating our non-negotiable "Database-Driven Gameplay" mandate.
+
+Problem 2: Incomplete Data Access Layer: The getAbilitiesForMonsters function is not selecting all the required fields from the abilities table, forcing the battle engine to use hardcoded values because the real data is unavailable.
+
+Problem 3: Data Inconsistency: The database appears to have an incorrect value for "Soothing Aura's" effect. The Onboarding Brief is the single source of truth, and the database must reflect it perfectly.
+
+1. Goal:
+Perform a full-stack refactor to make the passive ability system 100% database-driven. This involves correcting the database record, updating the data access layer, and rewriting the execution logic to be generic.
+
+2. File Modifications:
+
+server/storage.ts
+
+server/battleEngine.ts
+
+3. Implementation Plan (Execute in this order):
+
+Task A: Correct Data in the Database
+
+You must first execute an SQL UPDATE command to correct the "Soothing Aura" record in the abilities table.
+
+The record must perfectly match the 
+
+Ability Compendium .
+
+Set healing_power to NULL or 0, as this is not a direct healing ability.
+
+Set status_effect_applies to 'HEALING'.
+
+Set status_effect_value to 3.00.
+
+Set status_effect_value_type to 'PERCENT_MAX_HP'.
+
+Task B: Update the Data Access Layer (server/storage.ts)
+
+Locate the getAbilitiesForMonsters function (or its equivalent).
+
+You must modify its database query to select all fields from the abilities table that are required for game logic. Referencing the schema, this must include, at a minimum: 
+
+ability_type, power_multiplier, scaling_stat, healing_power, activation_scope, activation_trigger, status_effect_applies, status_effect_chance, status_effect_duration, status_effect_value, status_effect_value_type, and stat_modifiers.
+
+Task C: Refactor the Execution Logic (server/battleEngine.ts)
+
+Navigate to the executePassiveAbility function.
+
+Delete the entire switch (ability.name) block.
+
+Rewrite the function to be generic and data-driven. It should not check for specific ability names.
+
+The new logic should check the properties of the ability object passed into it. For example:
+
+If ability.status_effect_applies is 'HEALING', it must then use the ability.status_effect_value and ability.status_effect_value_type properties to calculate and apply the correct amount of healing.
+
+This ensures that any future passive healing ability will work instantly without any changes to the battle engine code.
+
+4. Architecture Compliance Check:
+
+Does this plan eliminate the hardcoded logic?
+
+Does it ensure the battle engine receives and uses data directly from the database to calculate outcomes?
+
+Does this make the passive ability system generic, scalable, and maintainable?
