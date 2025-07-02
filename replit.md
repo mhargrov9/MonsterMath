@@ -463,6 +463,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added authentic "Opponent sends out [Monster Name]!" messages to battle log using database names
   - Enhanced battle realism with proper AI behavior matching expected monster game mechanics
   - Eliminated critical server errors during player attacks that defeat AI opponents
+- July 2, 2025: Player Forced Swap Implementation
+  - Added 'player-must-swap' turn state to shared Turn type definition for consistent client-server communication
+  - Implemented server-enforced mandatory player swapping when player's active monster is defeated
+  - Server now puts battle into 'player-must-swap' state when player monster faints but team isn't eliminated
+  - Added prominent red UI indicator with clear instructions: "Your monster has fainted! Choose a new monster from your bench to continue."
+  - Modified performSwap function to handle forced swap state transitions back to AI turn
+  - Player ability buttons automatically disabled during forced swap state (only bench clicking allowed)
+  - Completed symmetric battle flow: both AI and player forced swaps now handled server-authoritatively
+  - Enhanced battle system foundation with proper mandatory swap mechanics for strategic team-based gameplay
 
 ## User Preferences
 
