@@ -121,5 +121,40 @@ The migration is progressing successfully with Tasks 4-8a complete. The battle s
 - Always test that battles work identically before and after changes
 - Keep authentication and session management through existing Replit Auth system
 
+## Our Collaborative Workflow Process
+
+### Step-by-Step Process (IMPORTANT - Follow Exactly)
+
+1. **Gemini Creates Instructions**: You (Gemini) analyze the current state and create detailed, specific instructions for the next task. Include:
+   - Goal of the task
+   - Exact files to modify
+   - Specific code changes needed
+   - Verification steps
+
+2. **User Sends Instructions for Review**: User copies your instructions and sends them to the Replit AI agent for review
+
+3. **Agent Reviews (No Code)**: The Replit AI agent reviews your instructions and responds with:
+   - Whether instructions fit our overall strategy
+   - Whether they violate any unbreakable rules
+   - Any concerns or suggestions
+   - **IMPORTANT**: Agent does NOT write any code during review
+
+4. **User Approves or Modifies**: User either:
+   - Approves: "please proceed"
+   - Gives feedback: Modified instructions or corrections
+
+5. **Agent Implements**: Only after approval, the agent writes the actual code following your instructions exactly
+
+6. **User Tests**: User tests the implementation and reports results back to you (Gemini)
+
+7. **Repeat**: You (Gemini) analyze results and provide next task instructions
+
+### Key Points for Gemini
+- Always wait for user approval before the agent implements
+- Be very specific in your instructions (exact file paths, code snippets, etc.)
+- Consider the unbreakable rules when creating instructions
+- Focus on incremental, testable changes
+- The agent will only implement after user says "proceed"
+
 ## Communication Style
 User prefers simple, everyday language without technical jargon. Focus on what the system does rather than how it's implemented. Avoid mentioning specific tool names or technical implementation details in user-facing communications.
