@@ -1,0 +1,33 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+An error occurs when a player's attack defeats an opponent because the server is checking the wrong team.
+
+The AI does not automatically swap its monster when its active one is defeated.
+
+Instructions for Replit AI: Task 8g - Fix Defeat Logic & Implement AI Forced Swap
+Goal: To fix the critical bug in the server's defeat-checking logic and to implement the server-authoritative feature for an AI to automatically swap in a new monster when its active one is defeated.
+
+File 1 of 1: server/battleEngine.ts
+In the applyDamage function:
+
+The logic inside the if (newHp <= 0) block needs to be corrected and expanded.
+
+Perform the following steps in this specific order:
+
+Fix the Logic: The current logic for identifying the defeatedTeam and defeatedMonsterName is inverted because it runs after the turn has switched. Correct this logic. The defender's team is the one that was just attacked. For example, if the new turn is 'ai', it means the player just finished their turn, so the defender's team was the aiTeam. Apply this corrected thinking to ensure the right team is being evaluated.
+
+Log the Faint: After the defeatedMonsterName is correctly identified, push the message "[Defeated Monster Name] has fainted!" to the battleLog.
+
+Check for Team Defeat: Now, perform the check to see if every monster on the (now correctly identified) defeatedTeam has 0 or less HP.
+
+Handle Win Condition: If the entire team is defeated, set battleState.battleEnded = true and set the winner.
+
+Implement AI Forced Swap: If the team is not fully defeated, add an else if condition. This condition should check if the monster that just fainted belonged to the AI's team.
+
+Inside this else if block:
+
+Find the index of the first monster on the AI's team that still has more than 0 HP.
+
+If a healthy monster is found, update the battleState.activeAiIndex to the index of this new monster.
+
+Add a new message to the battleLog announcing that the Opponent is sending out the new monster (e.g., "Opponent sends out [New Monster Name]!").
