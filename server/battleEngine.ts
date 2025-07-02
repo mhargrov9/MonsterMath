@@ -54,7 +54,7 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
 };
 
 // Server-authoritative damage application function with battle session management
-export const applyDamage = (battleId: string, ability: Ability) => {
+export const applyDamage = async (battleId: string, ability: Ability) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
   if (!battleState) {

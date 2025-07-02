@@ -98,6 +98,10 @@ export interface IStorage {
   refreshBattleTokens(userId: string): Promise<User>;
   spendBattleToken(userId: string): Promise<User>;
 
+  // Battle completion operations
+  awardRankXp(userId: string, xp: number): Promise<User>;
+  concludeBattle(winnerId: string, xpAmount: number): Promise<User>;
+
   // Rank Point operations
   updateUserRankPoints(userId: string, rpDelta: number): Promise<User>;
 
@@ -472,6 +476,10 @@ export class DatabaseStorage implements IStorage {
       .returning();
     if (!updated) throw new Error("User not found");
     return updated;
+  }
+
+  async concludeBattle(winnerId: string, xpAmount: number): Promise<User> {
+    return this.awardRankXp(winnerId, xpAmount);
   }
 
   async getUserRank(userId: string): Promise<{ currentRank: Rank | null, nextRank: Rank | null, userXp: number }> {
