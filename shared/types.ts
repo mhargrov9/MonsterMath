@@ -1,5 +1,7 @@
 // Shared types for the entire application - single source of truth
 
+export type Turn = 'player' | 'ai' | 'pre-battle' | 'player-must-swap';
+
 export interface DamageResult {
   damage: number;
   isCritical: boolean;

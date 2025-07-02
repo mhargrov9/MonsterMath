@@ -1,0 +1,37 @@
+Instructions for Replit AI: Task 8h - Implement Player Forced Swap
+Goal: To create a new, server-enforced 'player-must-swap' state that correctly handles when a player's monster is defeated. The server will dictate this state, and the client's UI will update to disable actions and force the player to choose a new monster from their bench.
+
+File 1 of 3: shared/types.ts (Shared Definitions)
+Find the type definition used for the turn state in the battle. It is likely a type alias with string literals (e.g., type Turn = 'player' | 'ai' | ...).
+
+Add 'player-must-swap' as a new possible value to this type definition. This officially recognizes the new state across the entire application.
+
+File 2 of 3: server/battleEngine.ts (Battle Logic)
+In the applyDamage function:
+
+Find the if (newHp <= 0) block where defeat logic is handled.
+
+You previously added an else if to handle the AI's forced swap. Now, add another else if condition to that chain.
+
+This new else if should check for two conditions: 1) the battle has not ended, AND 2) the defeated monster belonged to the player's team.
+
+Inside this else if block: The only action is to set the battleState.turn to our new state: 'player-must-swap'. Do not change the active player index or do anything else; simply put the game into this new state and let the client react.
+
+File 3 of 3: client/src/components/BattleArena.tsx (User Interface)
+The client UI must now be taught how to react to the new 'player-must-swap' state.
+
+Modify UI State Logic:
+
+Find where the isPlayerTurn variable is passed as a prop to the CombatView component. The condition should be turn === 'player'. This ensures that 'player-must-swap' is not considered a normal action turn.
+
+Add a UI Indicator:
+
+Add a new, clearly visible UI element (e.g., a text overlay or a message banner).
+
+This element should only be displayed when turn === 'player-must-swap'.
+
+The message should clearly instruct the user what to do, for example: "Your monster has fainted! Choose a new monster from your bench to continue."
+
+Verify Action Disabling:
+
+Confirm that the monster ability buttons are disabled or hidden when turn === 'player-must-swap'. This should happen automatically if they are dependent on the isPlayerTurn prop, but it's important to verify. The only action the player should be able to take is clicking a monster on their bench to trigger the existing handleSwapMonster function.

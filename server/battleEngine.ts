@@ -1,5 +1,5 @@
 // Import shared types for the battle system
-import { DamageResult, UserMonster, Monster, Ability } from '../shared/types.js';
+import { DamageResult, UserMonster, Monster, Ability, Turn } from '../shared/types.js';
 import { storage } from './storage.js';
 import crypto from 'crypto';
 
@@ -168,6 +168,11 @@ export const applyDamage = (battleId: string, ability: Ability) => {
         battleState.battleLog.push(`Opponent sends out ${newAiMonsterName}!`);
       }
     }
+    // Implement Player Forced Swap
+    else if (!battleState.battleEnded && !isAiDefeated) {
+      // Player monster was defeated but battle hasn't ended - force player to swap
+      battleState.turn = 'player-must-swap';
+    }
   }
 
   // Update the battle session
@@ -206,7 +211,7 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     aiTeam: [...opponentTeam],   // Deep copy to avoid mutations
     activePlayerIndex: 0,
     activeAiIndex: 0,
-    turn: 'pre-battle' as 'player' | 'ai' | 'pre-battle',
+    turn: 'pre-battle' as Turn,
     battleEnded: false,
     winner: null as 'player' | 'ai' | null,
     battleLog: [] as string[],
@@ -350,8 +355,14 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   // Update the activePlayerIndex to the newMonsterIndex
   battleState.activePlayerIndex = newMonsterIndex;
 
-  // Set the turn to 'ai'
-  battleState.turn = 'ai';
+  // Handle turn transition based on current state
+  if (battleState.turn === 'player-must-swap') {
+    // If this was a forced swap, transition to AI turn
+    battleState.turn = 'ai';
+  } else {
+    // For voluntary swaps during player turn, transition to AI turn
+    battleState.turn = 'ai';
+  }
 
   // Save the updated battle state back into the battleSessions map
   battleSessions.set(battleId, battleState);
