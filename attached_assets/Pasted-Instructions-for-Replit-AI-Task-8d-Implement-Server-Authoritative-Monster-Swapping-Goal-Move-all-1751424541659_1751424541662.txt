@@ -1,0 +1,69 @@
+Instructions for Replit AI: Task 8d - Implement Server-Authoritative Monster Swapping
+Goal: Move all monster-swapping logic to the server. The client will only be able to request a swap; the server will validate it, update the official battle state, and pass the turn to the AI. This will fix the error and correct a major architectural violation.
+
+File 1 of 3: server/battleEngine.ts
+Create a new exported function named performSwap:
+
+This function must accept a battleId (string) and a newMonsterIndex (number) as arguments.
+
+Inside the function, perform these steps in order:
+
+Retrieve the current battle session from the battleSessions map.
+
+Perform validation checks:
+
+Ensure the monster at the newMonsterIndex has HP greater than 0.
+
+Ensure the newMonsterIndex is not the same as the current activePlayerIndex.
+
+If either check fails, throw an error with a descriptive message.
+
+Get the name of the monster currently in the active slot (activePlayerIndex).
+
+Get the name of the new monster at the newMonsterIndex. Remember to access the nested monster.name property for player-owned monsters.
+
+Add two messages to the battleLog: one for withdrawing the old monster and one for sending out the new one.
+
+Update the activePlayerIndex on the battle state to be the newMonsterIndex.
+
+Set the turn on the battle state to 'ai'.
+
+Save the updated battle state back into the battleSessions map and return the entire battleState object.
+
+File 2 of 3: server/routes.ts
+At the top of the file:
+
+Import the new performSwap function from ./battleEngine.
+
+Create a new API endpoint:
+
+This will be a POST route with the path /api/battle/swap.
+
+It must be protected by the isAuthenticated middleware.
+
+Inside the route's logic:
+
+Extract the battleId and newMonsterIndex from the request body.
+
+Call the performSwap function, passing these two values to it.
+
+Send the battleState object returned by the function back to the client as the JSON response.
+
+File 3 of 3: client/src/components/BattleArena.tsx
+Rewrite the handleSwapMonster function:
+
+It should accept the monsterId as it currently does.
+
+Make the function async.
+
+The new logic should be:
+
+The first step inside the function should be to find the array index of the chosen monster by looking through the playerTeam state for the matching monsterId.
+
+Remove all old logic from this function. Do not generate log messages or call setActivePlayerIndex or setTurn directly on the client.
+
+Make a POST request to the new /api/battle/swap endpoint.
+
+The body of this request must contain the battleId and the newMonsterIndex you found in the first step.
+
+When the server responds with the authoritative battleState, use it to update all relevant client state variables at once (setPlayerTeam, setAiTeam, setActivePlayerIndex, setTurn, setBattleLog).

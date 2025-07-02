@@ -235,3 +235,49 @@ export const processAiTurn = async (battleId: string) => {
   // Apply the AI's chosen ability (applyDamage will handle action logging)
   return applyDamage(battleId, chosenAbility);
 };
+
+// Server-authoritative monster swapping function
+export const performSwap = (battleId: string, newMonsterIndex: number) => {
+  // Retrieve the current battle session from the battleSessions map
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) {
+    throw new Error(`Battle session ${battleId} not found`);
+  }
+
+  // Perform validation checks
+  const newMonster = battleState.playerTeam[newMonsterIndex];
+  if (!newMonster) {
+    throw new Error('Invalid monster index');
+  }
+
+  if (newMonster.hp <= 0) {
+    throw new Error('Cannot swap to a monster with 0 HP');
+  }
+
+  if (newMonsterIndex === battleState.activePlayerIndex) {
+    throw new Error('Cannot swap to the same monster that is already active');
+  }
+
+  // Get the name of the monster currently in the active slot
+  const currentMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const currentMonsterName = currentMonster.monster.name;
+
+  // Get the name of the new monster at the newMonsterIndex
+  const newMonsterName = newMonster.monster.name;
+
+  // Add two messages to the battleLog
+  battleState.battleLog.push(`${currentMonsterName} withdrew from battle!`);
+  battleState.battleLog.push(`${newMonsterName} enters the battle!`);
+
+  // Update the activePlayerIndex to the newMonsterIndex
+  battleState.activePlayerIndex = newMonsterIndex;
+
+  // Set the turn to 'ai'
+  battleState.turn = 'ai';
+
+  // Save the updated battle state back into the battleSessions map
+  battleSessions.set(battleId, battleState);
+
+  // Return the entire battleState object
+  return battleState;
+};

@@ -428,6 +428,15 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Server now generates ALL battle action messages using authentic database monster names and ability names
   - Fixed "undefined enters the battle!" bug and eliminated player attack log disappearing issue
   - Completed migration: server is single source of truth for all battle logging with persistent message history
+- July 2, 2025: Server-Authoritative Monster Swapping Implementation
+  - Created performSwap function in battleEngine.ts with comprehensive validation (HP > 0, different monster, valid index)
+  - Added /api/battle/swap endpoint with proper authentication and error handling
+  - Rewrote client handleSwapMonster to use server API instead of local state manipulation
+  - Fixed critical client-server state mismatch that caused "Error during AI turn" messages
+  - Server now validates all swap requests and maintains authoritative battle state
+  - Added authentic swap messages to battle log using real monster names from database
+  - Eliminated architectural violation where client could modify battle state without server knowledge
+  - Completed full server-authoritative battle system: initialization, turns, actions, logging, and swapping
 
 ## User Preferences
 

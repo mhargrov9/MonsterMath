@@ -199,19 +199,46 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   };
 
-  const handleSwapMonster = (monsterId: number) => {
-    if (turn !== 'player' || battleEnded) return;
-    const newIndex = playerTeam.findIndex(p => p.id === monsterId);
-    if (newIndex === -1 || newIndex === activePlayerIndex) return;
-    const currentMonster = playerTeam[activePlayerIndex];
-    const newMonster = playerTeam[newIndex];
-    if (newMonster.hp <= 0) {
-        setBattleLog(prev => [...prev, `${newMonster.monster.name} is too weak to battle!`]);
-        return;
+  const handleSwapMonster = async (monsterId: number) => {
+    if (turn !== 'player' || battleEnded || !battleId) return;
+    
+    // Find the array index of the chosen monster
+    const newMonsterIndex = playerTeam.findIndex(p => p.id === monsterId);
+    if (newMonsterIndex === -1) return;
+    
+    try {
+      // Make a POST request to the server swap endpoint
+      const response = await fetch('/api/battle/swap', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          battleId,
+          newMonsterIndex
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to perform monster swap');
+      }
+      
+      const battleState = await response.json();
+      
+      // Update all relevant client state variables with server's authoritative state
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setTurn(battleState.turn);
+      setBattleLog(battleState.battleLog);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      
+    } catch (error) {
+      console.error('Error performing monster swap:', error);
+      setBattleLog(prev => [...prev, "Error swapping monster! Please try again."]);
     }
-    setBattleLog(prev => [...prev, `You withdrew ${currentMonster.monster.name} and sent out ${newMonster.monster.name}!`]);
-    setActivePlayerIndex(newIndex);
-    setTurn('ai');
   };
 
   useEffect(() => {

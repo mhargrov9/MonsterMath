@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage, startBattle, processAiTurn, selectLeadAndDetermineTurn } from "./battleEngine";
+import { calculateDamage, applyDamage, startBattle, processAiTurn, selectLeadAndDetermineTurn, performSwap } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -479,6 +479,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       handleError(error, res, "Failed to select lead and determine turn");
+    }
+  });
+
+  // Monster swapping endpoint
+  app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {
+    try {
+      const { battleId, newMonsterIndex } = req.body;
+
+      if (battleId === undefined || newMonsterIndex === undefined) {
+        return res.status(400).json({ message: 'Missing battleId or newMonsterIndex' });
+      }
+
+      const battleState = performSwap(battleId, newMonsterIndex);
+      res.json(battleState);
+
+    } catch (error) {
+      handleError(error, res, "Failed to perform monster swap");
     }
   });
 
