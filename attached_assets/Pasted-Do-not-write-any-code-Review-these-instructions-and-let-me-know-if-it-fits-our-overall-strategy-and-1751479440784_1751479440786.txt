@@ -1,0 +1,34 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+HP and MP changes from a battle are not being saved to the player's permanent roster.
+
+The application lacks a reliable mechanism to update monster stats in the database after a battle concludes.
+
+Instructions for Replit AI: Task 9g (Redo) - Save Final Battle State via Transaction
+Goal: To implement the server-side logic that saves the final HP and MP of all player-owned monsters back to the database when a battle concludes. This will be done using a safe and reliable database transaction to ensure data integrity.
+
+File 1 of 2: server/storage.ts
+Create a new exported function named saveFinalBattleState.
+
+This function must accept an array of UserMonster objects as an argument.
+
+New Logic: The entire body of this function should be a database transaction block (e.g., db.transaction(async (tx) => { ... })).
+
+Inside the transaction, you will await a Promise.all() that maps over the incoming array of monsters.
+
+For each monster in the array, execute an individual update command (e.g., tx.update(...)) that sets the hp and mp for that monster in the user_monsters table, matched by its unique id. This ensures all updates are processed together as a single, atomic operation.
+
+Also, add saveFinalBattleState(playerTeam: UserMonster[]): Promise<void>; to the IStorage interface.
+
+File 2 of 2: server/battleEngine.ts
+In the applyDamage function:
+
+Find the if (teamDefeated) block where the battle officially ends.
+
+Inside this block, after all other logic (like awarding XP) has run, add the final step.
+
+Call the new storage.saveFinalBattleState function.
+
+You must pass the battleState.playerTeam array to this function, as it contains all the player's monsters with their final HP and MP from the isolated battle session.
+
+Ensure you await the result of this function call before the server sends its final response.
