@@ -1,0 +1,77 @@
+Technical Prompt for Replit AI Review
+(Instruction for User: Please send the following to the Replit AI Developer.)
+
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The current battle engine lacks the explicit, phased lifecycle required to correctly implement advanced mechanics like turn-skipping status effects (PARALYZED), damage-over-time (BURNED), and passives that trigger at specific moments (start/end of turn).
+
+Problem 2: The order of operations for effects is not rigidly enforced, which can lead to unpredictable outcomes and bugs. The game's strategic depth depends on a strict, non-negotiable sequence of events within a turn.
+
+
+Problem 3: Progress on the strategic roadmap is blocked. Implementing the 
+
+Strict 3-Phase Turn Lifecycle is the primary goal of Phase 1 and is a "foundational prerequisite for nearly all advanced gameplay mechanics".
+
+1. Goal:
+Refactor the 
+
+server/battleEngine.ts to implement the strict, three-phase turn structure: Start-of-Turn, Action Phase, and End-of-Turn.
+
+
+2. File Modifications:
+
+
+Primary Target: server/battleEngine.ts 
+
+
+
+Supporting Files: No other files should require modification. All logic must be centralized within the battle engine to adhere to the principle of Maintainability.
+
+
+3. Implementation Details:
+The core logic will be refactored to orchestrate the full turn lifecycle. This will execute the three phases in their non-negotiable order as defined in the brief.
+
+
+Step A: Create handleStartOfTurn() Function 
+
+
+Turn-Skipping Status Check: It must first check the active monster for turn-skipping status effects (e.g., PARALYZED). If the turn is skipped, the Action Phase is ignored.
+
+
+
+Damage-over-Time (DoT) Application: If the turn is not skipped, it will apply damage from effects like BURNED or POISONED.
+
+
+Passive Triggers: It will then check for and activate any "start of turn" passive abilities.
+
+
+Step B: Create handleActionPhase() Function 
+
+This will encapsulate the logic for handling a player's chosen action (
+
+Use Ability or Swap Monster).
+
+It will only be called if the 
+
+handleStartOfTurn function determined that the turn was not skipped.
+
+
+Step C: Create handleEndOfTurn() Function 
+
+
+Passive Triggers: It will apply all "end of turn" passive abilities, including those from the bench with a BENCH activation_scope.
+
+
+Duration Countdown: It will decrement the duration counter for all status effects and temporary modifiers, removing any that reach zero.
+
+
+Control Switch: Finally, it will switch control of the turn to the opposing combatant.
+
+4. Architecture Compliance Check:
+
+Does this plan adhere to a server-authoritative architecture where all game logic resides on the server?
+
+Does this plan ensure all gameplay values are sourced from the database at runtime and not hardcoded?
+
+
+Does this refactoring centralize logic to improve maintainability and eliminate redundancy, in line with our core principles?
