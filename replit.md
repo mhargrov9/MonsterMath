@@ -495,6 +495,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Enforces server authority over resource management in battle system
   - Prevents malicious clients from bypassing MP limitations through manipulation
   - Completes server-authoritative battle architecture with proper resource validation
+- July 2, 2025: Current Monster Stats at Battle Start (Task 8L)
+  - Fixed handleBattleStart function to send current monster HP/MP instead of resetting to maximum
+  - Removed playerTeamWithFullHealth logic that incorrectly reset hp: m.maxHp, mp: m.maxMp
+  - Server now receives authentic monster stats from database, preserving persistent resource management
+  - Enables testing of low-resource scenarios and server-side MP validation logic
+  - Eliminated architectural violation where client modified monster state before server submission
+  - Battles now start with monsters' actual current HP/MP for strategic resource management
 
 ## User Preferences
 

@@ -252,8 +252,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
     
     try {
-      // Prepare team data for server
-      const playerTeamWithFullHealth = selectedTeam.map(m => ({ ...m, hp: m.maxHp, mp: m.maxMp }));
+      // Use current monster stats without modification
       const opponentTeam = generatedOpponent.scaledMonsters;
 
       // Request server to create battle session
@@ -264,7 +263,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         },
         credentials: 'include',
         body: JSON.stringify({
-          playerTeam: playerTeamWithFullHealth,
+          playerTeam: selectedTeam,
           opponentTeam: opponentTeam
         })
       });
