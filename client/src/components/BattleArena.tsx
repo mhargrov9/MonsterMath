@@ -266,14 +266,43 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   };
 
-  const selectLeadMonster = (index: number) => {
-    const playerMonster = playerTeam[index];
-    const aiMonster = aiTeam[Math.floor(Math.random() * aiTeam.length)];
-    setActivePlayerIndex(index);
-    setActiveAiIndex(aiTeam.indexOf(aiMonster));
-    setBattleLog(prev => [...prev, `You send out ${playerMonster.monster.name}!`, `Opponent sends out ${aiMonster.name}!`]);
-    setTurn(getModifiedStat(playerMonster, 'speed') >= getModifiedStat(aiMonster, 'speed') ? 'player' : 'ai');
-    setBattleMode('combat');
+  const selectLeadMonster = async (index: number) => {
+    try {
+      // Make a POST request to the new /api/battle/select-lead endpoint
+      const response = await fetch('/api/battle/select-lead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          battleId: battleId,
+          playerMonsterIndex: index
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to select lead monster');
+      }
+
+      // Parse the JSON to get the complete and authoritative battleState
+      const battleState = await response.json();
+
+      // Use this battleState object from the server to update all client state variables
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setActiveAiIndex(battleState.activeAiIndex);
+      setTurn(battleState.turn);
+      setBattleLog(battleState.battleLog);
+
+      // Change the view to combat screen
+      setBattleMode('combat');
+
+    } catch (error) {
+      console.error('Error selecting lead monster:', error);
+      setBattleLog(prev => [...prev, 'Error selecting lead monster! Please try again.']);
+    }
   };
 
   const battleLogRef = useRef<HTMLDivElement>(null);

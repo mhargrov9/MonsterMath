@@ -1,0 +1,71 @@
+Instructions for Replit AI: Task 8b - Implement Server-Authoritative First Turn
+Goal: Move the logic for determining the first turn of a battle from the client to the server. The server must be the single source of truth for turn order. This fixes a critical architectural violation and ensures the battle state is always synchronized.
+
+File 1 of 3: server/battleEngine.ts
+In the startBattle function:
+
+Locate the battleState object that is created.
+
+Find the turn property within that object.
+
+Change its value from 'player' to the string 'pre-battle'. This correctly reflects that the battle has been initialized but combat has not yet begun.
+
+Create a new exported function named selectLeadAndDetermineTurn:
+
+This function needs to accept a battleId (string) and a playerMonsterIndex (number) as arguments.
+
+Inside the function, perform these steps in order:
+
+Retrieve the current battle session from the battleSessions map using the provided battleId.
+
+Set the activePlayerIndex on the battle state to the playerMonsterIndex passed into the function.
+
+Randomly generate an index for the AI's lead monster and set the activeAiIndex on the battle state.
+
+Using the new active indices, get the full player monster object and the AI monster object from their respective teams in the battle state.
+
+Add two new string messages to the battleLog array in the battle state: one announcing the player's chosen monster and another announcing the AI's monster.
+
+Compare the speed stat of the player's monster to the speed stat of the AI's monster.
+
+Based on this speed comparison (if player speed is greater than or equal to AI speed), set the turn property on the battle state to either 'player' or 'ai'.
+
+Finally, update the session in the battleSessions map with the modified battle state and return the entire battle state object.
+
+File 2 of 3: server/routes.ts
+At the top of the file:
+
+Ensure the new selectLeadAndDetermineTurn function is imported from ./battleEngine.
+
+Create a new API endpoint:
+
+This will be a POST route with the path /api/battle/select-lead.
+
+It must be protected by the isAuthenticated middleware.
+
+Inside the route's logic:
+
+Extract the battleId and playerMonsterIndex from the request body.
+
+Call the selectLeadAndDetermineTurn function, passing these two values to it.
+
+Take the battle state object that the function returns and send it back to the client as the JSON response.
+
+File 3 of 3: client/src/components/BattleArena.tsx
+Rewrite the selectLeadMonster function:
+
+It should now be an async function.
+
+Remove all of the old logic that compared monster speeds and set the turn.
+
+The new logic should be:
+
+Make a POST request to the new /api/battle/select-lead endpoint.
+
+The body of this request must contain the current battleId and the index of the monster that was selected.
+
+When the response is received from the server, parse the JSON to get the complete and authoritative battleState.
+
+Use this battleState object from the server to update all the client's state variables at once (setPlayerTeam, setAiTeam, setActivePlayerIndex, setActiveAiIndex, setTurn, setBattleLog).
+
+After the state has been updated from the server's response, change the view to the combat screen by calling setBattleMode('combat').

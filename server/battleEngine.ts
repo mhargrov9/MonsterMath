@@ -128,7 +128,7 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     aiTeam: [...opponentTeam],   // Deep copy to avoid mutations
     activePlayerIndex: 0,
     activeAiIndex: 0,
-    turn: 'player' as 'player' | 'ai',
+    turn: 'pre-battle' as 'player' | 'ai' | 'pre-battle',
     battleEnded: false,
     winner: null as 'player' | 'ai' | null,
     battleLog: [] as string[]
@@ -141,6 +141,46 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     battleId,
     battleState
   };
+};
+
+// Server-side lead selection and turn determination
+export const selectLeadAndDetermineTurn = (battleId: string, playerMonsterIndex: number) => {
+  // Retrieve the current battle session from the battleSessions map
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) {
+    throw new Error(`Battle session ${battleId} not found`);
+  }
+
+  // Set the activePlayerIndex to the playerMonsterIndex passed into the function
+  battleState.activePlayerIndex = playerMonsterIndex;
+
+  // Randomly generate an index for the AI's lead monster and set the activeAiIndex
+  battleState.activeAiIndex = Math.floor(Math.random() * battleState.aiTeam.length);
+
+  // Get the full player monster object and the AI monster object from their respective teams
+  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+
+  // Add two new string messages to the battleLog array
+  battleState.battleLog.push(`${playerMonster.name} enters the battle!`);
+  battleState.battleLog.push(`Opponent's ${aiMonster.name} appears!`);
+
+  // Compare the speed stat of the player's monster to the speed stat of the AI's monster
+  const playerSpeed = playerMonster.speed || 0;
+  const aiSpeed = aiMonster.speed || 0;
+
+  // Set the turn property based on speed comparison
+  if (playerSpeed >= aiSpeed) {
+    battleState.turn = 'player';
+  } else {
+    battleState.turn = 'ai';
+  }
+
+  // Update the session in the battleSessions map with the modified battle state
+  battleSessions.set(battleId, battleState);
+
+  // Return the entire battle state object
+  return battleState;
 };
 
 // Server-side AI turn processing

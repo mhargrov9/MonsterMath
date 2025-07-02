@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage, startBattle, processAiTurn } from "./battleEngine";
+import { calculateDamage, applyDamage, startBattle, processAiTurn, selectLeadAndDetermineTurn } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -462,6 +462,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       handleError(error, res, "Failed to process AI turn");
+    }
+  });
+
+  // Lead selection and turn determination endpoint
+  app.post('/api/battle/select-lead', isAuthenticated, async (req: any, res) => {
+    try {
+      const { battleId, playerMonsterIndex } = req.body;
+
+      if (battleId === undefined || playerMonsterIndex === undefined) {
+        return res.status(400).json({ message: 'Missing battleId or playerMonsterIndex' });
+      }
+
+      const battleState = selectLeadAndDetermineTurn(battleId, playerMonsterIndex);
+      res.json(battleState);
+
+    } catch (error) {
+      handleError(error, res, "Failed to select lead and determine turn");
     }
   });
 
