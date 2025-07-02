@@ -437,6 +437,16 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Added authentic swap messages to battle log using real monster names from database
   - Eliminated architectural violation where client could modify battle state without server knowledge
   - Completed full server-authoritative battle system: initialization, turns, actions, logging, and swapping
+- July 2, 2025: Database-Driven AI Abilities Implementation
+  - Created getAbilitiesForMonsters function in storage.ts with efficient database queries
+  - Modified startBattle function to collect all monster IDs and load abilities from database
+  - Added abilities_map to battle state for persistent ability storage throughout battle duration
+  - Completely rewrote processAiTurn function to use authentic monster abilities from database
+  - Eliminated hardcoded "Basic Attack" array that violated database-driven architecture
+  - AI opponents now use their actual abilities (Magma Punch, Tremor Stomp, Mind Strike, etc.)
+  - Implemented intelligent AI ability selection with MP validation and basic attack fallback
+  - Fixed architectural compliance: all battle data now comes from authentic database sources
+  - Enhanced AI strategic behavior using real monster abilities for authentic battle encounters
 
 ## User Preferences
 
