@@ -165,6 +165,24 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
     if (teamDefeated) {
       battleState.battleEnded = true;
       battleState.winner = opposingTeam;
+      
+      // Server-authoritative battle completion with automatic XP awarding
+      if (opposingTeam === 'player') {
+        // Player won - need to find the player's user ID from their team
+        const playerTeam = battleState.playerTeam as UserMonster[];
+        if (playerTeam.length > 0 && playerTeam[0].userId) {
+          const winnerId = playerTeam[0].userId;
+          const xpAmount = 50; // Standard XP award for battle victory
+          
+          try {
+            await storage.concludeBattle(winnerId, xpAmount);
+            battleState.battleLog.push(`Victory! Awarded ${xpAmount} XP!`);
+          } catch (error) {
+            console.error('Error awarding battle XP:', error);
+            battleState.battleLog.push('Victory achieved but XP award failed!');
+          }
+        }
+      }
     }
     // Implement AI Forced Swap
     else if (isAiDefeated) {
@@ -331,7 +349,7 @@ export const processAiTurn = async (battleId: string) => {
   }
 
   // Apply the AI's chosen ability (applyDamage will handle action logging)
-  return applyDamage(battleId, chosenAbility);
+  return await applyDamage(battleId, chosenAbility);
 };
 
 // Server-authoritative monster swapping function

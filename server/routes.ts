@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Missing required battle data (battleId, ability)' });
       }
 
-      const actionResult = applyDamage(battleId, ability);
+      const actionResult = await applyDamage(battleId, ability);
       res.json(actionResult);
 
     } catch (error) {
