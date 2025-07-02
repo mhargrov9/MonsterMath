@@ -119,8 +119,42 @@ export const applyDamage = (battleId: string, ability: Ability) => {
 
   // Check for battle end conditions
   if (newHp <= 0) {
-    battleState.battleEnded = true;
-    battleState.winner = battleState.turn === 'ai' ? 'player' : 'ai'; // Winner is opposite of current turn since turn already switched
+    // Get the defeated monster's name for logging
+    let defeatedMonsterName: string;
+    if (battleState.turn === 'ai') {
+      // Defender is player monster (turn already switched)
+      defeatedMonsterName = (defender as UserMonster).monster.name;
+    } else {
+      // Defender is AI monster (turn already switched)
+      defeatedMonsterName = (defender as Monster).name;
+    }
+    
+    // Add fainted message to battle log
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    
+    // Determine which team the defeated monster belongs to
+    let defeatedTeam: (UserMonster | Monster)[];
+    let opposingTeam: 'player' | 'ai';
+    
+    if (battleState.turn === 'ai') {
+      // Defender was player monster (turn already switched)
+      defeatedTeam = battleState.playerTeam;
+      opposingTeam = 'ai';
+    } else {
+      // Defender was AI monster (turn already switched)
+      defeatedTeam = battleState.aiTeam;
+      opposingTeam = 'player';
+    }
+    
+    // Check if the entire team has been defeated
+    const teamDefeated = defeatedTeam.every(monster => (monster.hp ?? 0) <= 0);
+    
+    if (teamDefeated) {
+      // Set battle as ended with opposing team as winner
+      battleState.battleEnded = true;
+      battleState.winner = opposingTeam;
+    }
+    // If team still has conscious monsters, battle continues
   }
 
   // Update the battle session
