@@ -455,6 +455,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Battles now continue properly when individual monsters are defeated but team has conscious monsters
   - Fixed core battle foundation enabling true strategic team-based gameplay with multiple monsters
   - Server maintains full authority over win/loss determination with proper multi-monster battle mechanics
+- July 2, 2025: Fixed Defeat Logic and AI Automatic Monster Swapping
+  - Corrected inverted team checking logic that caused "Cannot read properties of undefined" errors
+  - Fixed monster name access by properly identifying which team was attacked after turn switching
+  - Implemented server-authoritative AI automatic monster swapping when active AI monster is defeated
+  - AI now automatically sends out next healthy monster when current one faints but team isn't eliminated
+  - Added authentic "Opponent sends out [Monster Name]!" messages to battle log using database names
+  - Enhanced battle realism with proper AI behavior matching expected monster game mechanics
+  - Eliminated critical server errors during player attacks that defeat AI opponents
 
 ## User Preferences
 

@@ -119,42 +119,55 @@ export const applyDamage = (battleId: string, ability: Ability) => {
 
   // Check for battle end conditions
   if (newHp <= 0) {
-    // Get the defeated monster's name for logging
+    // Fix the Logic: The defender is the one who was just attacked
+    // Since turn has already switched, we need to determine who was just attacked
     let defeatedMonsterName: string;
-    if (battleState.turn === 'ai') {
-      // Defender is player monster (turn already switched)
-      defeatedMonsterName = (defender as UserMonster).monster.name;
-    } else {
-      // Defender is AI monster (turn already switched)
-      defeatedMonsterName = (defender as Monster).name;
-    }
-    
-    // Add fainted message to battle log
-    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
-    
-    // Determine which team the defeated monster belongs to
     let defeatedTeam: (UserMonster | Monster)[];
     let opposingTeam: 'player' | 'ai';
+    let isAiDefeated: boolean;
     
     if (battleState.turn === 'ai') {
-      // Defender was player monster (turn already switched)
-      defeatedTeam = battleState.playerTeam;
-      opposingTeam = 'ai';
-    } else {
-      // Defender was AI monster (turn already switched)
+      // Turn switched to AI, so player just attacked AI team
+      defeatedMonsterName = (defender as Monster).name;
       defeatedTeam = battleState.aiTeam;
       opposingTeam = 'player';
+      isAiDefeated = true;
+    } else {
+      // Turn switched to player, so AI just attacked player team
+      defeatedMonsterName = (defender as UserMonster).monster.name;
+      defeatedTeam = battleState.playerTeam;
+      opposingTeam = 'ai';
+      isAiDefeated = false;
     }
     
-    // Check if the entire team has been defeated
+    // Log the Faint
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    
+    // Check for Team Defeat
     const teamDefeated = defeatedTeam.every(monster => (monster.hp ?? 0) <= 0);
     
+    // Handle Win Condition
     if (teamDefeated) {
-      // Set battle as ended with opposing team as winner
       battleState.battleEnded = true;
       battleState.winner = opposingTeam;
     }
-    // If team still has conscious monsters, battle continues
+    // Implement AI Forced Swap
+    else if (isAiDefeated) {
+      // AI monster was defeated but team isn't fully defeated - find next healthy AI monster
+      const healthyAiIndex = battleState.aiTeam.findIndex(monster => (monster.hp ?? 0) > 0);
+      
+      if (healthyAiIndex !== -1) {
+        // Update active AI monster index
+        battleState.activeAiIndex = healthyAiIndex;
+        
+        // Get the new AI monster's name
+        const newAiMonster = battleState.aiTeam[healthyAiIndex];
+        const newAiMonsterName = (newAiMonster as Monster).name;
+        
+        // Add swap message to battle log
+        battleState.battleLog.push(`Opponent sends out ${newAiMonsterName}!`);
+      }
+    }
   }
 
   // Update the battle session
