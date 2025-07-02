@@ -61,6 +61,21 @@ export const applyDamage = (battleId: string, ability: Ability) => {
     throw new Error(`Battle session ${battleId} not found`);
   }
 
+  // Server-side MP validation - check if attacker has enough MP before any action
+  let currentAttacker: UserMonster | Monster;
+  if (battleState.turn === 'player') {
+    currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
+  } else {
+    currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
+  }
+  
+  const attackerCurrentMp = currentAttacker.mp || 0;
+  const abilityCost = ability.mp_cost || 0;
+  
+  if (attackerCurrentMp < abilityCost) {
+    throw new Error('Not enough MP');
+  }
+
   // Identify attacker and defender based on current turn
   let attacker: UserMonster | Monster;
   let defender: UserMonster | Monster;

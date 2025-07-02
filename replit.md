@@ -487,6 +487,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Players can now successfully click swap buttons during forced swap state
   - Server-authoritative forced swap workflow now complete from detection to execution
   - Battle flow seamlessly handles mandatory monster swapping with proper UI feedback
+- July 2, 2025: Server-Side MP Validation Implementation (Task 8k)
+  - Added MP validation at the beginning of applyDamage function before any action execution
+  - Server now validates attacker's current MP against ability cost before allowing actions
+  - Throws "Not enough MP" error if insufficient resources, preventing client-side cheating
+  - Uses authentic battleMp or mp values from server battle state for validation
+  - Enforces server authority over resource management in battle system
+  - Prevents malicious clients from bypassing MP limitations through manipulation
+  - Completes server-authoritative battle architecture with proper resource validation
 
 ## User Preferences
 
