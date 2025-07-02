@@ -3,7 +3,7 @@ import { BattleTeamSelector } from './BattleTeamSelector';
 import { CombatView } from './CombatView';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText } from '@/shared/types';
+import { UserMonster, Monster, Ability, ActiveEffect, DamageResult, FloatingText, Turn } from '@shared/types';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 
@@ -25,7 +25,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   const [aiTeam, setAiTeam] = useState<Monster[]>([]);
   const [activePlayerIndex, setActivePlayerIndex] = useState(0);
   const [activeAiIndex, setActiveAiIndex] = useState(0);
-  const [turn, setTurn] = useState<'player' | 'ai' | 'pre-battle'>('pre-battle');
+  const [turn, setTurn] = useState<Turn>('pre-battle');
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleEnded, setBattleEnded] = useState(false);
   const [winner, setWinner] = useState<'player' | 'ai' | null>(null);
@@ -360,7 +360,20 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     if (isLoading || playerTeam.length === 0 || aiTeam.length === 0 || !playerTeam[activePlayerIndex] || !aiTeam[activeAiIndex]) {
       return <div className="text-center p-8">Loading Battle...</div>;
     }
-    return <CombatView 
+    
+    return (
+      <>
+        {/* Forced Swap UI Indicator */}
+        {turn === 'player-must-swap' && (
+          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-red-400 animate-pulse">
+            <div className="text-center">
+              <h3 className="text-lg font-bold">Your monster has fainted!</h3>
+              <p className="text-sm">Choose a new monster from your bench to continue.</p>
+            </div>
+          </div>
+        )}
+        
+        <CombatView 
         playerMonster={playerTeam[activePlayerIndex]}
         opponentMonster={aiTeam[activeAiIndex]}
         playerBench={playerTeam.filter((_, i) => i !== activePlayerIndex)}
@@ -375,7 +388,9 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         onRetreat={onRetreat}
         onPlayAgain={() => setBattleMode('team-select')}
         floatingTexts={floatingTexts}
-    />;
+    />
+      </>
+    );
   }
 
   return null;
