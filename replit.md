@@ -480,6 +480,13 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Ability buttons remain correctly disabled during forced swap state
   - Fixed critical bug where players couldn't continue battles after monster defeat
   - Completed clean architectural separation of UI concerns for proper battle flow
+- July 2, 2025: Fixed Swap Function Execution (Task 8j)
+  - Modified handleSwapMonster guard clause to allow execution during 'player-must-swap' state
+  - Changed condition from `turn !== 'player'` to `(turn !== 'player' && turn !== 'player-must-swap')`
+  - Completed final missing piece for fully functional forced swap system
+  - Players can now successfully click swap buttons during forced swap state
+  - Server-authoritative forced swap workflow now complete from detection to execution
+  - Battle flow seamlessly handles mandatory monster swapping with proper UI feedback
 
 ## User Preferences
 

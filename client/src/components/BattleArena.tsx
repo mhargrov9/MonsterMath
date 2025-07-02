@@ -200,7 +200,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const handleSwapMonster = async (monsterId: number) => {
-    if (turn !== 'player' || battleEnded || !battleId) return;
+    if ((turn !== 'player' && turn !== 'player-must-swap') || battleEnded || !battleId) return;
     
     // Find the array index of the chosen monster
     const newMonsterIndex = playerTeam.findIndex(p => p.id === monsterId);
