@@ -388,27 +388,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW Route: Complete battle and award Rank XP
-  app.post('/api/battle/complete', isAuthenticated, async (req: any, res) => {
-    try {
-      const { winnerId } = req.body;
-      const xp_per_win = 50; // Base XP for a win
-
-      if (!winnerId) {
-        return res.status(400).json({ message: 'Winner ID is required.' });
-      }
-
-      const updatedUser = await storage.awardRankXp(winnerId, xp_per_win);
-
-      res.json({
-        message: `Awarded ${xp_per_win} XP to user ${winnerId}.`,
-        newXpTotal: updatedUser.rank_xp
-      });
-
-    } catch(error) {
-      handleError(error, res, "Failed to complete battle and award XP");
-    }
-  });
 
   // Battle session creation endpoint
   app.post('/api/battle/start', isAuthenticated, async (req: any, res) => {

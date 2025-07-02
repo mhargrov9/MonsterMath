@@ -67,21 +67,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     return "";
   };
 
-  const handleBattleCompletion = async (winnerVal: 'player' | 'ai') => {
-    setBattleLog(prev => [...prev, `--- BATTLE OVER ---`]);
-    setBattleEnded(true);
-    setWinner(winnerVal);
-    if (winnerVal === 'player' && user?.id) {
-        setBattleLog(prev => [...prev, `You are victorious! Gaining rank_xp...`]);
-        const response = await apiRequest('/api/battle/complete', { method: 'POST', data: { winnerId: user.id } });
-        if (response.ok) {
-            const result = await response.json();
-            const xpGained = result.newXpTotal - (user.rank_xp || 0);
-            setBattleLog(prev => [...prev, `Gained ${xpGained} XP!`]);
-            await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-        }
-    }
-  };
+
 
   const handlePlayerAbility = async (ability: Ability) => {
     if (turn !== 'player' || battleEnded || !battleId) return;
@@ -135,7 +121,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
 
       if (battleState.battleEnded) {
-        handleBattleCompletion(battleState.winner || 'ai');
+        // Battle completed by server - no additional client action needed
       }
       
     } catch (error) {
@@ -189,7 +175,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
 
       if (battleState.battleEnded) {
-        handleBattleCompletion(battleState.winner || 'player');
+        // Battle completed by server - no additional client action needed
       }
       
     } catch (error) {
