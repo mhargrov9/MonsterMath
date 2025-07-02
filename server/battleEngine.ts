@@ -1,5 +1,6 @@
 // Import shared types for the battle system
 import { DamageResult, UserMonster, Monster, Ability } from '../shared/types.js';
+import { storage } from './storage.js';
 import crypto from 'crypto';
 
 // In-memory store for active battle sessions
@@ -136,6 +137,22 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
   // Generate unique battle ID
   const battleId = crypto.randomUUID();
   
+  // Collect all unique monster IDs from both teams
+  const allMonsterIds: number[] = [];
+  
+  // For player team, ID is at monster.id (nested monster object)
+  for (const userMonster of playerTeam) {
+    allMonsterIds.push(userMonster.monster.id);
+  }
+  
+  // For AI team, ID is at monster.id
+  for (const monster of opponentTeam) {
+    allMonsterIds.push(monster.id);
+  }
+  
+  // Get abilities for all monsters in the battle
+  const abilitiesMap = await storage.getAbilitiesForMonsters(allMonsterIds);
+  
   // Create initial battle state
   const battleState = {
     playerTeam: [...playerTeam], // Deep copy to avoid mutations
@@ -145,7 +162,8 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     turn: 'pre-battle' as 'player' | 'ai' | 'pre-battle',
     battleEnded: false,
     winner: null as 'player' | 'ai' | null,
-    battleLog: [] as string[]
+    battleLog: [] as string[],
+    abilities_map: abilitiesMap // Store abilities for entire battle duration
   };
   
   // Store battle session
@@ -212,25 +230,38 @@ export const processAiTurn = async (battleId: string) => {
   // Get current AI monster
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
   
-  // Simple AI: Choose a random available ability (with mana check)
-  const availableAbilities = [
-    { id: 1, name: "Basic Attack", mp_cost: 0, power_multiplier: "0.6", ability_type: "active" },
-    // Add more abilities based on monster's actual abilities
-    // For now, using basic attack as fallback
-  ];
-
-  // Filter abilities AI can afford
-  const affordableAbilities = availableAbilities.filter(ability => 
+  // Get the AI monster's abilities from the abilities_map
+  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+  
+  if (monsterAbilities.length === 0) {
+    throw new Error(`No abilities found for AI monster ${aiMonster.id}`);
+  }
+  
+  // Filter abilities the AI can afford based on current MP
+  const affordableAbilities = monsterAbilities.filter(ability => 
     (aiMonster.mp ?? 0) >= (ability.mp_cost || 0)
   );
 
+  let chosenAbility;
+  
   if (affordableAbilities.length === 0) {
-    // Force basic attack if no other abilities available
-    affordableAbilities.push(availableAbilities[0]);
+    // Find the monster's basic attack from its full ability list
+    const basicAttack = monsterAbilities.find(ability => 
+      ability.name.toLowerCase().includes('basic') || 
+      ability.name.toLowerCase().includes('attack') ||
+      ability.mp_cost === 0
+    );
+    
+    if (basicAttack) {
+      chosenAbility = basicAttack;
+    } else {
+      // Fallback to first ability if no basic attack found
+      chosenAbility = monsterAbilities[0];
+    }
+  } else {
+    // Randomly select from affordable abilities
+    chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
   }
-
-  // Choose random ability
-  const chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
 
   // Apply the AI's chosen ability (applyDamage will handle action logging)
   return applyDamage(battleId, chosenAbility);

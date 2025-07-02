@@ -509,6 +509,44 @@ export class DatabaseStorage implements IStorage {
     const [trainer] = await db.insert(aiTeams).values({ ...trainerData }).returning();
     return trainer;
   }
+
+  async getAbilitiesForMonsters(monsterIds: number[]): Promise<Record<number, any[]>> {
+    // Perform a single efficient database query joining monsterAbilities and abilities tables
+    const results = await db
+      .select({
+        monsterId: monsterAbilities.monster_id,
+        abilityId: abilities.id,
+        name: abilities.name,
+        abilityType: abilities.ability_type,
+        mpCost: abilities.mp_cost,
+        powerMultiplier: abilities.power_multiplier,
+        description: abilities.description,
+      })
+      .from(monsterAbilities)
+      .innerJoin(abilities, eq(monsterAbilities.ability_id, abilities.id))
+      .where(sql`${monsterAbilities.monster_id} IN (${sql.join(monsterIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(asc(monsterAbilities.monster_id), asc(abilities.name));
+
+    // Process results into a map where each key is monster_id and value is array of abilities
+    const abilitiesMap: Record<number, any[]> = {};
+    
+    for (const result of results) {
+      if (!abilitiesMap[result.monsterId]) {
+        abilitiesMap[result.monsterId] = [];
+      }
+      
+      abilitiesMap[result.monsterId].push({
+        id: result.abilityId,
+        name: result.name,
+        ability_type: result.abilityType,
+        mp_cost: result.mpCost,
+        power_multiplier: result.powerMultiplier,
+        description: result.description,
+      });
+    }
+
+    return abilitiesMap;
+  }
 }
 
 export const storage = new DatabaseStorage();
