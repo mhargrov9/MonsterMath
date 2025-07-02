@@ -472,6 +472,14 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Player ability buttons automatically disabled during forced swap state (only bench clicking allowed)
   - Completed symmetric battle flow: both AI and player forced swaps now handled server-authoritatively
   - Enhanced battle system foundation with proper mandatory swap mechanics for strategic team-based gameplay
+- July 2, 2025: Fixed Forced Swap UI Logic (Task 8i)
+  - Decoupled ability usage logic from swapping logic by adding separate canSwap prop to CombatView
+  - Added canSwap boolean to CombatViewProps interface and component destructuring
+  - Updated BenchCard disabled logic to use canSwap instead of isPlayerTurn for swap buttons
+  - Swap buttons now enabled during both 'player' and 'player-must-swap' turn states
+  - Ability buttons remain correctly disabled during forced swap state
+  - Fixed critical bug where players couldn't continue battles after monster defeat
+  - Completed clean architectural separation of UI concerns for proper battle flow
 
 ## User Preferences
 
