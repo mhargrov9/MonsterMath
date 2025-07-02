@@ -1,0 +1,32 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+HP and MP changes from a battle are currently not saved, which goes against our agreed-upon design for persistent resource loss.
+
+The application lacks a mechanism to update the permanent monster roster with the results of a battle.
+
+Instructions for Replit AI: Task 9g - Save Final Battle State to Database
+Goal: To implement the server-side logic that saves the final HP and MP of all player-owned monsters involved in a battle back to the database when the battle concludes. This will make resource loss from battles persistent.
+
+File 1 of 2: server/storage.ts
+Create a new exported function named saveFinalBattleState.
+
+This function must accept an array of UserMonster objects as an argument. These objects will contain the monsters' final HP and MP values from the battle.
+
+Inside the function, you need to efficiently update the hp and mp columns in the user_monsters table for all monsters passed into the function.
+
+Important: Do not update the monsters one by one in a loop. To ensure efficiency, construct a single SQL CASE statement or use a similar bulk-update method supported by your database tools to perform all updates in a single database transaction.
+
+File 2 of 2: server/battleEngine.ts
+Make sure the applyDamage function is async. Its signature should be export const applyDamage = async (...). You may need to update functions that call it (like processAiTurn) to use await.
+
+In the applyDamage function:
+
+Find the if (teamDefeated) block where the battle officially ends.
+
+Inside this block, after the winner has been declared, add the final step.
+
+Call the new storage.saveFinalBattleState function you created in the previous step.
+
+You must pass the battleState.playerTeam array to this function, as it contains all the player's monsters with their final HP and MP.
+
+Ensure you await the result of this function call to make sure the data is saved before the server sends its final response.
