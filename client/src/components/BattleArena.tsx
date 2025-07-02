@@ -234,6 +234,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   }, [turn, battleEnded, activeAiIndex, playerTeam]);
 
+  // Invalidate client cache when battle ends to ensure fresh monster data
+  useEffect(() => {
+    if (battleEnded) {
+      queryClient.invalidateQueries({ queryKey: ['/api/user/monsters'] });
+    }
+  }, [battleEnded, queryClient]);
+
   const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
     setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
     

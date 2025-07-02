@@ -532,6 +532,12 @@ Monster Academy is a full-stack educational gaming platform that combines learni
   - Implements persistent resource loss system - monsters retain damage between battles
   - Database transactions ensure ACID compliance and prevent partial updates
   - Completes server-authoritative persistent monster stats architecture with reliable data integrity
+- July 2, 2025: Client Cache Invalidation (Task 9i)
+  - Added useEffect hook in BattleArena.tsx to invalidate client cache when battles end
+  - Uses queryClient.invalidateQueries({ queryKey: ['/api/user/monsters'] }) to force fresh data retrieval
+  - Eliminates stale data issue where Monster Stable showed outdated HP/MP values after battles
+  - Ensures users immediately see authentic post-battle monster damage in their roster
+  - Completes persistent battle state system with proper client-server data synchronization
 
 ## User Preferences
 
