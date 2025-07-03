@@ -57,10 +57,24 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
 };
 
 // PHASE 2: Action Phase - Handle the chosen action (ability or swap)
-const handleActionPhase = async (battleState: any, ability: Ability): Promise<DamageResult> => {
-  // This encapsulates the existing ability execution logic
-  // All existing damage calculation and application logic goes here
-  return await executeAbility(battleState, ability);
+const handleActionPhase = async (battleState: any, ability: any): Promise<DamageResult> => {
+  // Route abilities based on their healing_power database field
+  if (ability.healing_power && ability.healing_power > 0) {
+    // This is a healing ability - use healing logic
+    const isPlayerTurn = battleState.turn === 'player';
+    const attackingTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
+    const attackerIndex = isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex;
+    const attacker = attackingTeam[attackerIndex];
+    
+    // For now, healing abilities target the attacker (self-heal)
+    // TODO: Use target_scope field for more sophisticated targeting
+    const target = attacker;
+    
+    return await executeHealingAbility(battleState, ability, attacker, target);
+  } else {
+    // This is a damaging ability - use damage logic
+    return await executeAbility(battleState, ability);
+  }
 };
 
 // PHASE 3: End of Turn - Handle passives, duration countdown, and turn switching
@@ -77,6 +91,48 @@ const handleEndOfTurn = (battleState: any): void => {
   } else if (battleState.turn === 'ai') {
     battleState.turn = 'player';
   }
+};
+
+// Helper function to execute healing abilities using database healing_power field
+const executeHealingAbility = async (battleState: any, ability: any, attacker: UserMonster | Monster, target: UserMonster | Monster): Promise<DamageResult> => {
+  // Apply MP cost to attacker
+  const mpCost = ability.mp_cost || 0;
+  if ('battleMp' in attacker) {
+    attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
+  } else {
+    attacker.mp = (attacker.mp || 0) - mpCost;
+  }
+
+  // Calculate healing amount from database healing_power field
+  const healingAmount = ability.healing_power || 0;
+  
+  // Get target's current and max HP
+  const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
+  const maxHp = target.maxHp || 0;
+  
+  // Apply healing, ensuring it doesn't exceed maxHp
+  const newHp = Math.min(maxHp, currentHp + healingAmount);
+  const actualHealing = newHp - currentHp;
+  
+  if ('battleHp' in target) {
+    target.battleHp = newHp;
+  } else {
+    target.hp = newHp;
+  }
+
+  // Add healing message to battle log
+  const attackerName = attacker.monster?.name || attacker.name;
+  const targetName = target.monster?.name || target.name;
+  const abilityName = ability.name || 'healing ability';
+  
+  battleState.battleLog.push(`${attackerName}'s ${abilityName} heals ${targetName} for ${actualHealing} HP.`);
+
+  // Return a DamageResult structure (with healing as negative damage for consistency)
+  return {
+    damage: -actualHealing, // Negative to indicate healing
+    isCritical: false,
+    affinityMultiplier: 1.0
+  };
 };
 
 // Helper function to execute ability (extracted from existing applyDamage logic)
