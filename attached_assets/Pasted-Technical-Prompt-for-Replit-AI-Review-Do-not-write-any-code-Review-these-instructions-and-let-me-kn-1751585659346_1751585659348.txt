@@ -1,0 +1,46 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: When starting a new battle, a damaged monster's current HP is incorrectly reset to its maximum HP.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Fix the data corruption bug in the createBattleSession function to ensure monsters start a new battle with their correct, persisted current HP.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the createBattleSession function.
+
+The loop that initializes battleHp and battleMaxHp is flawed.
+
+You must rewrite the entire initialization loop for the playerTeamCopy to be more explicit and robust. The corrected logic should be:
+
+TypeScript
+
+for (const monster of playerTeamCopy) {
+  monster.battleHp = monster.hp;
+  monster.battleMaxHp = monster.maxHp;
+  monster.battleMp = monster.mp;
+  monster.battleMaxMp = monster.maxMp;
+}
+This ensures that the battle-specific stats (battleHp, battleMaxHp, etc.) are explicitly set from the monster's correct, persisted stats (hp, maxHp) that are passed from the client.
+
+4. Architecture Compliance Check:
+
+Does this change ensure that the initial battle state is created using the authentic, correct data for each monster?
+
+Does this fix the data corruption bug where a monster's current HP was being incorrectly reset?
