@@ -635,6 +635,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Eliminated client-server health display inconsistency for AI opponents
   - Client now displays 100% server-authoritative battle health for all monsters (player and opponent)
   - Completed final data synchronization between server calculations and client display
+- July 3, 2025: START_OF_TURN Passive Abilities Implementation (Task 22)
+  - Implemented comprehensive START_OF_TURN passive ability logic in handleStartOfTurn function
+  - Added database-driven passive ability processing using activation_trigger, activation_scope, and ability_type
+  - Supports all activation scopes: ACTIVE, BENCH, SELF, and ALL_ALLIES with proper targeting logic
+  - Implemented chance-based activation using status_effect_chance field from database
+  - Added healing passive effects with PERCENT_MAX_HP and FLAT value types support
+  - Enhanced battle log with descriptive START_OF_TURN passive activation messages
+  - Completed 3-phase turn lifecycle: Start-of-Turn → Action Phase → End-of-Turn
+  - All logic remains server-authoritative with zero client involvement in passive mechanics
 
 ## User Preferences
 

@@ -48,8 +48,68 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
   // TODO: Apply damage-over-time effects (BURNED, POISONED, etc.)
   // This will be implemented when status effects system is added
   
-  // TODO: Trigger "start of turn" passive abilities
-  // This will be implemented when passive abilities system is added
+  // Trigger "start of turn" passive abilities for all monsters on the current team
+  const allTeamMonsters = currentTeam;
+  
+  for (const monster of allTeamMonsters) {
+    const monsterId = monster.monsterId || monster.id;
+    const monsterAbilities = battleState.abilities_map[monsterId] || [];
+    
+    for (const ability of monsterAbilities) {
+      // Check if this is a START_OF_TURN passive ability
+      if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'START_OF_TURN') {
+        const isActiveMonster = monster === activeMonster;
+        const isOnBench = monster !== activeMonster;
+        
+        // Check if activation scope matches monster's current status
+        const scopeMatches = 
+          (ability.activation_scope === 'ACTIVE' && isActiveMonster) ||
+          (ability.activation_scope === 'BENCH' && isOnBench) ||
+          (ability.activation_scope === 'SELF' && isActiveMonster) ||
+          (ability.activation_scope === 'ALL_ALLIES');
+        
+        if (scopeMatches) {
+          // Check for chance-based activation
+          const activationChance = ability.status_effect_chance || 100;
+          const roll = Math.random() * 100;
+          
+          if (roll < activationChance) {
+            // Handle healing passive effects
+            if (ability.status_effect_applies === 'HEALING') {
+              let target = monster; // Default to self
+              
+              // Determine target based on activation scope
+              if (ability.activation_scope === 'BENCH' && isOnBench) {
+                target = activeMonster; // Bench passives heal active monster
+              }
+              
+              const healingValue = ability.status_effect_value || 0;
+              const maxHp = target.battleMaxHp || target.maxHp || 1;
+              let actualHealing = 0;
+              
+              if (ability.status_effect_value_type === 'PERCENT_MAX_HP') {
+                actualHealing = Math.floor(maxHp * (healingValue / 100));
+              } else {
+                actualHealing = healingValue; // FLAT healing
+              }
+              
+              // Apply healing
+              const currentHp = target.battleHp || target.hp || 0;
+              const newHp = Math.min(maxHp, currentHp + actualHealing);
+              const finalHealing = newHp - currentHp;
+              
+              target.battleHp = newHp;
+              
+              // Add to battle log
+              const monsterName = monster.monster?.name || monster.name;
+              const targetName = target.monster?.name || target.name;
+              battleState.battleLog.push(`${monsterName}'s ${ability.name} activates at the start of turn, healing ${targetName} for ${finalHealing} HP.`);
+            }
+          }
+        }
+      }
+    }
+  }
   
   battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`);
   
