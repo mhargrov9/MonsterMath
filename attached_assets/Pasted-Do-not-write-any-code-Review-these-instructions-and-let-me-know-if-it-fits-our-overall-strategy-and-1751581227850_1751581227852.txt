@@ -1,0 +1,51 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Passives with an activation_scope of 'ACTIVE' (like "Volcanic Heart") do not trigger because the logic to handle them is missing.
+
+Problem 2: The system lacks a clear activation_scope for passives that should work from both the bench and the active slot.
+
+Goal: Update End-of-Turn Passive Logic
+Our goal is to refactor the handleEndOfTurn function in server/battleEngine.ts to correctly handle all required activation scopes. This will fix the "Volcanic Heart" bug and simultaneously implement the logic for our new 'ANY_POSITION' scope, making the passive system fully functional and compliant with our design.
+
+File Modifications
+1. server/battleEngine.ts
+Action: Locate the handleEndOfTurn function. You will make two distinct modifications within this function.
+
+Modification #1: Fix the Scope Matching Logic
+
+Find the if/else if block that sets the scopeMatches boolean variable.
+
+Update this block to correctly handle all five positional scopes ('ACTIVE', 'SELF', 'BENCH', 'ANY_POSITION', 'ALL_ALLIES'). To improve maintainability, you can combine conditions with identical outcomes. The final logic should be equivalent to this:
+
+TypeScript
+
+let scopeMatches = false;
+if ((ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') && isActive) {
+  scopeMatches = true;
+} else if (ability.activation_scope === 'BENCH' && !isActive) {
+  scopeMatches = true;
+} else if (ability.activation_scope === 'ANY_POSITION' || ability.activation_scope === 'ALL_ALLIES') {
+  scopeMatches = true;
+}
+Modification #2: Fix the Healing Target Logic
+
+Further down in the function, inside the if (activates) block, find the logic that determines the target for healing passives.
+
+Update this block to ensure abilities with our new 'ANY_POSITION' scope correctly target the active monster. The final logic should be equivalent to this:
+
+TypeScript
+
+let target;
+let targetName;
+
+// Scopes that should heal the active monster
+if (ability.activation_scope === 'BENCH' || ability.activation_scope === 'ANY_POSITION' || ability.activation_scope === 'ALL_ALLIES') {
+  const activeIndex = isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex;
+  target = currentTeam[activeIndex];
+  targetName = target.monster?.name || target.name;
+} 
+// Scopes that should heal the ability's owner
+else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
+  target = monster;
+  targetName = monsterName;
+}
