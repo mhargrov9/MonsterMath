@@ -589,8 +589,8 @@ export class DatabaseStorage implements IStorage {
         playerTeam.map(monster =>
           tx.update(userMonsters)
             .set({ 
-              hp: monster.hp || 0, 
-              mp: monster.mp || 0 
+              hp: monster.battleHp ?? monster.hp ?? 0, 
+              mp: monster.battleMp ?? monster.mp ?? 0 
             })
             .where(eq(userMonsters.id, monster.id))
         )

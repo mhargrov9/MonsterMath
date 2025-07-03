@@ -1,0 +1,44 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The final health of the player's monsters is not being saved to the database at the end of a battle, causing their HP to incorrectly revert.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Fix the saveFinalBattleState function in storage.ts to correctly persist the final battleHp and battleMp of the player's monsters to the database at the conclusion of a battle.
+
+2. File Modifications:
+
+storage.ts
+
+3. Implementation Details:
+
+Navigate to the saveFinalBattleState function.
+
+The .set() call inside this function is currently saving the wrong properties.
+
+Modify it to take the final health and mana from the battle-specific properties and save them to the database's hp and mp columns. The updated .set() should look like this:
+
+JavaScript
+
+.set({ 
+  hp: monster.battleHp ?? monster.hp ?? 0, 
+  mp: monster.battleMp ?? monster.mp ?? 0 
+})
+(Note: We use ?? as a fallback to ensure stability, but the battleHp property should always be present at this stage).
+
+4. Architecture Compliance Check:
+
+Does this change ensure the authoritative battle state (battleHp) is correctly persisted to the database?
+
+Does this fix the data integrity issue where player progress is lost?

@@ -620,6 +620,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Resolved Soothing Aura intermittent behavior by ensuring reliable maxHp lookup from battleMaxHp
   - Eliminated data inconsistency between server battle state and client display properties
   - Client now renders authoritative health state provided by server with proper fallback chain
+- July 3, 2025: Battle State Persistence Fix (Task 20)
+  - Fixed saveFinalBattleState function in storage.ts to save authoritative battle health to database
+  - Changed .set() call to use battleHp and battleMp instead of outdated hp/mp properties
+  - Monster damage from battles now persists correctly instead of reverting to pre-battle values
+  - Resolved data integrity issue where player progress was lost after battle completion
+  - Server's authoritative battle state (battleHp/battleMp) now correctly saved to database hp/mp columns
+  - Eliminates frustrating bug where monsters appeared to heal automatically after battles
+  - Maintains proper persistent resource management for strategic gameplay experience
 
 ## User Preferences
 
