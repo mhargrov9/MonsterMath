@@ -1,0 +1,48 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Passive abilities that should activate 'ON_BATTLE_START' (like Tailwind) do not function.
+
+Problem 2: The battle engine has no logic to handle abilities that apply permanent stat_modifiers at the start of a battle.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Implement the logic for 'ON_BATTLE_START' passive abilities and the application of their stat_modifiers.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the startBattle function.
+
+After the teams are copied and initialized, but before the final battleState object is returned, you must insert new logic.
+
+This logic must iterate through all monsters on both the playerTeam and aiTeam.
+
+For each monster, check its abilities for any passive where activation_trigger === 'ON_BATTLE_START'.
+
+If a matching ability is found:
+
+Read its stat_modifiers JSONB array from the database.
+
+For each modifier in the array (e.g., {"stat": "speed", "type": "PERCENTAGE", "value": 5}), apply that stat change to every monster on the appropriate team. For Tailwind, this means increasing the speed stat of all allied monsters.
+
+Push a descriptive message to the battleState.battleLog confirming the passive's activation (e.g., "Your Gale-Feather Griffin's Tailwind boosts your team's Speed!").
+
+4. Architecture Compliance Check:
+
+Does this implementation use database properties (activation_trigger, stat_modifiers) to drive its logic?
+
+Does this change correctly place the one-time, battle-start logic in the startBattle function?

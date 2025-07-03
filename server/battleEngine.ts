@@ -544,6 +544,54 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
     battleLog: [] as string[],
     abilities_map: abilitiesMap // Store abilities for entire battle duration
   };
+
+  // Process ON_BATTLE_START passive abilities for both teams
+  const allTeams = [
+    { monsters: playerTeamCopy, teamName: 'Your' },
+    { monsters: aiTeamCopy, teamName: 'Opponent\'s' }
+  ];
+
+  for (const team of allTeams) {
+    for (const monster of team.monsters) {
+      const monsterId = monster.monsterId || monster.id;
+      const monsterAbilities = abilitiesMap[monsterId] || [];
+      
+      for (const ability of monsterAbilities) {
+        // Check if this is an ON_BATTLE_START passive ability
+        if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'ON_BATTLE_START') {
+          // Check for chance-based activation
+          const activationChance = ability.status_effect_chance || 100;
+          const roll = Math.random() * 100;
+          
+          if (roll < activationChance) {
+            // Apply stat_modifiers to appropriate team
+            const statModifiers = ability.stat_modifiers || [];
+            
+            for (const modifier of statModifiers) {
+              const { stat, type, value } = modifier;
+              
+              // Apply stat changes to all monsters on the same team
+              for (const teamMate of team.monsters) {
+                if (stat && type && value !== undefined) {
+                  const currentValue = teamMate[stat] || 0;
+                  
+                  if (type === 'PERCENTAGE') {
+                    teamMate[stat] = Math.floor(currentValue * (1 + value / 100));
+                  } else if (type === 'FLAT') {
+                    teamMate[stat] = currentValue + value;
+                  }
+                }
+              }
+            }
+            
+            // Add activation message to battle log
+            const monsterName = monster.monster?.name || monster.name;
+            battleState.battleLog.push(`${team.teamName} ${monsterName}'s ${ability.name} activates, boosting team stats!`);
+          }
+        }
+      }
+    }
+  }
   
   // Store battle session
   battleSessions.set(battleId, battleState);

@@ -644,6 +644,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Enhanced battle log with descriptive START_OF_TURN passive activation messages
   - Completed 3-phase turn lifecycle: Start-of-Turn → Action Phase → End-of-Turn
   - All logic remains server-authoritative with zero client involvement in passive mechanics
+- July 3, 2025: ON_BATTLE_START Passive Abilities and Stat Modifiers Implementation (Task 23)
+  - Implemented ON_BATTLE_START passive ability processing in startBattle function
+  - Added stat_modifiers JSONB array processing for permanent team-wide stat bonuses
+  - Supports PERCENTAGE and FLAT stat modification types from database
+  - Processes abilities for both player and AI teams during battle initialization
+  - Implemented chance-based activation using status_effect_chance field
+  - Added descriptive battle log messages for stat boost activations
+  - Enables abilities like Tailwind to boost team speed at battle start
+  - All stat modifications applied before battle begins using authentic database values
+  - Maintains complete server-authoritative architecture with zero client logic
 
 ## User Preferences
 
