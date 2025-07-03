@@ -562,6 +562,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Restoring Geyser and other healing abilities now function using authentic database values
   - Added proper MP cost deduction and battle log messages for healing abilities
   - Separated healing logic from damage logic for improved maintainability and accuracy
+- July 2, 2025: Dynamic Targeting System Implementation (Task 13)
+  - Updated /api/battle/perform-action endpoint to accept optional targetId parameter from client
+  - Modified applyDamage function signature to accept targetId for server-side target resolution
+  - Enhanced handleActionPhase with dynamic target finding logic using monster IDs
+  - Removed hardcoded "const target = attacker" targeting limitation
+  - Server now searches battleState.playerTeam and battleState.aiTeam arrays for specified targets
+  - Established foundation for database-driven target_scope validation in future implementations
+  - Maintains server authority over all targeting decisions while accepting client suggestions
 
 ## User Preferences
 

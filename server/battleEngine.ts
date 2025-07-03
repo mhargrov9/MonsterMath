@@ -57,7 +57,7 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
 };
 
 // PHASE 2: Action Phase - Handle the chosen action (ability or swap)
-const handleActionPhase = async (battleState: any, ability: any): Promise<DamageResult> => {
+const handleActionPhase = async (battleState: any, ability: any, targetId?: number): Promise<DamageResult> => {
   // Route abilities based on their healing_power database field
   if (ability.healing_power && ability.healing_power > 0) {
     // This is a healing ability - use healing logic
@@ -66,9 +66,22 @@ const handleActionPhase = async (battleState: any, ability: any): Promise<Damage
     const attackerIndex = isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex;
     const attacker = attackingTeam[attackerIndex];
     
-    // For now, healing abilities target the attacker (self-heal)
-    // TODO: Use target_scope field for more sophisticated targeting
-    const target = attacker;
+    // Find target using provided targetId or default to attacker (self-heal)
+    let target = attacker; // Default fallback
+    
+    if (targetId !== undefined) {
+      // Search for target in player team first
+      const playerTarget = battleState.playerTeam.find((monster: any) => monster.id === targetId);
+      if (playerTarget) {
+        target = playerTarget;
+      } else {
+        // Search in AI team if not found in player team
+        const aiTarget = battleState.aiTeam.find((monster: any) => monster.id === targetId);
+        if (aiTarget) {
+          target = aiTarget;
+        }
+      }
+    }
     
     return await executeHealingAbility(battleState, ability, attacker, target);
   } else {
@@ -283,7 +296,7 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
 };
 
 // Server-authoritative damage application function with 3-phase turn lifecycle
-export const applyDamage = async (battleId: string, ability: Ability) => {
+export const applyDamage = async (battleId: string, ability: Ability, targetId?: number) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
   if (!battleState) {
@@ -321,7 +334,7 @@ export const applyDamage = async (battleId: string, ability: Ability) => {
   }
 
   // PHASE 2: ACTION PHASE - Execute the chosen ability
-  const damageResult = await handleActionPhase(battleState, ability);
+  const damageResult = await handleActionPhase(battleState, ability, targetId);
 
   // Check for monster defeat and handle forced swaps/battle end conditions
   await handleMonsterDefeatLogic(battleState);
@@ -482,7 +495,7 @@ export const processAiTurn = async (battleId: string) => {
     chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
   }
 
-  // PHASE 2: ACTION PHASE - Execute the chosen ability
+  // PHASE 2: ACTION PHASE - Execute the chosen ability (AI turn doesn't use targetId)
   const damageResult = await handleActionPhase(battleState, chosenAbility);
 
   // Check for monster defeat and handle forced swaps/battle end conditions
