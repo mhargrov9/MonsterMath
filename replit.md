@@ -661,6 +661,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Client now displays all server battle messages including ON_BATTLE_START passive ability activations
   - Maintains "dumb client" principle by using server's complete battle log as foundation
   - Ensures players see all passive ability activation messages from battle initialization
+- July 3, 2025: Fixed END_OF_TURN Passive Ability Scopes (Task 25)
+  - Fixed missing 'ACTIVE' scope handling in handleEndOfTurn function that prevented abilities like "Volcanic Heart" from triggering
+  - Added 'ANY_POSITION' scope support for passives that work from both active and bench positions
+  - Updated scope matching logic to properly handle all five positional scopes: ACTIVE, SELF, BENCH, ANY_POSITION, ALL_ALLIES
+  - Fixed healing target logic to ensure ANY_POSITION scope passives correctly target the active monster
+  - Combined similar scope conditions for improved maintainability and code clarity
+  - All changes maintain server-authoritative architecture with zero client-side modifications
+  - Enables complete passive ability system functionality with database-driven scope validation
 
 ## User Preferences
 

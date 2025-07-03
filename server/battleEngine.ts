@@ -174,11 +174,11 @@ const handleEndOfTurn = (battleState: any): void => {
         
         // Check if activation scope matches monster's current status
         let scopeMatches = false;
-        if (ability.activation_scope === 'SELF' && isActive) {
+        if ((ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') && isActive) {
           scopeMatches = true;
         } else if (ability.activation_scope === 'BENCH' && !isActive) {
           scopeMatches = true;
-        } else if (ability.activation_scope === 'ALL_ALLIES') {
+        } else if (ability.activation_scope === 'ANY_POSITION' || ability.activation_scope === 'ALL_ALLIES') {
           scopeMatches = true;
         }
         
@@ -196,13 +196,14 @@ const handleEndOfTurn = (battleState: any): void => {
               let target;
               let targetName;
               
-              if (ability.activation_scope === 'BENCH') {
-                // For bench passives like Soothing Aura, target the active monster
+              // Scopes that should heal the active monster
+              if (ability.activation_scope === 'BENCH' || ability.activation_scope === 'ANY_POSITION' || ability.activation_scope === 'ALL_ALLIES') {
                 const activeIndex = isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex;
                 target = currentTeam[activeIndex];
                 targetName = target.monster?.name || target.name;
-              } else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
-                // For active/self passives like Volcanic Heart, target the monster with the ability
+              } 
+              // Scopes that should heal the ability's owner
+              else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
                 target = monster;
                 targetName = monsterName;
               }
