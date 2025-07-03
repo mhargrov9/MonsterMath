@@ -313,10 +313,11 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   const newHp = Math.max(0, currentHp - damageResult.damage);
   defender.battleHp = newHp;
   
-  // Add action to battle log
+  // Add action to battle log with detailed damage information
   const attackerName = attacker.monster?.name || attacker.name;
+  const defenderName = defender.monster?.name || defender.name;
   const abilityName = ability.name || 'an ability';
-  battleState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attackerName} used ${abilityName}!`);
+  battleState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attackerName} used ${abilityName} on ${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName}, dealing ${damageResult.damage} damage!`);
   
   // Add detailed combat result messages based on damageResult
   if (damageResult.affinityMultiplier > 1.0) {

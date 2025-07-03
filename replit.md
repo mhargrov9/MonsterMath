@@ -677,6 +677,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Ensures battles start with correct current HP/MP from persistent storage
   - Maintains server-authoritative architecture with authentic data-only approach
   - Preserves strategic resource management between battles without HP corruption
+- July 3, 2025: Enhanced Battle Log with Damage Details (Task 27)
+  - Enhanced executeAbility function to include specific damage amounts in battle log messages
+  - Updated battle log format from generic "[Attacker] used [Ability]!" to detailed "[Attacker] used [Ability] on [Defender], dealing [X] damage!"
+  - Uses authentic damage values from server-side damageResult calculations
+  - Uses authentic monster names from database-driven battle state
+  - Improves player understanding of combat outcomes with precise damage information
+  - Maintains complete server-authoritative logging with zero client-side message generation
+  - Enhances strategic gameplay by providing clear action feedback
 
 ## User Preferences
 
