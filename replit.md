@@ -669,6 +669,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Combined similar scope conditions for improved maintainability and code clarity
   - All changes maintain server-authoritative architecture with zero client-side modifications
   - Enables complete passive ability system functionality with database-driven scope validation
+- July 3, 2025: Fixed Battle HP Reset Bug (Task 26)
+  - Fixed data corruption bug in createBattleSession function that was resetting monster HP to maximum values
+  - Replaced flawed initialization logic that fell back to template HP data (monster.monster?.hp)
+  - Updated monster initialization loop to explicitly use authentic persisted values: hp, maxHp, mp, maxMp
+  - Eliminated synthetic fallback data in favor of database-driven monster stats
+  - Ensures battles start with correct current HP/MP from persistent storage
+  - Maintains server-authoritative architecture with authentic data-only approach
+  - Preserves strategic resource management between battles without HP corruption
 
 ## User Preferences
 

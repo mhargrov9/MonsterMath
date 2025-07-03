@@ -524,8 +524,10 @@ export const createBattleSession = async (playerTeam: UserMonster[], opponentTea
   
   // Add battleHp and battleMaxHp to every monster in playerTeam
   for (const monster of playerTeamCopy) {
-    monster.battleHp = monster.hp || 0;
-    monster.battleMaxHp = monster.maxHp || monster.monster?.hp || 0;
+    monster.battleHp = monster.hp;
+    monster.battleMaxHp = monster.maxHp;
+    monster.battleMp = monster.mp;
+    monster.battleMaxMp = monster.maxMp;
   }
   
   // Add battleHp and battleMaxHp to every monster in aiTeam
