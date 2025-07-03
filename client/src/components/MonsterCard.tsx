@@ -63,6 +63,9 @@ interface MonsterCardProps {
   startExpanded?: boolean;
   isToggleable?: boolean;
   onCardClick?: () => void; // <-- ADDED: A dedicated prop for parent-controlled clicks
+  isTargeting?: boolean;
+  isValidTarget?: boolean;
+  onTargetClick?: (targetId: number) => void;
 }
 
 // --- HELPER FUNCTION ---
@@ -89,6 +92,9 @@ export default function MonsterCard({
   startExpanded = false,
   isToggleable = true,
   onCardClick, // <-- ADDED
+  isTargeting = false,
+  isValidTarget = false,
+  onTargetClick,
 }: MonsterCardProps) {
 
   const [isExpanded, setIsExpanded] = useState(startExpanded);
@@ -112,21 +118,35 @@ export default function MonsterCard({
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // UPDATED LOGIC: Prioritize the onCardClick from the parent if it exists.
+    // Priority 1: Handle targeting if we're in targeting mode and this is a valid target
+    if (isTargeting && isValidTarget && onTargetClick && userMonster) {
+        e.stopPropagation();
+        onTargetClick(userMonster.id);
+        return;
+    }
+    
+    // Priority 2: Use parent-provided onCardClick if it exists
     if (onCardClick) {
         e.stopPropagation();
         onCardClick();
         return;
     }
-    // Fallback to internal toggle logic if no parent handler is provided.
+    
+    // Priority 3: Fallback to internal toggle logic if no parent handler is provided
     if (isToggleable) { 
         e.stopPropagation();
         setIsExpanded(!isExpanded); 
     }
   };
 
-  const borderColorClass = onCardClick ? 'hover:border-green-500' : isToggleable ? 'hover:border-yellow-400' : 'border-cyan-500';
-  const cursorClass = onCardClick || isToggleable ? 'cursor-pointer' : '';
+  const borderColorClass = isTargeting && isValidTarget 
+    ? 'border-green-400 hover:border-green-300 ring-2 ring-green-400/50' 
+    : onCardClick 
+      ? 'hover:border-green-500' 
+      : isToggleable 
+        ? 'hover:border-yellow-400' 
+        : 'border-cyan-500';
+  const cursorClass = (onCardClick || isToggleable || (isTargeting && isValidTarget)) ? 'cursor-pointer' : '';
 
   return (
     <Card
@@ -136,7 +156,12 @@ export default function MonsterCard({
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
           <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
-          <Badge variant="secondary">LV. {level}</Badge>
+          <div className="flex gap-1">
+            {isTargeting && isValidTarget && (
+              <Badge variant="default" className="bg-green-600 text-white text-xs">TARGET</Badge>
+            )}
+            <Badge variant="secondary">LV. {level}</Badge>
+          </div>
         </div>
         <div className="bg-gray-900/50 rounded h-32 flex items-center justify-center overflow-hidden">
             <VeoMonster monsterId={baseMonster.id} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />

@@ -20,6 +20,8 @@ interface CombatViewProps {
   onRetreat: () => void;
   onPlayAgain: () => void;
   floatingTexts: FloatingText[];
+  isTargeting: boolean;
+  onTargetSelected: (targetId: number) => void;
 }
 
 const FloatingTextComponent: React.FC<{ text: FloatingText }> = ({ text }) => {
@@ -37,10 +39,18 @@ const FloatingTextComponent: React.FC<{ text: FloatingText }> = ({ text }) => {
     );
 };
 
-const BenchCard: React.FC<{ monster: UserMonster | Monster, isPlayer: boolean, onSwap?: (id: number) => void, disabled: boolean }> = ({ monster, isPlayer, onSwap, disabled }) => {
+const BenchCard: React.FC<{ 
+    monster: UserMonster | Monster, 
+    isPlayer: boolean, 
+    onSwap?: (id: number) => void, 
+    disabled: boolean,
+    isTargeting?: boolean,
+    onTargetSelected?: (id: number) => void
+}> = ({ monster, isPlayer, onSwap, disabled, isTargeting = false, onTargetSelected }) => {
     const userMonster = isPlayer ? (monster as UserMonster) : undefined;
     const baseMonster = isPlayer ? (monster as UserMonster).monster : (monster as Monster);
     const isFainted = ('hp' in monster && monster.hp <= 0);
+    const canBeTargeted = isTargeting && isPlayer && !isFainted;
 
     return (
         <div className="flex flex-col items-center gap-1">
@@ -48,10 +58,13 @@ const BenchCard: React.FC<{ monster: UserMonster | Monster, isPlayer: boolean, o
                 monster={baseMonster} 
                 userMonster={userMonster} 
                 size="tiny" 
-                isToggleable={true} 
+                isToggleable={true}
+                isTargeting={isTargeting}
+                isValidTarget={canBeTargeted}
+                onTargetClick={canBeTargeted && onTargetSelected ? onTargetSelected : undefined}
             />
-            {isPlayer && onSwap && (
-                <Button onClick={() => onSwap(userMonster!.id)} disabled={disabled || isFainted} size="xs" className="w-full text-xs h-6">
+            {isPlayer && onSwap && !isTargeting && (
+                <Button onClick={() => onSwap(userMonster!.id)} disabled={disabled || isFainted} size="sm" className="w-full text-xs h-6">
                     {isFainted ? 'Fainted' : 'Swap'}
                 </Button>
             )}
@@ -75,6 +88,8 @@ export const CombatView: React.FC<CombatViewProps> = ({
   onRetreat,
   onPlayAgain,
   floatingTexts,
+  isTargeting,
+  onTargetSelected,
 }) => {
   return (
     <>
@@ -113,7 +128,10 @@ export const CombatView: React.FC<CombatViewProps> = ({
                       isPlayerTurn={isPlayerTurn} 
                       size="large" 
                       startExpanded={true} 
-                      isToggleable={false} 
+                      isToggleable={false}
+                      isTargeting={isTargeting}
+                      isValidTarget={isTargeting}
+                      onTargetClick={onTargetSelected}
                   />
                   {floatingTexts.filter(ft => ft.isPlayerTarget && ft.targetId === playerMonster.id).map(ft => (
                       <FloatingTextComponent key={ft.id} text={ft} />
@@ -159,7 +177,15 @@ export const CombatView: React.FC<CombatViewProps> = ({
                   <h3 className="text-xl font-semibold text-cyan-400 text-center">Your Bench</h3>
                   <div className="flex gap-2 items-end justify-center h-full">
                       {playerBench.map(monster => (
-                          <BenchCard key={monster.id} monster={monster} isPlayer={true} onSwap={onSwapMonster} disabled={!canSwap || battleEnded} />
+                          <BenchCard 
+                              key={monster.id} 
+                              monster={monster} 
+                              isPlayer={true} 
+                              onSwap={onSwapMonster} 
+                              disabled={!canSwap || battleEnded}
+                              isTargeting={isTargeting}
+                              onTargetSelected={onTargetSelected}
+                          />
                       ))}
                   </div>
                </div>

@@ -58,6 +58,8 @@ export interface Ability {
   affinity?: string | null;
   power_multiplier?: string;
   scaling_stat?: string;
+  target_scope?: string;
+  healing_power?: number;
 }
 
 export interface GameUser {

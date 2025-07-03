@@ -32,6 +32,10 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   const [activeEffects, setActiveEffects] = useState<ActiveEffect[]>([]);
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
   const [battleId, setBattleId] = useState<string | null>(null);
+  const [targetingState, setTargetingState] = useState<{ isTargeting: boolean; ability: Ability | null }>({ 
+    isTargeting: false, 
+    ability: null 
+  });
 
   const addFloatingText = (text: string, type: 'damage' | 'heal' | 'crit', targetId: number, isPlayerTarget: boolean) => {
     const newText: FloatingText = {
@@ -76,6 +80,14 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     if (attacker.mp < (ability.mp_cost || 0)) {
         setBattleLog(prev => [...prev, "Not enough MP!"]);
         return;
+    }
+    
+    // Check if this ability requires target selection
+    if (ability.target_scope === 'ANY_ALLY') {
+      // Enter targeting mode instead of making API call
+      setTargetingState({ isTargeting: true, ability: ability });
+      setBattleLog(prev => [...prev, `Select a target for ${ability.name}...`]);
+      return;
     }
     
     try {
@@ -127,6 +139,66 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     } catch (error) {
       console.error('Error performing battle action:', error);
       setBattleLog(prev => [...prev, "Error performing action! Please try again."]);
+    }
+  };
+
+  const handleTargetSelected = async (targetId: number) => {
+    if (!targetingState.isTargeting || !targetingState.ability || !battleId) return;
+    
+    try {
+      const response = await fetch('/api/battle/perform-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          battleId,
+          ability: targetingState.ability,
+          targetId
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to perform battle action');
+      }
+      
+      const { damageResult, battleState } = await response.json();
+      
+      // Update battle state from server
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setActivePlayerIndex(battleState.activePlayerIndex);
+      setActiveAiIndex(battleState.activeAiIndex);
+      setTurn(battleState.turn);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      
+      // Add visual feedback (healing shows as negative damage)
+      const isHealing = damageResult.damage < 0;
+      const targetMonster = playerTeam.find(m => m.id === targetId) || aiTeam.find(m => m.id === targetId);
+      if (targetMonster) {
+        addFloatingText(
+          isHealing ? `+${Math.abs(damageResult.damage)}` : `-${damageResult.damage}`, 
+          isHealing ? 'heal' : 'damage', 
+          targetId, 
+          playerTeam.some(m => m.id === targetId)
+        );
+      }
+      
+      // Update battle log with server's authoritative log
+      setBattleLog(battleState.battleLog);
+
+      if (battleState.battleEnded) {
+        queryClient.invalidateQueries({ queryKey: ['/api/user/monsters'] });
+      }
+      
+    } catch (error) {
+      console.error('Error performing targeted action:', error);
+      setBattleLog(prev => [...prev, "Error performing targeted action! Please try again."]);
+    } finally {
+      // Reset targeting state
+      setTargetingState({ isTargeting: false, ability: null });
     }
   };
 
@@ -381,6 +453,8 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         onRetreat={onRetreat}
         onPlayAgain={() => setBattleMode('team-select')}
         floatingTexts={floatingTexts}
+        isTargeting={targetingState.isTargeting}
+        onTargetSelected={handleTargetSelected}
     />
       </>
     );
