@@ -628,6 +628,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Server's authoritative battle state (battleHp/battleMp) now correctly saved to database hp/mp columns
   - Eliminates frustrating bug where monsters appeared to heal automatically after battles
   - Maintains proper persistent resource management for strategic gameplay experience
+- July 3, 2025: Opponent Health Display Fix (Task 21)
+  - Fixed MonsterCard component to display opponent's authoritative battle health from server
+  - Added monsterProp.battleHp and monsterProp.battleMaxHp to health display fallback chain
+  - Opponent HP bars now update correctly when taking damage during battles
+  - Eliminated client-server health display inconsistency for AI opponents
+  - Client now displays 100% server-authoritative battle health for all monsters (player and opponent)
+  - Completed final data synchronization between server calculations and client display
 
 ## User Preferences
 

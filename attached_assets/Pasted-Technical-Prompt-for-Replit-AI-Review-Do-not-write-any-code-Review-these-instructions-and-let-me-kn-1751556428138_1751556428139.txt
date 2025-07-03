@@ -1,0 +1,46 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The opponent's HP bar and numerical display do not update when they take damage.
+
+Problem 2: The client-side MonsterCard.tsx component does not correctly read the authoritative battleHp from an opponent monster object.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Fix the MonsterCard.tsx component to correctly display the opponent's health by reading the authoritative battleHp property sent by the server.
+
+2. File Modifications:
+
+client/src/components/MonsterCard.tsx
+
+3. Implementation Details:
+
+Navigate to the MonsterCard component.
+
+Locate where the currentHp and maxHp variables are defined.
+
+The current logic for currentHp only checks for battleHp on the userMonster object. You must update it to also check on the base monsterProp object.
+
+The new logic should be:
+
+JavaScript
+
+const currentHp = userMonster?.battleHp ?? monsterProp.battleHp ?? userMonster?.hp ?? baseMonster.hp ?? 0;
+const maxHp = userMonster?.battleMaxHp ?? monsterProp.battleMaxHp ?? userMonster?.maxHp ?? baseMonster.baseHp ?? 1;
+(Note: We are adding monsterProp.battleHp and monsterProp.battleMaxHp to the check. The variable baseMonster is derived from monsterProp later, so checking the prop directly is cleaner).
+
+4. Architecture Compliance Check:
+
+Does this change ensure the client's display is 100% driven by the authoritative state sent from the server, for all monsters?
+
+Does this fix the final data inconsistency bug between the server and client?
