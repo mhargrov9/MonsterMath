@@ -110,8 +110,8 @@ export default function MonsterCard({
   const power = userMonster?.power ?? baseMonster.power ?? baseMonster.basePower ?? 0;
   const defense = userMonster?.defense ?? baseMonster.defense ?? baseMonster.baseDefense ?? 0;
   const speed = userMonster?.speed ?? baseMonster.speed ?? baseMonster.baseSpeed ?? 0;
-  const currentHp = userMonster?.hp ?? baseMonster.hp ?? baseMonster.baseHp ?? 0;
-  const maxHp = userMonster?.maxHp ?? baseMonster.max_hp ?? baseMonster.baseHp ?? 1;
+  const currentHp = userMonster?.battleHp ?? userMonster?.hp ?? baseMonster.hp ?? baseMonster.baseHp ?? 0;
+  const maxHp = userMonster?.battleMaxHp ?? userMonster?.maxHp ?? baseMonster.max_hp ?? baseMonster.baseHp ?? 1;
   const displayMp = userMonster?.mp ?? baseMonster.mp ?? baseMonster.baseMp ?? 0;
   const maxMp = userMonster?.maxMp ?? baseMonster.max_mp ?? baseMonster.baseMp ?? 1;
 

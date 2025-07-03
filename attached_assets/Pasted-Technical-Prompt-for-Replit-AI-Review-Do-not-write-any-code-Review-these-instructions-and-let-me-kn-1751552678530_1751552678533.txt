@@ -1,0 +1,60 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Monster HP bars are not updating when they take damage.
+
+Problem 2: The Soothing Aura passive ability works intermittently or not at all.
+
+Problem 3: There is a data inconsistency between the health property the server calculates (battleHp) and the property the client displays (hp).
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Synchronize the server and client to use a consistent set of properties for tracking monster health during battles, fixing the HP bar and passive healing bugs.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+client/src/components/MonsterCard.tsx
+
+3. Implementation Details:
+
+Task A: Standardize Health Properties on Server (server/battleEngine.ts)
+
+Navigate to the startBattle function. When the battleState is first created, you must iterate through every monster on both the playerTeam and aiTeam.
+
+For each monster, explicitly add two new properties: battleHp and battleMaxHp. Initialize them with the values from the monster's base hp and maxHp.
+
+Audit the rest of the file (executeAbility, executeHealingAbility, handleEndOfTurn) and ensure all logic that reads or writes health values uses only the battleHp and battleMaxHp properties for consistency.
+
+Correct the maxHp lookup inside the handleEndOfTurn passive healing logic to use the reliable battleMaxHp.
+
+Task B: Update Client to Read Correct Properties (client/src/components/MonsterCard.tsx)
+
+Navigate to the MonsterCard component.
+
+Locate where the currentHp and maxHp variables are defined.
+
+Modify this logic to prioritize the battle-specific health properties. The new logic should be:
+
+const currentHp = userMonster?.battleHp ?? userMonster?.hp ?? 0;
+
+const maxHp = userMonster?.battleMaxHp ?? userMonster?.maxHp ?? 1;
+
+This change tells the card to display battleHp if it exists, otherwise fall back to the base hp. This makes the component correctly display the authoritative health from the server during a battle.
+
+4. Architecture Compliance Check:
+
+Does this plan ensure the client renders health based on the authoritative state sent by the server?
+
+Does this change enforce a consistent data model for battle state management on the server?

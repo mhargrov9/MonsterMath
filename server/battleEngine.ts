@@ -148,8 +148,8 @@ const handleEndOfTurn = (battleState: any): void => {
               }
               
               if (target) {
-                const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
-                const maxHp = target.monster?.hp || target.maxHp || 0;
+                const currentHp = target.battleHp || 0;
+                const maxHp = target.battleMaxHp || 0;
                 
                 if (currentHp < maxHp) {
                   // Calculate heal amount based on database status_effect_value and type
@@ -200,19 +200,15 @@ const executeHealingAbility = async (battleState: any, ability: any, attacker: U
   // Calculate healing amount from database healing_power field
   const healingAmount = ability.healing_power || 0;
   
-  // Get target's current and max HP
-  const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
-  const maxHp = target.maxHp || 0;
+  // Get target's current and max HP using standardized battle properties
+  const currentHp = target.battleHp || 0;
+  const maxHp = target.battleMaxHp || 0;
   
   // Apply healing, ensuring it doesn't exceed maxHp
   const newHp = Math.min(maxHp, currentHp + healingAmount);
   const actualHealing = newHp - currentHp;
   
-  if ('battleHp' in target) {
-    target.battleHp = newHp;
-  } else {
-    target.hp = newHp;
-  }
+  target.battleHp = newHp;
 
   // Add healing message to battle log
   const attackerName = attacker.monster?.name || attacker.name;
@@ -251,15 +247,10 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
   
-  // Apply damage to defender
-  const currentHp = defender.battleHp !== undefined ? defender.battleHp : (defender.hp || 0);
+  // Apply damage to defender using standardized battleHp property
+  const currentHp = defender.battleHp || 0;
   const newHp = Math.max(0, currentHp - damageResult.damage);
-  
-  if ('battleHp' in defender) {
-    defender.battleHp = newHp;
-  } else {
-    defender.hp = newHp;
-  }
+  defender.battleHp = newHp;
   
   // Add action to battle log
   const attackerName = attacker.monster?.name || attacker.name;
@@ -466,10 +457,25 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
   // Get abilities for all monsters in the battle
   const abilitiesMap = await storage.getAbilitiesForMonsters(allMonsterIds);
   
-  // Create initial battle state
+  // Create initial battle state with standardized health properties
+  const playerTeamCopy = JSON.parse(JSON.stringify(playerTeam)); // Deep copy to avoid mutations
+  const aiTeamCopy = JSON.parse(JSON.stringify(opponentTeam));   // Deep copy to avoid mutations
+  
+  // Add battleHp and battleMaxHp to every monster in playerTeam
+  for (const monster of playerTeamCopy) {
+    monster.battleHp = monster.hp || 0;
+    monster.battleMaxHp = monster.maxHp || monster.monster?.hp || 0;
+  }
+  
+  // Add battleHp and battleMaxHp to every monster in aiTeam
+  for (const monster of aiTeamCopy) {
+    monster.battleHp = monster.hp || 0;
+    monster.battleMaxHp = monster.hp || 0; // AI monsters use hp as max
+  }
+  
   const battleState = {
-    playerTeam: JSON.parse(JSON.stringify(playerTeam)), // Deep copy to avoid mutations
-    aiTeam: JSON.parse(JSON.stringify(opponentTeam)),   // Deep copy to avoid mutations
+    playerTeam: playerTeamCopy,
+    aiTeam: aiTeamCopy,
     activePlayerIndex: 0,
     activeAiIndex: 0,
     turn: 'pre-battle' as Turn,
