@@ -92,8 +92,64 @@ const handleActionPhase = async (battleState: any, ability: any, targetId?: numb
 
 // PHASE 3: End of Turn - Handle passives, duration countdown, and turn switching
 const handleEndOfTurn = (battleState: any): void => {
-  // TODO: Apply "end of turn" passive abilities including bench passives
-  // This will be implemented when passive abilities system is added
+  // Identify the team whose turn just ended
+  const isPlayerTurnEnding = battleState.turn === 'player';
+  const currentTeam = isPlayerTurnEnding ? battleState.playerTeam : battleState.aiTeam;
+  const currentTeamName = isPlayerTurnEnding ? 'Your' : 'Opponent\'s';
+  
+  // Iterate through every monster on the team (active and bench)
+  currentTeam.forEach((monster: any, index: number) => {
+    const monsterId = monster.monster?.id || monster.id;
+    const monsterName = monster.monster?.name || monster.name;
+    const isActive = index === (isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex);
+    
+    // Get abilities for this monster from the abilities map
+    const monsterAbilities = battleState.abilities_map[monsterId] || [];
+    
+    // Check each ability for END_OF_TURN passives
+    monsterAbilities.forEach((ability: any) => {
+      // Check if ability meets all criteria
+      if (ability.ability_type === 'PASSIVE' && 
+          ability.activation_trigger === 'END_OF_TURN') {
+        
+        // Check if activation scope matches monster's current status
+        let scopeMatches = false;
+        if (ability.activation_scope === 'SELF' && isActive) {
+          scopeMatches = true;
+        } else if (ability.activation_scope === 'BENCH' && !isActive) {
+          scopeMatches = true;
+        } else if (ability.activation_scope === 'ALL_ALLIES') {
+          scopeMatches = true;
+        }
+        
+        if (scopeMatches) {
+          // Chance validation
+          let activates = true;
+          if (ability.status_effect_chance !== null && ability.status_effect_chance !== undefined) {
+            activates = Math.random() < ability.status_effect_chance;
+          }
+          
+          if (activates) {
+            // Execute effect - for now, handle healing effects
+            if (ability.healing_power && ability.healing_power > 0) {
+              // Find target for healing (for now, assume self-healing)
+              const target = monster;
+              const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
+              const maxHp = target.monster?.hp || target.maxHp || 0;
+              
+              if (currentHp < maxHp) {
+                const healAmount = Math.min(ability.healing_power, maxHp - currentHp);
+                target.battleHp = currentHp + healAmount;
+                
+                // Log the passive activation
+                battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} heals ${monsterName} for ${healAmount} HP!`);
+              }
+            }
+          }
+        }
+      }
+    });
+  });
   
   // TODO: Decrement duration counters for status effects and remove expired effects
   // This will be implemented when status effects system is added

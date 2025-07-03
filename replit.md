@@ -587,6 +587,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Client now displays 100% server-controlled battle log without any local message generation
   - Fixed architectural violation where client was undermining server authority over combat messaging
   - Eliminated duplicate log message issue by making server the single source of truth for all battle events
+- July 3, 2025: END_OF_TURN Passive Abilities Implementation (Task 16)
+  - Implemented complete passive ability system in handleEndOfTurn function using database-driven logic
+  - Added support for activation_trigger, activation_scope, status_effect_chance validation from database
+  - Implemented chance-based passive activation using Math.random() against database status_effect_chance values
+  - Added healing passive effects using database healing_power field with proper HP restoration
+  - Supports SELF, BENCH, and ALL_ALLIES activation scopes for strategic passive targeting
+  - Server generates authentic battle log messages for passive ability activations
+  - All logic remains server-authoritative with zero client involvement in passive mechanics
+  - Foundation established for unlimited passive ability types through complete database-driven architecture
 
 ## User Preferences
 
