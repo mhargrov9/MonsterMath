@@ -1,0 +1,49 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Healing abilities, like Restoring Geyser, are incorrectly processed as damaging attacks and fail to function.
+
+Problem 2: The battle engine is not using the healing_power and target_scope fields now available from the database.
+
+1. Goal:
+Refactor the battle engine to correctly process healing abilities based on their database properties, separating them from the damage calculation pipeline.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Task A: Create executeHealingAbility function
+
+Inside server/battleEngine.ts, create a new function named executeHealingAbility(battleState, ability, attacker, target).
+
+This function must read the ability.healing_power value.
+
+It must apply that amount of healing to the target monster's HP, ensuring it does not exceed the monster's maxHp.
+
+It must deduct the ability.mp_cost from the attacker.
+
+It must push a confirmation message to the battleState.battleLog (e.g., "[Attacker Name]'s Restoring Geyser heals [Target Name] for X HP.").
+
+Task B: Refactor handleActionPhase to Route Abilities
+
+The handleActionPhase function must now act as a router.
+
+It should check if the passed ability has a healing_power property greater than 0.
+
+If healing_power > 0, it must call the new executeHealingAbility function.
+
+Otherwise, it will call the existing executeAbility function to handle it as a damaging attack.
+
+4. Architecture Compliance Check:
+
+Does this plan ensure the engine's logic is driven by the healing_power database field?
+
+Does this change correctly separate the logic for healing and damaging abilities, improving maintainability?
