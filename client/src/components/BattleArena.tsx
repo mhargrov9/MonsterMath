@@ -335,7 +335,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       setTurn(battleState.turn);
       setBattleEnded(battleState.battleEnded);
       setWinner(battleState.winner);
-      setBattleLog([`Battle is about to begin! Select your starting monster.`]);
+      setBattleLog(battleState.battleLog.concat('Battle is about to begin! Select your starting monster.'));
       setBattleMode('lead-select');
       setIsLoading(false);
 

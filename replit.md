@@ -654,6 +654,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Enables abilities like Tailwind to boost team speed at battle start
   - All stat modifications applied before battle begins using authentic database values
   - Maintains complete server-authoritative architecture with zero client logic
+- July 3, 2025: Client Battle Log Architectural Fix (Task 24)
+  - Fixed handleBattleStart function in BattleArena.tsx to preserve server's authoritative battle log
+  - Changed from overwriting server log to appending UI message using battleState.battleLog.concat()
+  - Eliminated architectural violation where client was discarding server-generated messages
+  - Client now displays all server battle messages including ON_BATTLE_START passive ability activations
+  - Maintains "dumb client" principle by using server's complete battle log as foundation
+  - Ensures players see all passive ability activation messages from battle initialization
 
 ## User Preferences
 
