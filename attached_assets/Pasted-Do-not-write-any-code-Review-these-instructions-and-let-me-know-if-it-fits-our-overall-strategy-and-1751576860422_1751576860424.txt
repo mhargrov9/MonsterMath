@@ -1,0 +1,81 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The ON_BATTLE_START passive ability "Tailwind" appears non-functional to the user because its activation message is never displayed in the battle log.
+
+Problem 2: The client currently violates our "server-authoritative" principle by generating its own battle log messages.
+
+Problem 3: The battle initiation process is fragile, relying on a two-step API call sequence (/api/battle/start and /api/battle/select-lead) that has created a client-side state management bug.
+
+Goal: Consolidate Battle Creation
+Our goal is to refactor the battle initiation process into a single, atomic server operation. This will fix the root cause of the bug, improve architectural integrity, and make the client "dumber" in accordance with our core principles. The client will make one API call with all necessary information (player team, opponent team, and chosen lead monster), and the server will return one complete, initial battle state.
+
+
+File Modifications
+1. server/battleEngine.ts
+Action: Delete the startBattle function. Its logic will be merged into a new function.
+
+Action: Delete the selectLeadAndDetermineTurn function. Its logic will also be merged.
+
+Action: Create a new, consolidated public function named createBattleSession.
+
+This function must accept three arguments: playerTeam, opponentTeam, and playerLeadMonsterIndex.
+
+Merge Logic: Combine the complete logic from the old startBattle and selectLeadAndDetermineTurn functions into this new function. The sequence of operations inside createBattleSession must be:
+
+Generate a unique battleId.
+
+Create deep copies of the 
+
+playerTeam and opponentTeam to prevent mutations.
+
+Fetch all abilities for all monsters involved in the battle using storage.getAbilitiesForMonsters.
+
+Create the initial battleState object, including the abilities_map.
+
+Process ON_BATTLE_START passives. Iterate through all monsters, apply stat modifications for passives like "Tailwind", and add the corresponding activation messages to the battleState.battleLog.
+
+Set the activePlayerIndex to the playerLeadMonsterIndex provided.
+
+Randomly select and set the activeAiIndex.
+
+Add the monster introduction messages (e.g., "Your monster enters the battle!") to the battleState.battleLog.
+
+Determine the first turn by comparing the (now potentially boosted) speed stats of the active monsters. Set battleState.turn.
+
+Store the final, complete battleState in the battleSessions map.
+
+Return the entire session object ({ battleId, battleState }).
+
+2. server/routes.ts
+Action: Delete the POST /api/battle/start route.
+
+Action: Delete the POST /api/battle/select-lead route.
+
+Action: Create a new route: POST /api/battle/create.
+
+This single route will now handle battle creation.
+
+It must be authenticated.
+
+It will expect playerTeam, opponentTeam, and playerLeadMonsterIndex in the request body.
+
+It will call the new createBattleSession function from battleEngine.ts with the data from the request body.
+
+It will return the complete battle session object as the JSON response.
+
+3. client/src/components/BattleArena.tsx
+Action: Modify the handleBattleStart function.
+
+This function should no longer make any API calls.
+
+Its only responsibility is now to set the playerTeam, aiTeam, and battleLog (to an empty array []), and then switch the view to 'lead-select'.
+
+Action: Modify the selectLeadMonster function. This function will now be responsible for triggering the battle creation.
+
+It must make a single POST request to the new /api/battle/create endpoint.
+
+The body of this request must now include the playerTeam, aiTeam, and the chosen monster index.
+
+On a successful response, it should set all state (playerTeam, aiTeam, activePlayerIndex, turn, battleLog, etc.) from the authoritative battleState object returned by the server.
+
+Crucially, remove the line that was adding a client-side message to the log: .concat('Battle is about to begin! Select your starting monster.'). The log should be set directly from the server's response: setBattleLog(battleState.battleLog).
