@@ -300,33 +300,45 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   }, [battleEnded, queryClient]);
 
   const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
-    setBattleLog([]); setIsLoading(true); setBattleEnded(false); setWinner(null); setActiveEffects([]); setFloatingTexts([]);
+    // Set teams and reset state
+    setPlayerTeam(selectedTeam);
+    setAiTeam(generatedOpponent.scaledMonsters);
+    setBattleLog([]);
+    setBattleEnded(false);
+    setWinner(null);
+    setActiveEffects([]);
+    setFloatingTexts([]);
     
-    try {
-      // Use current monster stats without modification
-      const opponentTeam = generatedOpponent.scaledMonsters;
+    // Switch to lead selection mode
+    setBattleMode('lead-select');
+  };
 
-      // Request server to create battle session
-      const response = await fetch('/api/battle/start', {
+  const selectLeadMonster = async (index: number) => {
+    setIsLoading(true);
+    try {
+      // Make single consolidated API call to create complete battle
+      const response = await fetch('/api/battle/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
-          playerTeam: selectedTeam,
-          opponentTeam: opponentTeam
+          playerTeam: playerTeam,
+          opponentTeam: aiTeam,
+          playerLeadMonsterIndex: index
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start battle session');
+        throw new Error('Failed to create battle');
       }
 
+      // Parse the JSON to get the complete and authoritative battleSession
       const battleSession = await response.json();
       const { battleId, battleState } = battleSession;
 
-      // Set all battle state from server response
+      // Set all state from server's authoritative battleState
       setBattleId(battleId);
       setPlayerTeam(battleState.playerTeam);
       setAiTeam(battleState.aiTeam);
@@ -335,53 +347,16 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       setTurn(battleState.turn);
       setBattleEnded(battleState.battleEnded);
       setWinner(battleState.winner);
-      setBattleLog(battleState.battleLog.concat('Battle is about to begin! Select your starting monster.'));
-      setBattleMode('lead-select');
-      setIsLoading(false);
-
-    } catch (error) {
-      console.error('Error starting battle session:', error);
-      setBattleLog(['Error starting battle! Please try again.']);
-      setIsLoading(false);
-    }
-  };
-
-  const selectLeadMonster = async (index: number) => {
-    try {
-      // Make a POST request to the new /api/battle/select-lead endpoint
-      const response = await fetch('/api/battle/select-lead', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          battleId: battleId,
-          playerMonsterIndex: index
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to select lead monster');
-      }
-
-      // Parse the JSON to get the complete and authoritative battleState
-      const battleState = await response.json();
-
-      // Use this battleState object from the server to update all client state variables
-      setPlayerTeam(battleState.playerTeam);
-      setAiTeam(battleState.aiTeam);
-      setActivePlayerIndex(battleState.activePlayerIndex);
-      setActiveAiIndex(battleState.activeAiIndex);
-      setTurn(battleState.turn);
       setBattleLog(battleState.battleLog);
 
       // Change the view to combat screen
       setBattleMode('combat');
+      setIsLoading(false);
 
     } catch (error) {
-      console.error('Error selecting lead monster:', error);
-      setBattleLog(prev => [...prev, 'Error selecting lead monster! Please try again.']);
+      console.error('Error creating battle:', error);
+      setBattleLog(['Error creating battle! Please try again.']);
+      setIsLoading(false);
     }
   };
 

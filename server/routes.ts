@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { veoClient } from "./veoApi";
 import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage, startBattle, processAiTurn, selectLeadAndDetermineTurn, performSwap } from "./battleEngine";
+import { calculateDamage, applyDamage, createBattleSession, processAiTurn, performSwap } from "./battleEngine";
 import passport from "passport";
 import fs from "fs";
 import path from "path";
@@ -389,24 +389,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Battle session creation endpoint
-  app.post('/api/battle/start', isAuthenticated, async (req: any, res) => {
+  // Consolidated battle creation endpoint
+  app.post('/api/battle/create', isAuthenticated, async (req: any, res) => {
     try {
-      const { playerTeam, opponentTeam } = req.body;
+      const { playerTeam, opponentTeam, playerLeadMonsterIndex } = req.body;
 
       if (!playerTeam || !opponentTeam || !Array.isArray(playerTeam) || !Array.isArray(opponentTeam)) {
         return res.status(400).json({ message: 'Missing or invalid team data (playerTeam, opponentTeam must be arrays)' });
+      }
+
+      if (playerLeadMonsterIndex === undefined || typeof playerLeadMonsterIndex !== 'number') {
+        return res.status(400).json({ message: 'Missing or invalid playerLeadMonsterIndex' });
       }
 
       if (playerTeam.length === 0 || opponentTeam.length === 0) {
         return res.status(400).json({ message: 'Teams cannot be empty' });
       }
 
-      const battleSession = await startBattle(playerTeam, opponentTeam);
+      if (playerLeadMonsterIndex < 0 || playerLeadMonsterIndex >= playerTeam.length) {
+        return res.status(400).json({ message: 'Invalid playerLeadMonsterIndex' });
+      }
+
+      const battleSession = await createBattleSession(playerTeam, opponentTeam, playerLeadMonsterIndex);
       res.json(battleSession);
 
     } catch (error) {
-      handleError(error, res, "Failed to start battle session");
+      handleError(error, res, "Failed to create battle session");
     }
   });
 
@@ -444,22 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lead selection and turn determination endpoint
-  app.post('/api/battle/select-lead', isAuthenticated, async (req: any, res) => {
-    try {
-      const { battleId, playerMonsterIndex } = req.body;
 
-      if (battleId === undefined || playerMonsterIndex === undefined) {
-        return res.status(400).json({ message: 'Missing battleId or playerMonsterIndex' });
-      }
-
-      const battleState = selectLeadAndDetermineTurn(battleId, playerMonsterIndex);
-      res.json(battleState);
-
-    } catch (error) {
-      handleError(error, res, "Failed to select lead and determine turn");
-    }
-  });
 
   // Monster swapping endpoint
   app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {

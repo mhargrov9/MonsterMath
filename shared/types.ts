@@ -25,6 +25,11 @@ export interface UserMonster {
   mp: number;
   maxHp?: number;
   maxMp?: number;
+  battleHp?: number;
+  battleMaxHp?: number;
+  battleMp?: number;
+  battleMaxMp?: number;
+  isShattered?: boolean;
 }
 
 export interface Monster {
@@ -47,6 +52,10 @@ export interface Monster {
   levelUpgrades?: any;
   hp?: number;
   mp?: number;
+  battleHp?: number;
+  battleMaxHp?: number;
+  battleMp?: number;
+  battleMaxMp?: number;
 }
 
 export interface Ability {

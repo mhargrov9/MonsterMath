@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import VeoMonster from './VeoMonster';
 import { Zap, Shield, Gauge, Droplets, Flame, Brain, Sword, Mountain, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserMonster, Monster } from '@shared/types';
 
 // --- TYPE DEFINITIONS (Aligned with parent components) ---
 interface Ability {
@@ -16,42 +17,6 @@ interface Ability {
   scaling_stat?: string;
   healing_power?: number;
   target_scope?: string;
-}
-
-interface Monster {
-  id: number;
-  name: string;
-  type?: string;
-  description?: string;
-  level?: number;
-  power?: number;
-  speed?: number;
-  defense?: number;
-  hp?: number;
-  max_hp?: number;
-  mp?: number;
-  max_mp?: number;
-  resistances?: string[];
-  weaknesses?: string[];
-  basePower?: number;
-  baseSpeed?: number;
-  baseDefense?: number;
-  baseHp?: number;
-  baseMp?: number;
-  abilities?: Ability[];
-}
-
-interface UserMonster {
-  id: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  hp: number;
-  maxHp: number;
-  mp: number;
-  maxMp: number;
-  monster: Monster;
 }
 
 interface MonsterCardProps {

@@ -248,10 +248,10 @@ const handleEndOfTurn = (battleState: any): void => {
 };
 
 // Helper function to execute healing abilities using database healing_power field
-const executeHealingAbility = async (battleState: any, ability: any, attacker: UserMonster | Monster, target: UserMonster | Monster): Promise<DamageResult> => {
+const executeHealingAbility = async (battleState: any, ability: any, attacker: any, target: any): Promise<DamageResult> => {
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
-  if ('battleMp' in attacker) {
+  if (attacker.battleMp !== undefined) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
   } else {
     attacker.mp = (attacker.mp || 0) - mpCost;
@@ -359,7 +359,7 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
       
       // Save final battle state for all player monsters
       try {
-        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
+        await storage.saveFinalBattleState(battleState.playerTeam as any);
       } catch (error) {
         console.error('Error saving final battle state:', error);
       }
@@ -401,7 +401,7 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
       
       // Save final battle state for all player monsters
       try {
-        await storage.saveFinalBattleState(battleState.playerTeam as UserMonster[]);
+        await storage.saveFinalBattleState(battleState.playerTeam as any);
       } catch (error) {
         console.error('Error saving final battle state:', error);
       }
@@ -497,7 +497,7 @@ export const applyDamage = async (battleId: string, ability: Ability, targetId?:
 };
 
 // Server-side battle session management
-export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monster[]) => {
+export const createBattleSession = async (playerTeam: UserMonster[], opponentTeam: Monster[], playerLeadMonsterIndex: number) => {
   // Generate unique battle ID
   const battleId = crypto.randomUUID();
   
@@ -536,8 +536,8 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
   const battleState = {
     playerTeam: playerTeamCopy,
     aiTeam: aiTeamCopy,
-    activePlayerIndex: 0,
-    activeAiIndex: 0,
+    activePlayerIndex: playerLeadMonsterIndex,
+    activeAiIndex: Math.floor(Math.random() * aiTeamCopy.length),
     turn: 'pre-battle' as Turn,
     battleEnded: false,
     winner: null as 'player' | 'ai' | null,
@@ -592,6 +592,23 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
       }
     }
   }
+
+  // Add monster introduction messages
+  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+  
+  battleState.battleLog.push(`${playerMonster.monster.name} enters the battle!`);
+  battleState.battleLog.push(`Opponent's ${aiMonster.name} appears!`);
+
+  // Determine first turn by comparing speed stats (now potentially boosted by passives)
+  const playerSpeed = playerMonster.speed || 0;
+  const aiSpeed = aiMonster.speed || 0;
+
+  if (playerSpeed >= aiSpeed) {
+    battleState.turn = 'player';
+  } else {
+    battleState.turn = 'ai';
+  }
   
   // Store battle session
   battleSessions.set(battleId, battleState);
@@ -602,45 +619,7 @@ export const startBattle = async (playerTeam: UserMonster[], opponentTeam: Monst
   };
 };
 
-// Server-side lead selection and turn determination
-export const selectLeadAndDetermineTurn = (battleId: string, playerMonsterIndex: number) => {
-  // Retrieve the current battle session from the battleSessions map
-  const battleState = battleSessions.get(battleId);
-  if (!battleState) {
-    throw new Error(`Battle session ${battleId} not found`);
-  }
 
-  // Set the activePlayerIndex to the playerMonsterIndex passed into the function
-  battleState.activePlayerIndex = playerMonsterIndex;
-
-  // Randomly generate an index for the AI's lead monster and set the activeAiIndex
-  battleState.activeAiIndex = Math.floor(Math.random() * battleState.aiTeam.length);
-
-  // Get the full player monster object and the AI monster object from their respective teams
-  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
-  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-
-  // Add two new string messages to the battleLog array
-  battleState.battleLog.push(`${playerMonster.monster.name} enters the battle!`);
-  battleState.battleLog.push(`Opponent's ${aiMonster.name} appears!`);
-
-  // Compare the speed stat of the player's monster to the speed stat of the AI's monster
-  const playerSpeed = playerMonster.speed || 0;
-  const aiSpeed = aiMonster.speed || 0;
-
-  // Set the turn property based on speed comparison
-  if (playerSpeed >= aiSpeed) {
-    battleState.turn = 'player';
-  } else {
-    battleState.turn = 'ai';
-  }
-
-  // Update the session in the battleSessions map with the modified battle state
-  battleSessions.set(battleId, battleState);
-
-  // Return the entire battle state object
-  return battleState;
-};
 
 // Server-side AI turn processing with 3-phase lifecycle
 export const processAiTurn = async (battleId: string) => {
