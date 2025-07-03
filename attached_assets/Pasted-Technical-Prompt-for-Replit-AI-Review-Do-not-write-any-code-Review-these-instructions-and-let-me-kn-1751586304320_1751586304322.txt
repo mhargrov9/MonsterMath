@@ -1,0 +1,39 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The battle log message for a damaging attack does not state how much damage was dealt, making it difficult for the player to understand the outcome of their action.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Modify the server-side logging within the executeAbility function to include the specific amount of damage dealt in the battle log.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the executeAbility function.
+
+Find the line that pushes the primary action to the battle log. The current message is similar to: "[Attacker] used [Ability]!".
+
+Modify this log message to include the damage amount from the damageResult object and the name of the defender.
+
+The new, more descriptive message should be formatted like this: "[Attacker Name] used [Ability Name] on [Defender Name], dealing [X] damage!"
+
+4. Architecture Compliance Check:
+
+Does this change improve the quality and clarity of the server-authoritative battle log?
+
+Does the change continue to ensure that all log content is generated exclusively on the server?
+
