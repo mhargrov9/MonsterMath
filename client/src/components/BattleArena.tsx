@@ -65,11 +65,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     return (monster as any)[baseStatMap[statName]] || 0;
   };
 
-  const getEffectivenessMessage = (multiplier: number): string => {
-    if (multiplier > 1.0) return "It's super effective!";
-    if (multiplier < 1.0) return "It's not very effective...";
-    return "";
-  };
+
 
 
 
@@ -124,13 +120,8 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'ai');
       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'ai');
       
-      // Use server's authoritative battle log and add additional feedback
-      const additionalLog = [];
-      if (damageResult.isCritical) additionalLog.push("A critical hit!");
-      additionalLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      
-      // Update battle log with server's authoritative log plus additional feedback
-      setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
+      // Update battle log with server's authoritative log only
+      setBattleLog(battleState.battleLog);
 
       if (battleState.battleEnded) {
         // Battle completed by server - no additional client action needed
@@ -238,13 +229,8 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       addFloatingText(`-${damageResult.damage}`, 'damage', defender.id || 0, battleState.turn === 'player');
       if(damageResult.isCritical) addFloatingText('CRIT!', 'crit', defender.id || 0, battleState.turn === 'player');
       
-      // Server now handles AI ability log message - just add additional feedback
-      const additionalLog = [];
-      if (damageResult.isCritical) additionalLog.push("A critical hit!");
-      additionalLog.push(getEffectivenessMessage(damageResult.affinityMultiplier));
-      
-      // Update battle log with server's authoritative log plus additional feedback
-      setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean)));
+      // Update battle log with server's authoritative log only
+      setBattleLog(battleState.battleLog);
 
       if (battleState.battleEnded) {
         // Battle completed by server - no additional client action needed
