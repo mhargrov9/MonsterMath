@@ -1,0 +1,51 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The client (BattleArena.tsx) is generating its own log messages for critical hits and type effectiveness, violating our server-authoritative ("dumb client") architecture.
+
+Problem 2: Duplicate log messages appear temporarily in the UI because both the client and server are generating them for the same event.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Remove all client-side battle log generation logic from client/src/components/BattleArena.tsx to make it a purely presentational ("dumb") component in this regard.
+
+2. File Modifications:
+
+client/src/components/BattleArena.tsx
+
+3. Implementation Details:
+
+Task A: Refactor handlePlayerAbility
+
+Navigate to the handlePlayerAbility function.
+
+Find and delete the additionalLog array and the logic that populates it (the if (damageResult.isCritical) check and the call to getEffectivenessMessage).
+
+Modify the state update call from setBattleLog(battleState.battleLog.concat(additionalLog.filter(Boolean))); to be simply: setBattleLog(battleState.battleLog);.
+
+Task B: Refactor handleAiAbility
+
+Navigate to the handleAiAbility function.
+
+Perform the exact same change: find and delete its additionalLog array and associated logic.
+
+Modify its state update call to also be: setBattleLog(battleState.battleLog);.
+
+You may also delete the getEffectivenessMessage helper function from the file, as it will no longer be used.
+
+4. Architecture Compliance Check:
+
+Does this change ensure the client is fully "dumb" regarding the content of the battle log?
+
+Does this change ensure the UI will render only the authoritative log sent from the server?
+
