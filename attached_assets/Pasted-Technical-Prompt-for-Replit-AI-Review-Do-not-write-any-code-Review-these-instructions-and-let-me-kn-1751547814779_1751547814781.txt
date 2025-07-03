@@ -1,0 +1,58 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Passive abilities that should activate at the end of a turn, like Soothing Aura, are not functioning.
+
+Problem 2: The handleEndOfTurn function in the battle engine is an empty stub.
+
+Problem 3: The engine does not respect chance-based passives (e.g., the status_effect_chance on Volcanic Heart).
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Implement the logic for END_OF_TURN passive abilities within the handleEndOfTurn function, making it fully database-driven.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the handleEndOfTurn function and remove the // TODO: comments.
+
+Implement the following logic:
+
+Identify the team whose turn just ended.
+
+Iterate through every monster on that team (both the active monster and all monsters on the bench).
+
+For each monster, check its abilities from the battleState.abilities_map.
+
+Find any ability that meets all of these database-driven criteria:
+
+ability_type is 'PASSIVE'
+
+activation_trigger is 'END_OF_TURN'
+
+The monster's current status (active or benched) matches the ability's activation_scope.
+
+Chance Validation: If a matching passive ability is found, check its status_effect_chance property. If the value is a number (e.g., 0.15 for Volcanic Heart), perform a Math.random() check against this database value to see if the ability activates. If the chance is null, the ability always activates.
+
+Execute Effect: If the ability activates, execute its effect. For now, you only need to handle 'HEALING' effects by reusing or adapting the logic from executeHealingAbility.
+
+Log Activation: Push a descriptive message to the battleState.battleLog confirming the passive's activation and effect (e.g., "River-Spirit Axolotl's Soothing Aura heals [Active Monster] for X HP.").
+
+4. Architecture Compliance Check:
+
+Does this implementation use database properties (activation_trigger, activation_scope, status_effect_chance, status_effect_value) to drive all logic?
+
+Does this change correctly implement a core game mechanic as defined in the Onboarding Brief ?
