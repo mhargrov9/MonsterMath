@@ -130,19 +130,44 @@ const handleEndOfTurn = (battleState: any): void => {
           }
           
           if (activates) {
-            // Execute effect - for now, handle healing effects
-            if (ability.healing_power && ability.healing_power > 0) {
-              // Find target for healing (for now, assume self-healing)
-              const target = monster;
-              const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
-              const maxHp = target.monster?.hp || target.maxHp || 0;
+            // Execute effect - check for healing passives using correct database fields
+            if (ability.status_effect_applies === 'HEALING') {
+              // Determine correct target based on activation scope
+              let target;
+              let targetName;
               
-              if (currentHp < maxHp) {
-                const healAmount = Math.min(ability.healing_power, maxHp - currentHp);
-                target.battleHp = currentHp + healAmount;
+              if (ability.activation_scope === 'BENCH') {
+                // For bench passives like Soothing Aura, target the active monster
+                const activeIndex = isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex;
+                target = currentTeam[activeIndex];
+                targetName = target.monster?.name || target.name;
+              } else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
+                // For active/self passives like Volcanic Heart, target the monster with the ability
+                target = monster;
+                targetName = monsterName;
+              }
+              
+              if (target) {
+                const currentHp = target.battleHp !== undefined ? target.battleHp : (target.hp || 0);
+                const maxHp = target.monster?.hp || target.maxHp || 0;
                 
-                // Log the passive activation
-                battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} heals ${monsterName} for ${healAmount} HP!`);
+                if (currentHp < maxHp) {
+                  // Calculate heal amount based on database status_effect_value and type
+                  let healAmount;
+                  if (ability.status_effect_value_type === 'PERCENT_MAX_HP') {
+                    healAmount = Math.floor(maxHp * (ability.status_effect_value / 100));
+                  } else {
+                    // Default to FLAT healing
+                    healAmount = ability.status_effect_value || 0;
+                  }
+                  
+                  // Apply healing with max HP cap
+                  healAmount = Math.min(healAmount, maxHp - currentHp);
+                  target.battleHp = currentHp + healAmount;
+                  
+                  // Log the passive activation with correct monster names
+                  battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} heals ${targetName} for ${healAmount} HP!`);
+                }
               }
             }
           }

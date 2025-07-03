@@ -1,0 +1,50 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Passive healing abilities are not triggering because the engine is checking the wrong database field (healing_power instead of status_effect_value).
+
+Problem 2: Bench-based passives like Soothing Aura fail because the engine has hardcoded self-targeting instead of correctly targeting the active monster.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Refactor the handleEndOfTurn function to correctly execute passive healing abilities using the proper database fields and targeting logic.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the handleEndOfTurn function.
+
+You must modify the effect execution logic inside the if (activates) block.
+
+Use Correct Data Fields: Remove the check for ability.healing_power. Instead, check if ability.status_effect_applies === 'HEALING'.
+
+If it is a healing passive, calculate the heal amount based on ability.status_effect_value and ability.status_effect_value_type (e.g., PERCENT_MAX_HP or FLAT).
+
+Use Correct Targeting: The target of the heal is not always the monster who owns the ability.
+
+For Soothing Aura (activation_scope: 'BENCH'), the target must be the team's active monster.
+
+For Volcanic Heart (activation_scope: 'ACTIVE'), the target is the monster itself (the one who owns the ability).
+
+Update the logic to correctly identify and apply the healing to the proper target based on these rules.
+
+Ensure the log message correctly names the monster with the passive and the monster that was healed.
+
+4. Architecture Compliance Check:
+
+Does this change ensure passive healing is driven by the correct status_effect_* database fields?
+
+Does this change implement the targeting rules for passive abilities as described in the Onboarding Brief?

@@ -603,6 +603,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Updated basic attack fallback logic to use filtered activeAbilities array instead of full ability list
   - Prevented invalid AI actions that violated core game rules about ability types
   - All filtering uses database-driven ability_type field with server-authoritative validation
+- July 3, 2025: Passive Healing Database Field Fix (Task 18)
+  - Fixed passive healing detection by using correct database field status_effect_applies === 'HEALING'
+  - Replaced incorrect healing_power field with proper status_effect_value and status_effect_value_type
+  - Implemented proper targeting logic based on activation_scope: BENCH targets active monster, ACTIVE/SELF targets ability owner
+  - Added support for PERCENT_MAX_HP and FLAT healing value types from database
+  - Fixed Soothing Aura (bench passive) to correctly heal active monster instead of self
+  - Enhanced battle log to show correct monster names for passive activations and healing targets
+  - All healing calculations now use authentic database fields with server-authoritative validation
 
 ## User Preferences
 
