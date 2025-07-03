@@ -596,6 +596,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Server generates authentic battle log messages for passive ability activations
   - All logic remains server-authoritative with zero client involvement in passive mechanics
   - Foundation established for unlimited passive ability types through complete database-driven architecture
+- July 3, 2025: AI Move Selection Bug Fix (Task 17)
+  - Fixed critical bug where AI was attempting to use PASSIVE abilities as actions
+  - Added ability_type === 'ACTIVE' filter in processAiTurn function before move selection
+  - AI now only considers ACTIVE abilities when choosing its next move
+  - Updated basic attack fallback logic to use filtered activeAbilities array instead of full ability list
+  - Prevented invalid AI actions that violated core game rules about ability types
+  - All filtering uses database-driven ability_type field with server-authoritative validation
 
 ## User Preferences
 

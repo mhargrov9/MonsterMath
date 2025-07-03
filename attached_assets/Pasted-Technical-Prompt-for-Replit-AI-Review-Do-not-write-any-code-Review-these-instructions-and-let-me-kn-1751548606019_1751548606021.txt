@@ -1,0 +1,40 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The AI opponent's move selection logic is broken, causing it to use 'PASSIVE' abilities as if they were 'ACTIVE' abilities.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Refactor the processAiTurn function to ensure the AI only considers abilities with an ability_type of 'ACTIVE' when choosing its move.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the processAiTurn function.
+
+Locate the line that retrieves the AI monster's abilities from the abilities_map.
+
+Immediately after retrieving the full list of abilities, you must add a new step to filter this list.
+
+Create a new array that contains only the abilities where ability.ability_type === 'ACTIVE'.
+
+All subsequent logic in the function (checking for affordable MP, choosing a random ability, etc.) must use this new, correctly filtered list of active-only abilities.
+
+4. Architecture Compliance Check:
+
+Does this change correctly enforce a core game rule (that only active abilities can be chosen for an action) on the server?
+
+Does this fix the bug where the AI performs invalid actions?

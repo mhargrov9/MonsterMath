@@ -538,16 +538,21 @@ export const processAiTurn = async (battleId: string) => {
     throw new Error(`No abilities found for AI monster ${aiMonster.id}`);
   }
   
+  // Filter to only ACTIVE abilities (AI cannot use PASSIVE abilities as actions)
+  const activeAbilities = monsterAbilities.filter((ability: any) => 
+    ability.ability_type === 'ACTIVE'
+  );
+  
   // Filter abilities the AI can afford based on current MP
-  const affordableAbilities = monsterAbilities.filter((ability: any) => 
+  const affordableAbilities = activeAbilities.filter((ability: any) => 
     (aiMonster.mp ?? 0) >= (ability.mp_cost || 0)
   );
 
   let chosenAbility;
   
   if (affordableAbilities.length === 0) {
-    // Find the monster's basic attack from its full ability list
-    const basicAttack = monsterAbilities.find((ability: any) => 
+    // Find the monster's basic attack from the active abilities list
+    const basicAttack = activeAbilities.find((ability: any) => 
       ability.name.toLowerCase().includes('basic') || 
       ability.name.toLowerCase().includes('attack') ||
       ability.mp_cost === 0
@@ -556,8 +561,8 @@ export const processAiTurn = async (battleId: string) => {
     if (basicAttack) {
       chosenAbility = basicAttack;
     } else {
-      // Fallback to first ability if no basic attack found
-      chosenAbility = monsterAbilities[0];
+      // Fallback to first active ability if no basic attack found
+      chosenAbility = activeAbilities[0];
     }
   } else {
     // Randomly select from affordable abilities
