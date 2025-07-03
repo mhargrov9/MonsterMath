@@ -525,10 +525,22 @@ export class DatabaseStorage implements IStorage {
         monsterId: monsterAbilities.monster_id,
         abilityId: abilities.id,
         name: abilities.name,
+        description: abilities.description,
         abilityType: abilities.ability_type,
         mpCost: abilities.mp_cost,
+        affinity: abilities.affinity,
         powerMultiplier: abilities.power_multiplier,
-        description: abilities.description,
+        scalingStat: abilities.scaling_stat,
+        healingPower: abilities.healing_power,
+        targetScope: abilities.target_scope,
+        activationScope: abilities.activation_scope,
+        activationTrigger: abilities.activation_trigger,
+        statusEffectApplies: abilities.status_effect_applies,
+        statusEffectChance: abilities.status_effect_chance,
+        statusEffectDuration: abilities.status_effect_duration,
+        statusEffectValue: abilities.status_effect_value,
+        statusEffectValueType: abilities.status_effect_value_type,
+        statModifiers: abilities.stat_modifiers,
       })
       .from(monsterAbilities)
       .innerJoin(abilities, eq(monsterAbilities.ability_id, abilities.id))
@@ -546,10 +558,22 @@ export class DatabaseStorage implements IStorage {
       abilitiesMap[result.monsterId].push({
         id: result.abilityId,
         name: result.name,
+        description: result.description,
         ability_type: result.abilityType,
         mp_cost: result.mpCost,
+        affinity: result.affinity,
         power_multiplier: result.powerMultiplier,
-        description: result.description,
+        scaling_stat: result.scalingStat,
+        healing_power: result.healingPower,
+        target_scope: result.targetScope,
+        activation_scope: result.activationScope,
+        activation_trigger: result.activationTrigger,
+        status_effect_applies: result.statusEffectApplies,
+        status_effect_chance: result.statusEffectChance,
+        status_effect_duration: result.statusEffectDuration,
+        status_effect_value: result.statusEffectValue,
+        status_effect_value_type: result.statusEffectValueType,
+        stat_modifiers: result.statModifiers,
       });
     }
 
