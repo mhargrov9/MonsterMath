@@ -185,6 +185,19 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   const abilityName = ability.name || 'an ability';
   battleState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attackerName} used ${abilityName}!`);
   
+  // Add detailed combat result messages based on damageResult
+  if (damageResult.affinityMultiplier > 1.0) {
+    battleState.battleLog.push("It's super effective!");
+  }
+  
+  if (damageResult.affinityMultiplier < 1.0) {
+    battleState.battleLog.push("It's not very effective...");
+  }
+  
+  if (damageResult.isCritical) {
+    battleState.battleLog.push("A critical hit!");
+  }
+  
   return damageResult;
 };
 
