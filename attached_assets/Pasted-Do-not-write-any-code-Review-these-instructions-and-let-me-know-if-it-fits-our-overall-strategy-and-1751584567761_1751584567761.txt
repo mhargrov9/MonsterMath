@@ -1,0 +1,27 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: After selecting a team of 4 monsters, the "Choose Your Lead Monster" screen initially shows 4 monsters, but then automatically updates to show only 3. These 3 monsters have incorrectly maxed-out HP but have their speed stats correctly boosted by passives like "Tailwind". This happens without any user input.
+
+Goal: Investigate the Root Cause of State Corruption
+Your task is to perform a static analysis of the entire codebase to identify the definitive root cause of the bug described above. You must explain the precise sequence of events, from the client-side trigger to the server-side logic flaw, that results in this corrupted state.
+
+Investigation Steps & Analysis Questions
+Identify the Client-Side Trigger:
+
+Analyze client/src/components/BattleArena.tsx. The state update happens automatically after the component enters the 'lead-select' mode. Since there is no onClick event, the update must be triggered by a useEffect hook or a useQuery re-fetch.
+
+Question: Which specific hook in the component is causing an automatic API call after the team has been selected but before a leader is chosen?
+
+Analyze the Server-Side Logic:
+
+The client calls the /api/battle/create endpoint, which executes the createBattleSession function in server/battleEngine.ts.
+
+This function receives a playerTeam with 4 monsters and an opponentTeam with 3 monsters.
+
+Question: Review the createBattleSession function. What specific lines of code are causing the playerTeam array in the returned battleState to be truncated from 4 monsters to 3?
+
+Question: What specific lines of code are causing the HP of the monsters in the returned playerTeam to be reset to their maximum value, ignoring the current HP that was sent from the client?
+
+Synthesize the Findings:
+
+Provide a step-by-step explanation that connects the client-side trigger (from Step 1) to the server-side data corruption (from Step 2). Explain how a playerTeam with 4 monsters and current HP goes into the function, and a playerTeam with 3 monsters and max HP comes out.
