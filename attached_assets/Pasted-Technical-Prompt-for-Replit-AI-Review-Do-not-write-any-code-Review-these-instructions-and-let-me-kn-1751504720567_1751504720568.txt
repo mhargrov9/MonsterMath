@@ -1,0 +1,65 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The user interface provides no way to select a target for abilities like Restoring Geyser, making it impossible to use the new server-side targeting logic.
+
+Problem 2: Abilities with a target_scope of ANY_ALLY do not function as designed because the client cannot specify the intended target.
+
+1. Goal:
+Implement a "targeting mode" on the client. When a player clicks an ability that can target any ally, the UI should update to allow the player to select a friendly monster (active or benched) as the target.
+
+2. File Modifications:
+
+client/src/components/BattleArena.tsx (State management and logic)
+
+client/src/components/CombatView.tsx (Prop drilling)
+
+You may also need to modify client/src/components/MonsterCard.tsx to handle a new onClick prop for targeting.
+
+3. Implementation Details:
+
+Task A: Add Targeting State (BattleArena.tsx)
+
+In the BattleArena component, introduce a new state variable to manage targeting mode. For example: const [targetingState, setTargetingState] = useState<{ isTargeting: boolean; ability: Ability | null }>({ isTargeting: false, ability: null });
+
+Task B: Update Ability Handler (BattleArena.tsx)
+
+Modify the handlePlayerAbility function.
+
+When an ability is clicked, it must now first check the ability.target_scope property from the database.
+
+If target_scope is 'ANY_ALLY', do not call the API. Instead, update the new state: setTargetingState({ isTargeting: true, ability: ability }).
+
+If the target_scope is anything else (e.g., 'ACTIVE_OPPONENT'), call the API immediately as before.
+
+Task C: Create Target Selection Handler (BattleArena.tsx)
+
+Create a new function: handleTargetSelected(targetId: number).
+
+This function will be called when a player clicks on a monster while in targeting mode.
+
+Inside this function, make the fetch call to the /api/battle/perform-action endpoint.
+
+The request body must now include the ability (stored in targetingState.ability) and the targetId passed into the function.
+
+After the API call completes, reset the targeting state: setTargetingState({ isTargeting: false, ability: null }).
+
+Task D: Update Components (CombatView.tsx, MonsterCard.tsx)
+
+Pass the targetingState.isTargeting flag and the handleTargetSelected function as props down to the CombatView and subsequently to the MonsterCard components for the active player monster and the benched player monsters.
+
+The UI should visually indicate when targeting is active. For example, cards that are valid targets could have a glowing border.
+
+4. Architecture Compliance Check:
+
+Does this plan keep all game logic and rule enforcement on the server?
+
+Does this change use the target_scope property from the database to alter the client's behavior?
+
+Does this make the client "smarter" about its state, but still "dumb" about game rules?
