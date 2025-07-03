@@ -528,6 +528,16 @@ export class DatabaseStorage implements IStorage {
         abilityType: abilities.ability_type,
         mpCost: abilities.mp_cost,
         powerMultiplier: abilities.power_multiplier,
+        scalingStat: abilities.scaling_stat,
+        healingPower: abilities.healing_power,
+        activationScope: abilities.activation_scope,
+        activationTrigger: abilities.activation_trigger,
+        statusEffectApplies: abilities.status_effect_applies,
+        statusEffectChance: abilities.status_effect_chance,
+        statusEffectDuration: abilities.status_effect_duration,
+        statusEffectValue: abilities.status_effect_value,
+        statusEffectValueType: abilities.status_effect_value_type,
+        statModifiers: abilities.stat_modifiers,
         description: abilities.description,
       })
       .from(monsterAbilities)
@@ -549,6 +559,16 @@ export class DatabaseStorage implements IStorage {
         ability_type: result.abilityType,
         mp_cost: result.mpCost,
         power_multiplier: result.powerMultiplier,
+        scaling_stat: result.scalingStat,
+        healing_power: result.healingPower,
+        activation_scope: result.activationScope,
+        activation_trigger: result.activationTrigger,
+        status_effect_applies: result.statusEffectApplies,
+        status_effect_chance: result.statusEffectChance,
+        status_effect_duration: result.statusEffectDuration,
+        status_effect_value: result.statusEffectValue,
+        status_effect_value_type: result.statusEffectValueType,
+        stat_modifiers: result.statModifiers,
         description: result.description,
       });
     }

@@ -164,35 +164,23 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   return damageResult;
 };
 
-// Helper function to execute passive ability effects
+// Helper function to execute passive ability effects - fully database-driven
 const executePassiveAbility = async (battleState: any, monster: UserMonster | Monster, ability: any, currentTurn: string): Promise<void> => {
   // Get monster name for logging
   const monsterName = 'monster' in monster ? monster.monster.name : monster.name;
   
-  // Execute specific passive ability effects based on ability name/properties
-  switch (ability.name) {
-    case 'Soothing Aura':
-      // Heal the active monster for a percentage of its Max HP
-      await applySoothingAuraEffect(battleState, monsterName, currentTurn);
-      break;
-    
-    case 'Static Charge':
-    case 'Crystalize':
-    case 'Tailwind':
-    case 'Soot Cloud':
-      // Future passive abilities will be implemented here
-      battleState.battleLog.push(`${monsterName}'s ${ability.name} activates! (Effect not yet implemented)`);
-      break;
-    
-    default:
-      // Generic passive activation message for unknown abilities
-      battleState.battleLog.push(`${monsterName}'s ${ability.name} activates!`);
-      break;
+  // Generic database-driven passive ability execution
+  if (ability.status_effect_applies === 'HEALING') {
+    // Apply healing effect using database values
+    await applyHealingEffect(battleState, monsterName, ability, currentTurn);
+  } else {
+    // Log activation for other passive abilities (future implementation)
+    battleState.battleLog.push(`${monsterName}'s ${ability.name} activates!`);
   }
 };
 
-// Helper function to apply Soothing Aura healing effect
-const applySoothingAuraEffect = async (battleState: any, casterName: string, currentTurn: string): Promise<void> => {
+// Generic helper function to apply healing effects using database values
+const applyHealingEffect = async (battleState: any, casterName: string, ability: any, currentTurn: string): Promise<void> => {
   // Determine which team and active monster to heal
   let targetTeam: (UserMonster | Monster)[];
   let activeIndex: number;
@@ -212,8 +200,16 @@ const applySoothingAuraEffect = async (battleState: any, casterName: string, cur
   const currentHp = activeMonster.battleHp !== undefined ? activeMonster.battleHp : (activeMonster.hp || 0);
   const maxHp = activeMonster.maxHp || 0;
   
-  // Calculate healing amount (3% of max HP as per database design document)
-  const healingAmount = Math.floor(maxHp * 0.03);
+  // Calculate healing amount using database values
+  let healingAmount = 0;
+  if (ability.status_effect_value_type === 'PERCENT_MAX_HP') {
+    // Percentage-based healing using database value
+    healingAmount = Math.floor(maxHp * (ability.status_effect_value / 100));
+  } else if (ability.status_effect_value_type === 'FLAT') {
+    // Flat healing amount from database
+    healingAmount = ability.status_effect_value;
+  }
+  
   const newHp = Math.min(maxHp, currentHp + healingAmount);
   
   // Apply healing
@@ -223,8 +219,8 @@ const applySoothingAuraEffect = async (battleState: any, casterName: string, cur
     activeMonster.hp = newHp;
   }
   
-  // Add descriptive message to battle log
-  battleState.battleLog.push(`${casterName}'s Soothing Aura heals ${activeMonsterName} for ${healingAmount} HP.`);
+  // Add descriptive message to battle log using ability name from database
+  battleState.battleLog.push(`${casterName}'s ${ability.name} heals ${activeMonsterName} for ${healingAmount} HP.`);
 };
 
 // Helper function to handle monster defeat, forced swaps, and battle end conditions

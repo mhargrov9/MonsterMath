@@ -557,6 +557,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - System correctly identifies activation_trigger=END_OF_TURN and activation_scope=BENCH/ACTIVE
   - Completed 3-phase turn lifecycle making it fully operational for advanced battle mechanics
   - All passive abilities now execute server-authoritatively with authentic database-driven effects
+- July 2, 2025: Complete Database-Driven Passive Ability System (Task 10)
+  - Eliminated final hardcoding violation by removing switch statement from executePassiveAbility
+  - Updated getAbilitiesForMonsters to select all required database fields for passive abilities
+  - Corrected Soothing Aura database record with proper status_effect values from Onboarding Brief
+  - Implemented generic applyHealingEffect function using database status_effect_value and status_effect_value_type
+  - Passive abilities now 100% database-driven with no hardcoded ability names or effect values
+  - System supports unlimited future healing abilities without code changes
+  - Completed architectural compliance: every game mechanic derives from authentic database sources
 
 ## User Preferences
 
