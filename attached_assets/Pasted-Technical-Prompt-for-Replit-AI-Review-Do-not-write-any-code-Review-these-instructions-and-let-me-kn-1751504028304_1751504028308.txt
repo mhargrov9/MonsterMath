@@ -1,0 +1,47 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: The handleActionPhase function hardcodes the target of healing abilities to the caster, ignoring the database target_scope property.
+
+Problem 2: The server API is not equipped to receive a specific target from the client, making true targeting impossible.
+
+1. Goal:
+Refactor the server to accept a targetId from the client and use it to apply single-target healing abilities correctly.
+
+2. File Modifications:
+
+server/routes.ts
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Task A: Update API Route (server/routes.ts)
+
+Modify the /api/battle/perform-action endpoint. It must now expect an optional targetId in the request body alongside battleId and ability.
+
+Pass this targetId to the applyDamage function in the battle engine.
+
+Task B: Update Battle Engine (server/battleEngine.ts)
+
+The applyDamage function signature must be updated to accept the optional targetId.
+
+The handleActionPhase function signature must also be updated to accept the targetId.
+
+Inside handleActionPhase, remove the hardcoded const target = attacker;.
+
+Instead, find the correct target monster within the battleState.playerTeam or battleState.aiTeam arrays using the provided targetId. If no targetId is provided, it can default to the primary opponent for damaging moves.
+
+Pass this dynamically found target to the executeHealingAbility function.
+
+4. Architecture Compliance Check:
+
+Does this change prepare the server to handle targeting instructions from the client instead of using hardcoded logic?
+
+Does this modification lay the necessary server-side foundation for implementing the database-driven target_scope feature?
