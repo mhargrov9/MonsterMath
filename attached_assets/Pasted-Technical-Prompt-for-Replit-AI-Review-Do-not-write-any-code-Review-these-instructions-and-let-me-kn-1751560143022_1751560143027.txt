@@ -1,0 +1,44 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Passive abilities that should activate at the start of a turn are not implemented.
+
+Problem 2: The handleStartOfTurn function in the battle engine is an empty stub and does not fulfill its role in the 3-phase turn lifecycle.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Fully implement the logic for 'START_OF_TURN' passive abilities within the handleStartOfTurn function, completing the 3-Phase Turn Lifecycle.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Navigate to the handleStartOfTurn function.
+
+Remove the // TODO comment related to passive abilities.
+
+The new logic should mirror the implementation of the handleEndOfTurn function precisely.
+
+It must iterate through the monsters on the team whose turn is beginning, check for abilities where activation_trigger is 'START_OF_TURN', validate the activation_scope, and correctly handle status_effect_chance.
+
+For now, the only effect type it needs to handle is 'HEALING', which it can do by reading status_effect_value and status_effect_value_type from the ability's database properties.
+
+Upon a successful activation, it must push a descriptive message to the battleState.battleLog.
+
+4. Architecture Compliance Check:
+
+Does this implementation use database properties (activation_trigger, activation_scope, etc.) to drive all logic?
+
+Does this change complete the final phase of our core battle lifecycle as defined in the Onboarding Brief ?
