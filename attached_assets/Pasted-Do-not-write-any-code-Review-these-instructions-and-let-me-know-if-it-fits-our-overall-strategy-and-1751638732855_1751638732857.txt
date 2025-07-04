@@ -1,0 +1,48 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Monsters with the PARALYZED status effect currently suffer no negative consequences, rendering the status effect meaningless.
+
+
+Problem: The Start-of-Turn phase of our battle lifecycle is incomplete and does not check for turn-skipping status effects as required by the Onboarding Brief.
+
+
+
+Goal: Implement PARALYZED Turn-Skipping Logic
+Your task is to implement the core gameplay mechanic for the PARALYZED status effect. This involves modifying the handleStartOfTurn function in server/battleEngine.ts to give a paralyzed monster a chance to skip its action phase entirely.
+
+File Modifications
+1. server/battleEngine.ts
+Action: Locate the handleStartOfTurn function.
+
+Specific Change: At the very beginning of the function, before any other logic, you will add a new block to check for paralysis.
+
+This logic must first check if the activeMonster has a statusEffects array and if that array contains an effect with the name 'PARALYZED'.
+
+If the monster is paralyzed, you will introduce a 25% chance for the monster to be fully paralyzed for the turn.
+
+If the 25% chance check succeeds:
+
+Add a clear message to the battle log. Example: Your Gigalith is fully paralyzed and can't move!
+
+Immediately return { turnSkipped: true }; from the function.
+
+If the monster has the PARALYZED status but the 25% chance check fails, the function should simply continue as normal without adding any log message.
+
+Here is a template for the logic to be inserted at the top of the function:
+
+TypeScript
+
+// Check for turn-skipping status effects like PARALYZED
+const paralysisEffect = activeMonster.statusEffects?.find(
+  (effect: any) => effect.name === 'PARALYZED',
+);
+
+if (paralysisEffect) {
+  const PARALYSIS_CHANCE = 0.25; // 25% chance to be fully paralyzed
+  if (Math.random() < PARALYSIS_CHANCE) {
+    battleState.battleLog.push(
+      `${teamName} ${activeMonster.monster?.name || activeMonster.name} is fully paralyzed and can't move!`,
+    );
+    return { turnSkipped: true };
+  }
+}
