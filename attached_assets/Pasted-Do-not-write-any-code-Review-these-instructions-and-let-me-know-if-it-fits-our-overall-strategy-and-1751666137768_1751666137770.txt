@@ -1,13 +1,8 @@
 Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
 
-Problem 1: The player's HP and MP reset after their turn, indicating a server-side state corruption bug.
+Problem: The application has been reverted to a state where the client sends a full ability object to the server. This violates our server-authoritative architecture, as the server incorrectly trusts this client-provided data, leading to state corruption and bugs with status effects, HP, and MP.
 
-Problem 2: Status effects from the player's abilities fail to apply, while the AI's work correctly.
-
-Root Cause: The client is sending a stale, incomplete ability object to the server, and the server is incorrectly trusting this "dumb" client data instead of using its own authoritative data.
-
-Goal: Enforce Server Authority for Battle Actions
-Your task is to refactor the "perform action" data flow. The client will now only send an abilityId to the server. The server will then be solely responsible for looking up the complete, authoritative ability data from the current battleState before processing the action. This will resolve the state corruption and make the system compliant with our architecture.
+Goal: Refactor the "perform action" data flow to be fully server-authoritative. The client will now only send an abilityId. The server will be responsible for looking up the complete, authoritative ability object from the in-memory battleState before processing the action.
 
 File Modifications
 1. client/src/components/BattleArena.tsx
@@ -49,5 +44,5 @@ Find the correct ability from battleState.abilities_map[monsterId] where the abi
 
 If no ability is found, throw an error.
 
-The rest of the function (e.g., the call to handleActionPhase) will then use this authoritative ability object you just retrieved.
+The rest of the applyDamage function will then use this authoritative ability object that you just retrieved.
 
