@@ -77,7 +77,7 @@ export default function MonsterCard({
   const speed = userMonster?.speed ?? baseMonster.speed ?? baseMonster.baseSpeed ?? 0;
   const currentHp = userMonster?.battleHp ?? monsterProp.battleHp ?? userMonster?.hp ?? baseMonster.hp ?? 0;
   const maxHp = userMonster?.battleMaxHp ?? monsterProp.battleMaxHp ?? userMonster?.maxHp ?? baseMonster.baseHp ?? 1;
-  const displayMp = userMonster?.mp ?? baseMonster.mp ?? baseMonster.baseMp ?? 0;
+  const displayMp = userMonster?.battleMp ?? userMonster?.mp ?? baseMonster.mp ?? baseMonster.baseMp ?? 0;
   const maxMp = userMonster?.maxMp ?? baseMonster.max_mp ?? baseMonster.baseMp ?? 1;
 
   const cardSizeClasses = { tiny: 'w-32', small: 'w-48', medium: 'w-72', large: 'w-80' };

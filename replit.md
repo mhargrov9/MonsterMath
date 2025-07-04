@@ -807,6 +807,11 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Added dynamic AI/PLAYER context detection for both player and AI turn logging
   - Diagnostic logs now show exact MP values before and after ability usage
   - Enables precise identification of when battleMp deduction occurs or fails during turn cycles
+- July 4, 2025: MonsterCard UI Battle MP Display Fix (Task 44)
+  - Fixed MonsterCard displayMp to prioritize battleMp over permanent mp values during combat
+  - Updated fallback chain: battleMp → mp → baseMp → 0 for proper in-battle MP visualization
+  - Synchronizes UI display with server's authoritative battle state for accurate visual feedback
+  - Players now see real-time MP deduction in MonsterCard UI during battles
 
 ## User Preferences
 
