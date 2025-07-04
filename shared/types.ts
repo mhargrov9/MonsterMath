@@ -30,6 +30,7 @@ export interface UserMonster {
   battleMp?: number;
   battleMaxMp?: number;
   isShattered?: boolean;
+  statusEffects?: Array<{name: string; duration: number}>;
 }
 
 export interface Monster {
@@ -48,6 +49,11 @@ export interface Monster {
   gradient: string;
   abilities?: any[];
   resistances?: string[];
+  statusEffects?: Array<{name: string; duration: number}>;
+  battleHp?: number;
+  battleMaxHp?: number;
+  battleMp?: number;
+  battleMaxMp?: number;
   weaknesses?: string[];
   levelUpgrades?: any;
   hp?: number;
@@ -69,6 +75,9 @@ export interface Ability {
   scaling_stat?: string;
   target_scope?: string;
   healing_power?: number;
+  status_effect_applies?: string;
+  status_effect_chance?: number;
+  status_effect_duration?: number;
 }
 
 export interface GameUser {

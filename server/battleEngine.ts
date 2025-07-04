@@ -332,6 +332,31 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
     battleState.battleLog.push("A critical hit!");
   }
   
+  // Check if ability applies status effects
+  if (ability.status_effect_applies) {
+    const statusEffectChance = ability.status_effect_chance || 100; // Default to 100% if null
+    const randomChance = Math.random() * 100;
+    
+    if (randomChance <= statusEffectChance) {
+      // Create new status effect object
+      const statusEffect = {
+        name: ability.status_effect_applies,
+        duration: ability.status_effect_duration || 1
+      };
+      
+      // Add to target's statusEffects array
+      if (!defender.statusEffects) {
+        defender.statusEffects = [];
+      }
+      defender.statusEffects.push(statusEffect);
+      
+      // Add status effect message to battle log
+      const defenderName = defender.monster?.name || defender.name;
+      const effectName = ability.status_effect_applies.toLowerCase();
+      battleState.battleLog.push(`${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`);
+    }
+  }
+  
   return damageResult;
 };
 
@@ -529,12 +554,16 @@ export const createBattleSession = async (playerTeam: UserMonster[], opponentTea
     monster.battleMaxHp = monster.maxHp;
     monster.battleMp = monster.mp;
     monster.battleMaxMp = monster.maxMp;
+    monster.statusEffects = [];
   }
   
   // Add battleHp and battleMaxHp to every monster in aiTeam
   for (const monster of aiTeamCopy) {
     monster.battleHp = monster.hp || 0;
     monster.battleMaxHp = monster.hp || 0; // AI monsters use hp as max
+    monster.battleMp = monster.mp || 0;
+    monster.battleMaxMp = monster.mp || 0; // AI monsters use mp as max
+    monster.statusEffects = [];
   }
   
   const battleState = {
