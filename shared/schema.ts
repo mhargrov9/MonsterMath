@@ -112,6 +112,7 @@ export const abilities = pgTable("abilities", {
   status_effect_value: decimal("status_effect_value", { precision: 10, scale: 2 }),
   status_effect_value_type: varchar("status_effect_value_type"),
   status_effect_trigger_affinity: varchar("status_effect_trigger_affinity"),
+  effect_type: varchar("effect_type"),
   priority: integer("priority").default(0).notNull(),
   crit_chance_modifier: decimal("crit_chance_modifier", { precision: 4, scale: 2 }).default('0').notNull(),
   lifesteal_percent: decimal("lifesteal_percent", { precision: 4, scale: 2 }).default('0').notNull(),

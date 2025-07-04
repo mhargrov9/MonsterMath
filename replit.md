@@ -711,6 +711,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Both player and AI turns properly handle paralysis with identical logic
   - Completes Start-of-Turn phase implementation as required by battle lifecycle
   - All logic remains server-authoritative with zero client-side modifications
+- July 4, 2025: Abilities Schema Enhancement - effect_type Column (Task 31)
+  - Added nullable effect_type varchar column to abilities table for status effect classification
+  - Positioned after status_effect_trigger_affinity field for logical organization
+  - Enables systematic categorization of status effect mechanics (TURN_SKIP, DAMAGE_OVER_TIME, etc.)
+  - Foundation for scalable, database-driven status effect routing in battle engine
+  - Applied database migration successfully using npm run db:push
+  - Maintains backward compatibility with existing abilities data through nullable design
+  - Enhances database-driven architecture for unlimited status effect type expansion
 
 ## User Preferences
 
