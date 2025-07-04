@@ -41,9 +41,20 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
   const activeMonster = currentTeam[activeIndex];
   const teamName = isPlayerTurn ? "Your" : "Opponent's";
   
-  // TODO: Check for turn-skipping status effects (PARALYZED, FROZEN, etc.)
-  // This will be implemented when status effects system is added
-  // For now, no turn skipping occurs
+  // Check for turn-skipping status effects like PARALYZED
+  const paralysisEffect = activeMonster.statusEffects?.find(
+    (effect: any) => effect.name === 'PARALYZED',
+  );
+
+  if (paralysisEffect) {
+    const PARALYSIS_CHANCE = 0.25; // 25% chance to be fully paralyzed
+    if (Math.random() < PARALYSIS_CHANCE) {
+      battleState.battleLog.push(
+        `${teamName} ${activeMonster.monster?.name || activeMonster.name} is fully paralyzed and can't move!`,
+      );
+      return { turnSkipped: true };
+    }
+  }
   
   // TODO: Apply damage-over-time effects (BURNED, POISONED, etc.)
   // This will be implemented when status effects system is added

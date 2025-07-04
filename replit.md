@@ -702,6 +702,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Abilities with 25% chance (0.25) now correctly activate 25% of the time instead of 0.25%
   - Maintains server-authoritative probability processing with authentic database-driven values
   - Fixed TypeScript interface duplications for cleaner type definitions
+- July 4, 2025: PARALYZED Turn-Skipping Implementation (Task 30)
+  - Implemented complete PARALYZED status effect turn-skipping logic in handleStartOfTurn function
+  - Added 25% chance for paralyzed monsters to skip their entire turn (action phase bypassed)
+  - Uses authentic database-driven statusEffects array to detect PARALYZED status
+  - Server generates descriptive battle log messages for paralysis activation
+  - Maintains existing 3-phase turn structure: Start-of-Turn → Action Phase → End-of-Turn
+  - Both player and AI turns properly handle paralysis with identical logic
+  - Completes Start-of-Turn phase implementation as required by battle lifecycle
+  - All logic remains server-authoritative with zero client-side modifications
 
 ## User Preferences
 
