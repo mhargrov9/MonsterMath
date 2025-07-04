@@ -161,14 +161,14 @@ const handleActionPhase = async (battleState: any, ability: any, targetId?: numb
   }
 };
 
-// PHASE 3: End of Turn - Handle passives, duration countdown, and turn switching
+// PHASE 3: End of Turn - Handle passive abilities, status effects, duration management, and turn switching
 const handleEndOfTurn = (battleState: any): void => {
   // Identify the team whose turn just ended
   const isPlayerTurnEnding = battleState.turn === 'player';
   const currentTeam = isPlayerTurnEnding ? battleState.playerTeam : battleState.aiTeam;
   const currentTeamName = isPlayerTurnEnding ? 'Your' : 'Opponent\'s';
   
-  // Iterate through every monster on the team (active and bench)
+  // Loop through each monster on the team (both active and benched)
   currentTeam.forEach((monster: any, index: number) => {
     const monsterId = monster.monster?.id || monster.id;
     const monsterName = monster.monster?.name || monster.name;
@@ -177,13 +177,12 @@ const handleEndOfTurn = (battleState: any): void => {
     // Get abilities for this monster from the abilities map
     const monsterAbilities = battleState.abilities_map[monsterId] || [];
     
-    // Check each ability for END_OF_TURN passives
+    // FIRST: Process passive abilities that have activation_trigger of 'END_OF_TURN'
     monsterAbilities.forEach((ability: any) => {
-      // Check if ability meets all criteria
       if (ability.ability_type === 'PASSIVE' && 
           ability.activation_trigger === 'END_OF_TURN') {
         
-        // Check if activation scope matches monster's current status
+        // Check if activation scope matches monster's current position
         let scopeMatches = false;
         if ((ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') && isActive) {
           scopeMatches = true;
@@ -194,27 +193,27 @@ const handleEndOfTurn = (battleState: any): void => {
         }
         
         if (scopeMatches) {
-          // Chance validation
+          // Check activation chance from database
           let activates = true;
-          if (ability.status_effect_chance !== null && ability.status_effect_chance !== undefined) {
-            activates = Math.random() < ability.status_effect_chance;
+          if (ability.override_chance !== null && ability.override_chance !== undefined) {
+            activates = Math.random() < ability.override_chance;
+          } else if (ability.effectDetails && ability.effectDetails.default_value !== null) {
+            // Use default chance if no override
+            activates = Math.random() < 1.0; // Default to 100% if no specific chance
           }
           
-          if (activates) {
-            // Execute effect - check for healing passives using correct database fields
-            if (ability.status_effect_applies === 'HEALING') {
+          if (activates && ability.effectDetails) {
+            // Process healing effects using new database structure
+            if (ability.effectDetails.effect_type === 'HEALING_OVER_TIME') {
               // Determine correct target based on activation scope
               let target;
               let targetName;
               
-              // Scopes that should heal the active monster
               if (ability.activation_scope === 'BENCH' || ability.activation_scope === 'ANY_POSITION' || ability.activation_scope === 'ALL_ALLIES') {
                 const activeIndex = isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex;
                 target = currentTeam[activeIndex];
                 targetName = target.monster?.name || target.name;
-              } 
-              // Scopes that should heal the ability's owner
-              else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
+              } else if (ability.activation_scope === 'ACTIVE' || ability.activation_scope === 'SELF') {
                 target = monster;
                 targetName = monsterName;
               }
@@ -224,21 +223,23 @@ const handleEndOfTurn = (battleState: any): void => {
                 const maxHp = target.battleMaxHp || 0;
                 
                 if (currentHp < maxHp) {
-                  // Calculate heal amount based on database status_effect_value and type
+                  // Calculate heal amount using database effectDetails
                   let healAmount;
-                  if (ability.status_effect_value_type === 'PERCENT_MAX_HP') {
-                    healAmount = Math.floor(maxHp * (ability.status_effect_value / 100));
+                  const effectValue = ability.override_value || ability.effectDetails.default_value || 0;
+                  
+                  if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
+                    healAmount = Math.floor(maxHp * (effectValue / 100));
                   } else {
                     // Default to FLAT healing
-                    healAmount = ability.status_effect_value || 0;
+                    healAmount = effectValue;
                   }
                   
-                  // Apply healing with max HP cap
-                  healAmount = Math.min(healAmount, maxHp - currentHp);
-                  target.battleHp = currentHp + healAmount;
+                  // Apply healing with cap
+                  const newHp = Math.min(currentHp + healAmount, maxHp);
+                  target.battleHp = newHp;
                   
-                  // Log the passive activation with correct monster names
-                  battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} heals ${targetName} for ${healAmount} HP!`);
+                  // Add battle log message
+                  battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} activated! ${targetName} healed for ${healAmount} HP.`);
                 }
               }
             }
@@ -246,17 +247,104 @@ const handleEndOfTurn = (battleState: any): void => {
         }
       }
     });
+    
+    // SECOND: Process statusEffects array for this monster
+    if (monster.statusEffects && monster.statusEffects.length > 0) {
+      const newStatusEffects = [];
+      
+      monster.statusEffects.forEach((effect: any) => {
+        if (effect.effectDetails) {
+          // Process status effect based on effect_type
+          switch (effect.effectDetails.effect_type) {
+            case 'DAMAGE_OVER_TIME':
+              // Calculate damage based on database values
+              let damageAmount;
+              const effectValue = effect.override_value || effect.effectDetails.default_value || 0;
+              
+              if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+                const maxHp = monster.battleMaxHp || 0;
+                damageAmount = Math.floor(maxHp * (effectValue / 100));
+              } else {
+                // Default to FLAT damage
+                damageAmount = effectValue;
+              }
+              
+              // Apply damage
+              const currentHp = monster.battleHp || 0;
+              const newHp = Math.max(currentHp - damageAmount, 0);
+              monster.battleHp = newHp;
+              
+              // Add battle log message
+              battleState.battleLog.push(`${currentTeamName} ${monsterName} takes ${damageAmount} damage from ${effect.effectDetails.name}!`);
+              break;
+              
+            case 'HEALING_OVER_TIME':
+              // Calculate healing based on database values
+              let healAmount;
+              const healValue = effect.override_value || effect.effectDetails.default_value || 0;
+              
+              if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+                const maxHp = monster.battleMaxHp || 0;
+                healAmount = Math.floor(maxHp * (healValue / 100));
+              } else {
+                // Default to FLAT healing
+                healAmount = healValue;
+              }
+              
+              // Apply healing
+              const currentHpHeal = monster.battleHp || 0;
+              const maxHpHeal = monster.battleMaxHp || 0;
+              const newHpHeal = Math.min(currentHpHeal + healAmount, maxHpHeal);
+              monster.battleHp = newHpHeal;
+              
+              // Add battle log message
+              battleState.battleLog.push(`${currentTeamName} ${monsterName} heals ${healAmount} HP from ${effect.effectDetails.name}!`);
+              break;
+          }
+        }
+        
+        // Manage duration based on duration_reduction_position
+        let shouldDecrementDuration = false;
+        
+        if (effect.effectDetails && effect.effectDetails.duration_reduction_position) {
+          switch (effect.effectDetails.duration_reduction_position) {
+            case 'ACTIVE_ONLY':
+              shouldDecrementDuration = isActive;
+              break;
+            case 'BENCH_ONLY':
+              shouldDecrementDuration = !isActive;
+              break;
+            case 'ANY':
+            default:
+              shouldDecrementDuration = true;
+              break;
+          }
+        } else {
+          // Default to ANY position if not specified
+          shouldDecrementDuration = true;
+        }
+        
+        if (shouldDecrementDuration) {
+          effect.duration = (effect.duration || 0) - 1;
+        }
+        
+        // Keep effect if duration is still greater than 0
+        if (effect.duration > 0) {
+          newStatusEffects.push(effect);
+        } else {
+          // Effect has expired, add log message
+          const effectName = effect.effectDetails?.name || 'effect';
+          battleState.battleLog.push(`The ${effectName} on ${currentTeamName} ${monsterName} wore off.`);
+        }
+      });
+      
+      // Replace the monster's statusEffects array with the new one
+      monster.statusEffects = newStatusEffects;
+    }
   });
   
-  // TODO: Decrement duration counters for status effects and remove expired effects
-  // This will be implemented when status effects system is added
-  
-  // Switch turn control to opposing team
-  if (battleState.turn === 'player') {
-    battleState.turn = 'ai';
-  } else if (battleState.turn === 'ai') {
-    battleState.turn = 'player';
-  }
+  // After processing all monsters, switch the turn to the other player
+  battleState.turn = isPlayerTurnEnding ? 'ai' : 'player';
 };
 
 // Helper function to execute healing abilities using database healing_power field
@@ -343,28 +431,33 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
     battleState.battleLog.push("A critical hit!");
   }
   
-  // Check if ability applies status effects
-  if (ability.status_effect_applies) {
-    // Get the chance from the database (e.g., 0.25 for 25%). Default to 1.0 (100%) if null.
-    const statusEffectChance = ability.status_effect_chance ?? 1.0;
+  // Check if ability applies a status effect using the new normalized structure
+  if (ability.status_effect_id && ability.effectDetails) {
+    // Use override values from the ability, or fall back to the defaults from the status_effect
+    const chance = ability.override_chance ?? ability.effectDetails.default_value ?? 1.0;
 
     // Compare the random float (0.0-1.0) directly against the probability
-    if (Math.random() < statusEffectChance) {
-      // Create new status effect object
-      const statusEffect = {
-        name: ability.status_effect_applies,
-        duration: ability.status_effect_duration || 1,
+    if (Math.random() < chance) {
+      // Create a complete status effect object to be applied to the monster
+      const newStatusEffect = {
+        name: ability.effectDetails.name,
+        duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
+        // Pass the full details object for the engine to use in other functions
+        effectDetails: ability.effectDetails,
+        // Pass ability-specific override values
+        override_value: ability.override_value,
+        override_chance: ability.override_chance,
       };
 
       // Add to target's statusEffects array
       if (!defender.statusEffects) {
         defender.statusEffects = [];
       }
-      defender.statusEffects.push(statusEffect);
+      defender.statusEffects.push(newStatusEffect);
 
       // Add status effect message to battle log
       const defenderName = defender.monster?.name || defender.name;
-      const effectName = ability.status_effect_applies.toLowerCase();
+      const effectName = ability.effectDetails.name.toLowerCase();
       battleState.battleLog.push(
         `${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`,
       );
@@ -491,24 +584,23 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
 
   const isPlayerTurn = battleState.turn === 'player';
   
-  // Server-authoritative ability lookup from battleState
-  let currentAttacker: UserMonster | Monster;
-  if (isPlayerTurn) {
-    currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
-  } else {
-    currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
+  // Server-authoritative ability lookup: Get the active monster and look up the ability
+  const activeMonster = isPlayerTurn 
+    ? battleState.playerTeam[battleState.activePlayerIndex]
+    : battleState.aiTeam[battleState.activeAiIndex];
+  
+  const monsterId = activeMonster.monster?.id || activeMonster.id;
+  const monsterAbilities = battleState.abilities_map[monsterId];
+  
+  if (!monsterAbilities) {
+    throw new Error(`No abilities found for monster ${monsterId}`);
   }
   
-  // Get the monster ID for ability lookup
-  const monsterId = (currentAttacker as any).monsterId || (currentAttacker as any).id;
-  const monsterAbilities = battleState.abilities_map[monsterId] || [];
-  
-  // Find the authoritative ability object from battleState
-  const ability = monsterAbilities.find((a: any) => a.id === abilityId);
+  const ability = monsterAbilities.find(a => a.id === abilityId);
   if (!ability) {
     throw new Error(`Ability ${abilityId} not found for monster ${monsterId}`);
   }
-
+  
   // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
   const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
   
@@ -523,7 +615,14 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   }
 
   // Server-side MP validation - check if attacker has enough MP before action phase
-  const attackerCurrentMp = (currentAttacker as any).battleMp || (currentAttacker as any).mp || 0;
+  let currentAttacker: UserMonster | Monster;
+  if (isPlayerTurn) {
+    currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
+  } else {
+    currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
+  }
+  
+  const attackerCurrentMp = currentAttacker.mp || 0;
   const abilityCost = ability.mp_cost || 0;
   
   if (attackerCurrentMp < abilityCost) {
@@ -568,6 +667,7 @@ export const createBattleSession = async (playerTeam: UserMonster[], opponentTea
   
   // Get abilities for all monsters in the battle
   const abilitiesMap = await storage.getAbilitiesForMonsters(allMonsterIds);
+  console.log("ABILITIES MAP:", JSON.stringify(abilitiesMap, null, 2));
   // Create initial battle state with standardized health properties
   const playerTeamCopy = JSON.parse(JSON.stringify(playerTeam)); // Deep copy to avoid mutations
   const aiTeamCopy = JSON.parse(JSON.stringify(opponentTeam));   // Deep copy to avoid mutations
