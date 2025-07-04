@@ -431,28 +431,33 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
     battleState.battleLog.push("A critical hit!");
   }
   
-  // Check if ability applies status effects
-  if (ability.status_effect_applies) {
-    // Get the chance from the database (e.g., 0.25 for 25%). Default to 1.0 (100%) if null.
-    const statusEffectChance = ability.status_effect_chance ?? 1.0;
+  // Check if ability applies a status effect using the new normalized structure
+  if (ability.status_effect_id && ability.effectDetails) {
+    // Use override values from the ability, or fall back to the defaults from the status_effect
+    const chance = ability.override_chance ?? ability.effectDetails.default_value ?? 1.0;
 
     // Compare the random float (0.0-1.0) directly against the probability
-    if (Math.random() < statusEffectChance) {
-      // Create new status effect object
-      const statusEffect = {
-        name: ability.status_effect_applies,
-        duration: ability.status_effect_duration || 1,
+    if (Math.random() < chance) {
+      // Create a complete status effect object to be applied to the monster
+      const newStatusEffect = {
+        name: ability.effectDetails.name,
+        duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
+        // Pass the full details object for the engine to use in other functions
+        effectDetails: ability.effectDetails,
+        // Pass ability-specific override values
+        override_value: ability.override_value,
+        override_chance: ability.override_chance,
       };
 
       // Add to target's statusEffects array
       if (!defender.statusEffects) {
         defender.statusEffects = [];
       }
-      defender.statusEffects.push(statusEffect);
+      defender.statusEffects.push(newStatusEffect);
 
       // Add status effect message to battle log
       const defenderName = defender.monster?.name || defender.name;
-      const effectName = ability.status_effect_applies.toLowerCase();
+      const effectName = ability.effectDetails.name.toLowerCase();
       battleState.battleLog.push(
         `${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`,
       );

@@ -773,6 +773,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Eliminates incomplete TODO comments and creates complete status effect lifecycle management
   - Maintains complete server-authoritative architecture with zero client-side modifications
   - Enables unlimited status effect types through database-driven effect_type processing
+- July 4, 2025: Fixed executeAbility Status Effect Application (Task 38)
+  - Updated executeAbility function in server/battleEngine.ts to use new normalized database schema
+  - Replaced broken status_effect_applies reference with status_effect_id and effectDetails structure
+  - Fixed status effect application using database-driven chance calculation (override_chance ?? default_value)
+  - Updated status effect object creation to include complete effectDetails and override values
+  - Uses proper fallback chain for duration (override_duration ?? default_duration)
+  - Creates status effect objects compatible with refactored handleEndOfTurn function
+  - Fixed critical bug where all active ability status effects were failing due to deleted database columns
+  - Maintains complete server-authoritative architecture using authentic relational database data
+  - Enables proper status effect application from active abilities like Jolt, Magma Punch, Psy-Beam
 
 ## User Preferences
 
