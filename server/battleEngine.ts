@@ -482,7 +482,7 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
 };
 
 // Server-authoritative damage application function with 3-phase turn lifecycle
-export const applyDamage = async (battleId: string, ability: Ability, targetId?: number) => {
+export const applyDamage = async (battleId: string, abilityId: number, targetId?: number) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
   if (!battleState) {
@@ -490,6 +490,30 @@ export const applyDamage = async (battleId: string, ability: Ability, targetId?:
   }
 
   const isPlayerTurn = battleState.turn === 'player';
+  
+  // Server-authoritative ability lookup from battleState
+  let currentAttacker: UserMonster | Monster;
+  if (isPlayerTurn) {
+    currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
+  } else {
+    currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
+  }
+  
+  // Get the monster ID for ability lookup
+  const monsterId = (currentAttacker as any).monsterId || (currentAttacker as any).id;
+  const monsterAbilities = battleState.abilities_map[monsterId] || [];
+  
+  // Find the authoritative ability object from battleState
+  const ability = monsterAbilities.find((a: any) => a.id === abilityId);
+  if (!ability) {
+    throw new Error(`Ability ${abilityId} not found for monster ${monsterId}`);
+  }
+
+  // LOG #1: Initial state after ability lookup
+  if (isPlayerTurn) {
+    const preActionMonster = battleState.playerTeam[battleState.activePlayerIndex];
+    console.log(`-- START of applyDamage -- Monster: ${preActionMonster.monster.name}, HP: ${preActionMonster.battleHp}, MP: ${preActionMonster.battleMp}`);
+  }
   
   // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
   const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
@@ -505,14 +529,7 @@ export const applyDamage = async (battleId: string, ability: Ability, targetId?:
   }
 
   // Server-side MP validation - check if attacker has enough MP before action phase
-  let currentAttacker: UserMonster | Monster;
-  if (isPlayerTurn) {
-    currentAttacker = battleState.playerTeam[battleState.activePlayerIndex];
-  } else {
-    currentAttacker = battleState.aiTeam[battleState.activeAiIndex];
-  }
-  
-  const attackerCurrentMp = currentAttacker.mp || 0;
+  const attackerCurrentMp = (currentAttacker as any).battleMp || (currentAttacker as any).mp || 0;
   const abilityCost = ability.mp_cost || 0;
   
   if (attackerCurrentMp < abilityCost) {

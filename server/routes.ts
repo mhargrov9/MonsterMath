@@ -421,13 +421,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Battle action processing endpoint (server-authoritative turn management)
   app.post('/api/battle/perform-action', isAuthenticated, async (req: any, res) => {
     try {
-      const { battleId, ability, targetId } = req.body;
+      const { battleId, abilityId, targetId } = req.body;
 
-      if (!battleId || !ability) {
-        return res.status(400).json({ message: 'Missing required battle data (battleId, ability)' });
+      if (!battleId || !abilityId) {
+        return res.status(400).json({ message: 'Missing required battle data (battleId, abilityId)' });
       }
 
-      const actionResult = await applyDamage(battleId, ability, targetId);
+      const actionResult = await applyDamage(battleId, abilityId, targetId);
       res.json(actionResult);
 
     } catch (error) {

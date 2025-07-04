@@ -761,6 +761,25 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Battle engine now receives complete ability packages with embedded status effect data in single query
   - Eliminates need for separate status effect lookups during battle processing
   - Enables efficient database-driven status effect system with authentic relational data
+- July 4, 2025: HP/MP State Corruption Diagnostic Logging (Task 40)
+  - Added three strategic console.log statements in applyDamage function for player turns only
+  - LOG #1: Initial state after ability lookup shows monster HP/MP at turn start
+  - LOG #2: State after action phase shows HP/MP after ability execution and defeat logic
+  - LOG #3: State after end of turn shows final HP/MP values after passive effects
+  - Temporary diagnostic logging uses authentic battleHp/battleMp values from server battle state
+  - Enables precise identification of when HP/MP corruption occurs during turn lifecycle
+  - Player-turn filtering prevents AI turn noise in debugging logs
+- July 4, 2025: Server-Authoritative Battle Actions Fix (Task 41)
+  - Modified client BattleArena.tsx to send only abilityId instead of complete ability objects
+  - Updated /api/battle/perform-action route to accept abilityId parameter instead of ability object
+  - Refactored applyDamage function signature to accept abilityId: number instead of ability: Ability
+  - Added server-authoritative ability lookup from battleState.abilities_map using monster ID
+  - Implemented comprehensive validation: monster ID lookup, ability existence checks, and error handling
+  - Eliminated client's ability to send stale or corrupt ability data to server
+  - Server now uses only authentic database-driven ability data from battleState for all actions
+  - Fixed HP/MP reset bug and status effect application failures caused by client-server state corruption
+  - Strengthened server authority by making battleState.abilities_map the single source of truth for all battle actions
+  - Client reduced to sending primitive IDs only, maintaining "dumb client" architectural principle
 
 ## User Preferences
 
