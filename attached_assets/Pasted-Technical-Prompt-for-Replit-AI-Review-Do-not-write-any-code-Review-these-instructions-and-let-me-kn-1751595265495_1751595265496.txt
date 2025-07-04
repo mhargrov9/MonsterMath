@@ -1,0 +1,52 @@
+Technical Prompt for Replit AI Review
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). A quick summary of our unbreakable rules:
+
+Architecture Compliance: Every change must align with server-authoritative, database-driven design.
+
+Authentic Data Only: No mock, placeholder, or hardcoded data allowed.
+
+. Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Abilities that are supposed to apply status effects (e.g., Jolt applying 'PARALYZED') currently do not have any effect beyond their base damage.
+
+Problem 2: The engine is not using the status_effect_applies, status_effect_chance, and status_effect_duration fields from the database for active abilities.
+
+Architectural Mandate Reminder
+Before proceeding, review this core project directive: The server is the only brain; the client is only hands and eyes.
+
+All game logic, rule validation, and calculations must occur on the server, primarily within server/battleEngine.ts. All dynamic values (costs, multipliers, chances, etc.) must be read from the database. The client must remain "dumb" and only render the state and log provided by the server. There are no exceptions.
+
+1. Goal:
+Enhance the executeAbility function to handle the application of status effects, driven by database properties.
+
+2. File Modifications:
+
+server/battleEngine.ts
+
+3. Implementation Details:
+
+Task A: Initialize statusEffects Array
+
+Navigate to the createBattleSession function.
+
+In the loop where you initialize battleHp for each monster, also add a new, empty array property: monster.statusEffects = [];. This ensures every monster in the battle has a place to store active effects.
+
+Task B: Implement Status Effect Application
+
+Navigate to the executeAbility function.
+
+After damage is calculated and applied, check if the ability object has a non-null status_effect_applies property.
+
+If it does, perform a chance-based check using the ability.status_effect_chance. If the status_effect_chance is null, it should be treated as a 100% chance.
+
+If the chance check succeeds, create a new status effect object (e.g., { name: 'PARALYZED', duration: 2 }) using the status_effect_applies and status_effect_duration properties from the ability data.
+
+Add this new object to the target monster's statusEffects array.
+
+Push a new, clear message to the battleState.battleLog announcing the status effect was applied (e.g., "Gigalith was paralyzed!").
+
+4. Architecture Compliance Check:
+
+Does this change use the correct database fields to drive status effect application?
+
+Does this keep all logic for applying and tracking status effects on the server?
