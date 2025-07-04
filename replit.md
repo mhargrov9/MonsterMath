@@ -735,6 +735,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - All effects include proper duration, value types, and beneficial/detrimental classification
   - Database now contains authentic status effect definitions for battle engine integration
   - Eliminates need for hardcoded status effect mechanics in application code
+- July 4, 2025: Abilities Table Schema Refactoring (Task 34)
+  - Refactored abilities table to eliminate denormalized status effect columns
+  - Removed 6 redundant columns: status_effect_applies, status_effect_chance, status_effect_duration, status_effect_value, status_effect_value_type, effect_type
+  - Added proper foreign key relationship: status_effect_id references status_effects(id)
+  - Added 3 nullable override columns: override_duration, override_value, override_chance
+  - Created clean relational database design with single source of truth for status effects
+  - Enables ability-specific customization through override columns while maintaining centralized definitions
+  - Applied schema changes successfully using direct SQL ALTER TABLE commands
 
 ## User Preferences
 
