@@ -801,6 +801,12 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Temporary diagnostic logging uses authentic battleHp/battleMp values from server battle state
   - Enables precise identification of when HP/MP corruption occurs during turn lifecycle
   - Player-turn filtering prevents AI turn noise in debugging logs
+- July 4, 2025: MP Deduction Diagnostic Logging Implementation (Task 43)
+  - Added targeted console.log statements to trace MP values during ability execution
+  - Enhanced executeAbility and executeHealingAbility functions with PRE/POST action logging
+  - Added dynamic AI/PLAYER context detection for both player and AI turn logging
+  - Diagnostic logs now show exact MP values before and after ability usage
+  - Enables precise identification of when battleMp deduction occurs or fails during turn cycles
 
 ## User Preferences
 

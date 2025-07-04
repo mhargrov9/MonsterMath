@@ -351,11 +351,13 @@ const handleEndOfTurn = (battleState: any): void => {
 const executeHealingAbility = async (battleState: any, ability: any, attacker: any, target: any): Promise<DamageResult> => {
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
+  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} PRE-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   if (attacker.battleMp !== undefined) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
   } else {
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
+  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} POST-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
 
   // Calculate healing amount from database healing_power field
   const healingAmount = ability.healing_power || 0;
@@ -401,11 +403,13 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
+  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} PRE-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   if ('battleMp' in attacker) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
   } else {
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
+  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} POST-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   
   // Apply damage to defender using standardized battleHp property
   const currentHp = defender.battleHp || 0;
