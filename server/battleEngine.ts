@@ -334,26 +334,29 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   
   // Check if ability applies status effects
   if (ability.status_effect_applies) {
-    const statusEffectChance = ability.status_effect_chance || 100; // Default to 100% if null
-    const randomChance = Math.random() * 100;
-    
-    if (randomChance <= statusEffectChance) {
+    // Get the chance from the database (e.g., 0.25 for 25%). Default to 1.0 (100%) if null.
+    const statusEffectChance = ability.status_effect_chance ?? 1.0;
+
+    // Compare the random float (0.0-1.0) directly against the probability
+    if (Math.random() < statusEffectChance) {
       // Create new status effect object
       const statusEffect = {
         name: ability.status_effect_applies,
-        duration: ability.status_effect_duration || 1
+        duration: ability.status_effect_duration || 1,
       };
-      
+
       // Add to target's statusEffects array
       if (!defender.statusEffects) {
         defender.statusEffects = [];
       }
       defender.statusEffects.push(statusEffect);
-      
+
       // Add status effect message to battle log
       const defenderName = defender.monster?.name || defender.name;
       const effectName = ability.status_effect_applies.toLowerCase();
-      battleState.battleLog.push(`${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`);
+      battleState.battleLog.push(
+        `${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`,
+      );
     }
   }
   

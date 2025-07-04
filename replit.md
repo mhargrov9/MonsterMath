@@ -694,6 +694,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Abilities like "Jolt" now properly apply PARALYZED status beyond base damage
   - Maintains complete server-authoritative architecture with zero client-side status effect logic
   - Enables unlimited status effect types through database configuration without code changes
+- July 3, 2025: Fixed Status Effect Chance Calculation (Task 29)
+  - Corrected mathematical error in status effect probability calculation in executeAbility function
+  - Fixed flawed percentage-based logic that treated 0.25 decimal as 0.25% instead of 25%
+  - Updated to compare Math.random() (0.0-1.0) directly against database decimal probability values
+  - Uses nullish coalescing (??) for cleaner default handling (1.0 for 100% when null)
+  - Abilities with 25% chance (0.25) now correctly activate 25% of the time instead of 0.25%
+  - Maintains server-authoritative probability processing with authentic database-driven values
+  - Fixed TypeScript interface duplications for cleaner type definitions
 
 ## User Preferences
 

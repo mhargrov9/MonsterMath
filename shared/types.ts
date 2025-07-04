@@ -58,10 +58,6 @@ export interface Monster {
   levelUpgrades?: any;
   hp?: number;
   mp?: number;
-  battleHp?: number;
-  battleMaxHp?: number;
-  battleMp?: number;
-  battleMaxMp?: number;
 }
 
 export interface Ability {
