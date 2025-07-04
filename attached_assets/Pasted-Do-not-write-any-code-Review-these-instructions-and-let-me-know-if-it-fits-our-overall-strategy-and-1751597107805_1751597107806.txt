@@ -1,0 +1,44 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The chance-based application of status effects is mathematically incorrect, causing abilities with a 25% chance (0.25) to have an actual chance of 0.25%.
+
+Goal: Correct the Status Effect Chance Calculation
+Our goal is to fix the mathematical formula for status effect application in server/battleEngine.ts. The implementation should be updated to correctly interpret the decimal probability value from the database.
+
+File Modifications
+1. server/battleEngine.ts
+Action: Locate the executeAbility function.
+
+Specific Change: Find the if block that checks if an ability applies a status effect (if (ability.status_effect_applies)).
+
+You are to replace the entire contents of that if block with the following improved and corrected logic. This new logic correctly compares the Math.random() float (0.0-1.0) directly against the decimal probability from the database.
+
+TypeScript
+
+// Check if ability applies status effects
+if (ability.status_effect_applies) {
+  // Get the chance from the database (e.g., 0.25 for 25%). Default to 1.0 (100%) if null.
+  const statusEffectChance = ability.status_effect_chance ?? 1.0;
+
+  // Compare the random float (0.0-1.0) directly against the probability
+  if (Math.random() < statusEffectChance) {
+    // Create new status effect object
+    const statusEffect = {
+      name: ability.status_effect_applies,
+      duration: ability.status_effect_duration || 1,
+    };
+
+    // Add to target's statusEffects array
+    if (!defender.statusEffects) {
+      defender.statusEffects = [];
+    }
+    defender.statusEffects.push(statusEffect);
+
+    // Add status effect message to battle log
+    const defenderName = defender.monster?.name || defender.name;
+    const effectName = ability.status_effect_applies.toLowerCase();
+    battleState.battleLog.push(
+      `${isPlayerTurn ? "Opponent's" : "Your"} ${defenderName} was ${effectName}!`,
+    );
+  }
+}
