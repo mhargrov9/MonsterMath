@@ -557,7 +557,7 @@ export const createBattleSession = async (playerTeam: UserMonster[], opponentTea
   
   // Get abilities for all monsters in the battle
   const abilitiesMap = await storage.getAbilitiesForMonsters(allMonsterIds);
-  
+  console.log("ABILITIES MAP:", JSON.stringify(abilitiesMap, null, 2));
   // Create initial battle state with standardized health properties
   const playerTeamCopy = JSON.parse(JSON.stringify(playerTeam)); // Deep copy to avoid mutations
   const aiTeamCopy = JSON.parse(JSON.stringify(opponentTeam));   // Deep copy to avoid mutations

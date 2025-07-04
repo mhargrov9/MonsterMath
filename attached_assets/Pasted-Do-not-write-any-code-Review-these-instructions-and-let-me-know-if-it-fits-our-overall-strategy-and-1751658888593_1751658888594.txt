@@ -1,0 +1,41 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The current handleEndOfTurn function is incomplete. It does not process status effects like Damage over Time or Healing over Time, nor does it decrement the duration of any active effects.
+
+Problem: The battle engine is not yet using our new, normalized database schema for abilities and status effects.
+
+Goal: Refactor handleEndOfTurn to Use the New Status Effect System
+Your task is to completely rewrite the handleEndOfTurn function in server/battleEngine.ts. The new function must systematically process all end-of-turn passive abilities and active status effects, manage their durations, and use the new data structure we've created (effectDetails).
+
+File Modifications
+1. server/battleEngine.ts
+Action: Locate and completely replace the existing handleEndOfTurn function with new logic that performs the following actions in order:
+
+Identify the team whose turn just ended (currentTeam).
+
+Loop through each monster on that team (both active and benched).
+
+For each monster, first process their passive abilities that have an activation_trigger of 'END_OF_TURN' (like "Soothing Aura"). This logic can be adapted from the old function.
+
+Next, for each monster, process their statusEffects array.
+
+Create a switch statement that looks at the effect.effectDetails.effect_type.
+
+Case 'DAMAGE_OVER_TIME': Calculate damage based on the default_value and value_type from effect.effectDetails. Apply the damage and add a log message (e.g., "Your Gigalith takes 15 damage from poison!").
+
+Case 'HEALING_OVER_TIME': Calculate healing based on the default_value and value_type. Apply the healing and add a log message.
+
+After processing effects, manage durations.
+
+Create a new, temporary array for the monster's status effects.
+
+Loop through the existing effects. For each effect, check its duration_reduction_position.
+
+If the position matches (e.g., the monster is 'ACTIVE_ONLY' and is active, or the position is 'ANY'), decrement its duration by 1.
+
+If an effect's new duration is greater than 0, add it to the new temporary array. If it is 0, the effect has expired; add a log message (e.g., "The burn on Gigalith wore off.") and do not add it to the new array.
+
+Replace the monster's old statusEffects array with the new one.
+
+After the main loop is finished, switch the turn to the other player.
+
