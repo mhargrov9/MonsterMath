@@ -743,6 +743,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Created clean relational database design with single source of truth for status effects
   - Enables ability-specific customization through override columns while maintaining centralized definitions
   - Applied schema changes successfully using direct SQL ALTER TABLE commands
+- July 4, 2025: Ability-to-Status-Effect Data Linking (Task 35)
+  - Executed 8 SQL UPDATE statements linking abilities to their corresponding status effects
+  - Connected Jolt→Paralyzed, Magma Punch→Burned, Psy-Beam→Confused, Soot Cloud→Poisoned
+  - Linked healing abilities: Volcanic Heart→Regeneration, Soothing Aura→Regeneration
+  - Connected defensive abilities: Crystalize→Crystallized, Phase Shift→Phasing
+  - Applied ability-specific overrides: Psy-Beam (40% confusion), Soot Cloud (25% poison, 2 turns)
+  - Set custom values: Volcanic Heart (15% chance, 5 healing), Soothing Aura (3 healing)
+  - Created authentic database relationships enabling complete status effect processing
+  - Database now contains working foreign key links between all status effect abilities and their effects
 
 ## User Preferences
 
