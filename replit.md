@@ -752,6 +752,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Set custom values: Volcanic Heart (15% chance, 5 healing), Soothing Aura (3 healing)
   - Created authentic database relationships enabling complete status effect processing
   - Database now contains working foreign key links between all status effect abilities and their effects
+- July 4, 2025: Enhanced getAbilitiesForMonsters with Status Effects JOIN (Task 36)
+  - Refactored getAbilitiesForMonsters function in server/storage.ts to include LEFT JOIN with status_effects table
+  - Added statusEffects import and updated Drizzle ORM query to fetch complete ability packages
+  - Enhanced select statement to include all status effect fields (id, name, effect_type, default_duration, etc.)
+  - Created effectDetails nested object containing complete status effect definitions from database
+  - Abilities without status effects return effectDetails: null for clean data structure
+  - Battle engine now receives complete ability packages with embedded status effect data in single query
+  - Eliminates need for separate status effect lookups during battle processing
+  - Enables efficient database-driven status effect system with authentic relational data
 
 ## User Preferences
 

@@ -8,6 +8,7 @@ import {
   aiTeams,
   abilities,
   monsterAbilities,
+  statusEffects,
   ranks,
   type User,
   type Rank,
@@ -519,7 +520,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAbilitiesForMonsters(monsterIds: number[]): Promise<Record<number, any[]>> {
-    // Perform a single efficient database query joining monsterAbilities and abilities tables
+    // Perform a single efficient database query joining monsterAbilities, abilities, and status_effects tables
     const results = await db
       .select({
         monsterId: monsterAbilities.monster_id,
@@ -533,17 +534,37 @@ export class DatabaseStorage implements IStorage {
         scalingStat: abilities.scaling_stat,
         healingPower: abilities.healing_power,
         targetScope: abilities.target_scope,
+        maxTargets: abilities.max_targets,
         activationScope: abilities.activation_scope,
         activationTrigger: abilities.activation_trigger,
-        statusEffectApplies: abilities.status_effect_applies,
-        statusEffectChance: abilities.status_effect_chance,
-        statusEffectDuration: abilities.status_effect_duration,
-        statusEffectValue: abilities.status_effect_value,
-        statusEffectValueType: abilities.status_effect_value_type,
+        triggerConditionType: abilities.trigger_condition_type,
+        triggerConditionOperator: abilities.trigger_condition_operator,
+        triggerConditionValue: abilities.trigger_condition_value,
+        statusEffectTriggerAffinity: abilities.status_effect_trigger_affinity,
+        statusEffectId: abilities.status_effect_id,
+        overrideDuration: abilities.override_duration,
+        overrideValue: abilities.override_value,
+        overrideChance: abilities.override_chance,
+        priority: abilities.priority,
+        critChanceModifier: abilities.crit_chance_modifier,
+        lifestealPercent: abilities.lifesteal_percent,
         statModifiers: abilities.stat_modifiers,
+        minHits: abilities.min_hits,
+        maxHits: abilities.max_hits,
+        // Status effect fields
+        effectId: statusEffects.id,
+        effectName: statusEffects.name,
+        effectDescription: statusEffects.description,
+        effectType: statusEffects.effect_type,
+        defaultDuration: statusEffects.default_duration,
+        defaultValue: statusEffects.default_value,
+        valueType: statusEffects.value_type,
+        durationReductionPosition: statusEffects.duration_reduction_position,
+        isPositive: statusEffects.is_positive,
       })
       .from(monsterAbilities)
       .innerJoin(abilities, eq(monsterAbilities.ability_id, abilities.id))
+      .leftJoin(statusEffects, eq(abilities.status_effect_id, statusEffects.id))
       .where(sql`${monsterAbilities.monster_id} IN (${sql.join(monsterIds.map(id => sql`${id}`), sql`, `)})`)
       .orderBy(asc(monsterAbilities.monster_id), asc(abilities.name));
 
@@ -554,6 +575,19 @@ export class DatabaseStorage implements IStorage {
       if (!abilitiesMap[result.monsterId]) {
         abilitiesMap[result.monsterId] = [];
       }
+      
+      // Create effectDetails object if status effect exists
+      const effectDetails = result.effectId ? {
+        id: result.effectId,
+        name: result.effectName,
+        description: result.effectDescription,
+        effect_type: result.effectType,
+        default_duration: result.defaultDuration,
+        default_value: result.defaultValue,
+        value_type: result.valueType,
+        duration_reduction_position: result.durationReductionPosition,
+        is_positive: result.isPositive,
+      } : null;
       
       abilitiesMap[result.monsterId].push({
         id: result.abilityId,
@@ -566,14 +600,24 @@ export class DatabaseStorage implements IStorage {
         scaling_stat: result.scalingStat,
         healing_power: result.healingPower,
         target_scope: result.targetScope,
+        max_targets: result.maxTargets,
         activation_scope: result.activationScope,
         activation_trigger: result.activationTrigger,
-        status_effect_applies: result.statusEffectApplies,
-        status_effect_chance: result.statusEffectChance,
-        status_effect_duration: result.statusEffectDuration,
-        status_effect_value: result.statusEffectValue,
-        status_effect_value_type: result.statusEffectValueType,
+        trigger_condition_type: result.triggerConditionType,
+        trigger_condition_operator: result.triggerConditionOperator,
+        trigger_condition_value: result.triggerConditionValue,
+        status_effect_trigger_affinity: result.statusEffectTriggerAffinity,
+        status_effect_id: result.statusEffectId,
+        override_duration: result.overrideDuration,
+        override_value: result.overrideValue,
+        override_chance: result.overrideChance,
+        priority: result.priority,
+        crit_chance_modifier: result.critChanceModifier,
+        lifesteal_percent: result.lifestealPercent,
         stat_modifiers: result.statModifiers,
+        min_hits: result.minHits,
+        max_hits: result.maxHits,
+        effectDetails: effectDetails,
       });
     }
 
