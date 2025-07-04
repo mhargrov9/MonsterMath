@@ -727,6 +727,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Applied database migration successfully creating centralized status effect management
   - Enables unlimited status effect types through database configuration without code changes
   - Foundation established for superior database-driven status effect architecture
+- July 4, 2025: Status Effects Table Population (Task 33)
+  - Populated status_effects table with 7 core status effects using single SQL INSERT statement
+  - Added PARALYZED (25% turn skip chance), BURNED (5% max HP DoT), POISONED (15 flat DoT)
+  - Included CONFUSED (50% self-attack chance), REGENERATION (healing over time), CRYSTALLIZED (stat modifier)
+  - Added PHASING (physical attack evasion) with complete effect type categorization
+  - All effects include proper duration, value types, and beneficial/detrimental classification
+  - Database now contains authentic status effect definitions for battle engine integration
+  - Eliminates need for hardcoded status effect mechanics in application code
 
 ## User Preferences
 
