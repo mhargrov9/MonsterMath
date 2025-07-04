@@ -600,6 +600,11 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   if (!ability) {
     throw new Error(`Ability ${abilityId} not found for monster ${monsterId}`);
   }
+
+  // LOG #1: Initial State
+  if (isPlayerTurn) {
+    console.log(`-- START of applyDamage -- Monster: ${activeMonster.monster.name}, HP: ${activeMonster.battleHp}, MP: ${activeMonster.battleMp}`);
+  }
   
   // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
   const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
@@ -635,8 +640,20 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   // Check for monster defeat and handle forced swaps/battle end conditions
   await handleMonsterDefeatLogic(battleState);
 
+  // LOG #2: State After Action Phase
+  if (isPlayerTurn) {
+    const postActionMonster = battleState.playerTeam[battleState.activePlayerIndex];
+    console.log(`-- AFTER ActionPhase -- Monster: ${postActionMonster.monster.name}, HP: ${postActionMonster.battleHp}, MP: ${postActionMonster.battleMp}`);
+  }
+
   // PHASE 3: END OF TURN - Handle passives, duration countdown, and turn switching
   handleEndOfTurn(battleState);
+
+  // LOG #3: State After End of Turn
+  if (isPlayerTurn) {
+    const postEOTMonster = battleState.playerTeam[battleState.activePlayerIndex];
+    console.log(`-- AFTER EndOfTurn -- Monster: ${postEOTMonster.monster.name}, HP: ${postEOTMonster.battleHp}, MP: ${postEOTMonster.battleMp}`);
+  }
 
   // Update the battle session
   battleSessions.set(battleId, battleState);

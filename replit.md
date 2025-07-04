@@ -793,6 +793,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed HP/MP reset bug and status effect application failures caused by client-server state corruption
   - Strengthened server authority by making battleState.abilities_map the single source of truth for all battle actions
   - Client reduced to sending primitive IDs only, maintaining "dumb client" architectural principle
+- July 4, 2025: HP/MP State Corruption Diagnostic Logging (Task 40)
+  - Added three strategic console.log statements in applyDamage function for player turns only
+  - LOG #1: Initial state after ability lookup shows monster HP/MP at turn start
+  - LOG #2: State after action phase shows HP/MP after ability execution and defeat logic
+  - LOG #3: State after end of turn shows final HP/MP values after passive effects
+  - Temporary diagnostic logging uses authentic battleHp/battleMp values from server battle state
+  - Enables precise identification of when HP/MP corruption occurs during turn lifecycle
+  - Player-turn filtering prevents AI turn noise in debugging logs
 
 ## User Preferences
 
