@@ -197,6 +197,18 @@ export const aiTeams = pgTable("ai_teams", {
   maxTPL: integer("max_tpl").default(50).notNull(),
 });
 
+export const statusEffects = pgTable("status_effects", {
+  id: serial("id").primaryKey(),
+  name: varchar("name").notNull().unique(),
+  description: text("description"),
+  effect_type: varchar("effect_type").notNull(),
+  default_duration: integer("default_duration").default(1),
+  default_value: decimal("default_value"),
+  value_type: varchar("value_type"),
+  duration_reduction_position: varchar("duration_reduction_position").default('ACTIVE_ONLY').notNull(),
+  is_positive: boolean("is_positive").default(false).notNull(),
+});
+
 // Schemas for validation
 export const upsertUserSchema = createInsertSchema(users);
 export const insertRankSchema = createInsertSchema(ranks).omit({ id: true });
