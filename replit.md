@@ -783,6 +783,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed critical bug where all active ability status effects were failing due to deleted database columns
   - Maintains complete server-authoritative architecture using authentic relational database data
   - Enables proper status effect application from active abilities like Jolt, Magma Punch, Psy-Beam
+- July 4, 2025: Server-Authoritative Battle Actions Implementation (Task 39)
+  - Modified client BattleArena.tsx to send only abilityId instead of complete ability objects
+  - Updated /api/battle/perform-action route to accept abilityId parameter instead of ability object
+  - Refactored applyDamage function to perform server-authoritative ability lookups from battleState.abilities_map
+  - Added comprehensive validation: monster ID lookup, ability existence checks, and error handling
+  - Eliminated client's ability to send stale or corrupt ability data to server
+  - Server now uses only authentic database-driven ability data from battleState for all actions
+  - Fixed HP/MP reset bug and status effect application failures caused by client-server state corruption
+  - Strengthened server authority by making battleState.abilities_map the single source of truth for all battle actions
+  - Client reduced to sending primitive IDs only, maintaining "dumb client" architectural principle
 
 ## User Preferences
 

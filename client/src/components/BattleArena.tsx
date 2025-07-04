@@ -95,7 +95,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         credentials: 'include',
         body: JSON.stringify({
           battleId,
-          ability
+          abilityId: ability.id
         })
       });
       

@@ -575,7 +575,7 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
 };
 
 // Server-authoritative damage application function with 3-phase turn lifecycle
-export const applyDamage = async (battleId: string, ability: Ability, targetId?: number) => {
+export const applyDamage = async (battleId: string, abilityId: number, targetId?: number) => {
   // Retrieve battle state from sessions
   const battleState = battleSessions.get(battleId);
   if (!battleState) {
@@ -583,6 +583,23 @@ export const applyDamage = async (battleId: string, ability: Ability, targetId?:
   }
 
   const isPlayerTurn = battleState.turn === 'player';
+  
+  // Server-authoritative ability lookup: Get the active monster and look up the ability
+  const activeMonster = isPlayerTurn 
+    ? battleState.playerTeam[battleState.activePlayerIndex]
+    : battleState.aiTeam[battleState.activeAiIndex];
+  
+  const monsterId = activeMonster.monster?.id || activeMonster.id;
+  const monsterAbilities = battleState.abilities_map[monsterId];
+  
+  if (!monsterAbilities) {
+    throw new Error(`No abilities found for monster ${monsterId}`);
+  }
+  
+  const ability = monsterAbilities.find(a => a.id === abilityId);
+  if (!ability) {
+    throw new Error(`Ability ${abilityId} not found for monster ${monsterId}`);
+  }
   
   // PHASE 1: START OF TURN - Handle status effects, DoT, and turn-skipping
   const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
