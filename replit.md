@@ -761,6 +761,18 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Battle engine now receives complete ability packages with embedded status effect data in single query
   - Eliminates need for separate status effect lookups during battle processing
   - Enables efficient database-driven status effect system with authentic relational data
+- July 4, 2025: Complete handleEndOfTurn Database-Driven Refactoring (Task 37)
+  - Completely rewrote handleEndOfTurn function in server/battleEngine.ts to use new normalized status effect system
+  - Added systematic processing of END_OF_TURN passive abilities using database effectDetails structure
+  - Implemented comprehensive status effect processing with switch statement routing by effect_type
+  - Added DAMAGE_OVER_TIME processing using default_value and value_type from status_effects table
+  - Added HEALING_OVER_TIME processing with PERCENT_MAX_HP and FLAT value type support
+  - Implemented intelligent duration management using duration_reduction_position (ACTIVE_ONLY, BENCH_ONLY, ANY)
+  - Added authentic status effect expiration messages when effects wear off
+  - Uses override_value and override_chance fields for ability-specific customization while maintaining centralized definitions
+  - Eliminates incomplete TODO comments and creates complete status effect lifecycle management
+  - Maintains complete server-authoritative architecture with zero client-side modifications
+  - Enables unlimited status effect types through database-driven effect_type processing
 
 ## User Preferences
 
