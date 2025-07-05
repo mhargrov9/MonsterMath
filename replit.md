@@ -845,6 +845,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Enables battle engine to implement self-damage mechanics using authentic database values
   - Maintains database-driven architecture with proper dual-parameter status effects
   - Verified successful update affecting 1 row in status_effects table
+- July 5, 2025: CONFUSED Status Effect Processing Implementation (Task 49)
+  - Enhanced handleStartOfTurn function with scalable switch statement architecture
+  - Added complete DISRUPTION effect_type processing for CONFUSED status effects
+  - Implements 50% confusion chance using database default_value with override support
+  - Calculates self-damage using monster's power stat × database secondary_value (40%)
+  - Generates authentic battle log messages for confusion activation and self-damage
+  - Maintains server-authoritative architecture with database-driven status effect mechanics
+  - Enables strategic disruption gameplay through authentic confusion mechanics
 
 ## User Preferences
 

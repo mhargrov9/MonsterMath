@@ -41,24 +41,47 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
   const activeMonster = currentTeam[activeIndex];
   const teamName = isPlayerTurn ? "Your" : "Opponent's";
 
-  // --- Process Start-of-Turn Status Effects ---
   if (activeMonster.statusEffects && activeMonster.statusEffects.length > 0) {
     for (const effect of activeMonster.statusEffects) {
-      if (effect.effectDetails?.effect_type === 'TURN_SKIP') {
-        // Our design dictates a 100% turn skip for paralysis. No random chance is needed.
-        battleState.battleLog.push(
-          `${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`,
-        );
-        return { turnSkipped: true };
+      if (!effect.effectDetails) continue;
+
+      switch (effect.effectDetails.effect_type) {
+        case 'TURN_SKIP': { // For PARALYZED
+          battleState.battleLog.push(
+            `${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`,
+          );
+          return { turnSkipped: true };
+        }
+
+        case 'DISRUPTION': { // For CONFUSED
+          // Read chance from the database (default_value), with a fallback.
+          const confusionChance = parseFloat(effect.override_chance || effect.effectDetails.default_value || '0.5');
+
+          if (Math.random() < confusionChance) {
+            const monsterName = activeMonster.monster?.name || activeMonster.name;
+            // Read self-damage modifier from the database (secondary_value), with a fallback.
+            const selfDamageModifier = parseFloat(effect.effectDetails.secondary_value || '0.4');
+
+            // Calculate self-damage based on the monster's own power stat.
+            const selfDamage = Math.floor(activeMonster.power * selfDamageModifier);
+
+            if (selfDamage > 0) {
+                activeMonster.battleHp = Math.max(0, activeMonster.battleHp - selfDamage);
+                battleState.battleLog.push(
+                  `${teamName} ${monsterName} is confused and hurt itself for ${selfDamage} damage!`,
+                );
+            }
+
+            // The turn is skipped after self-damage.
+            return { turnSkipped: true };
+          }
+          break; // If confusion check fails, do nothing and proceed.
+        }
       }
     }
   }
 
-  // --- Process Start-of-Turn Passive Abilities (Future) ---
-  // This section is reserved for future passives that trigger at the start of a turn.
-
   battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`);
-
   return { turnSkipped: false };
 };
 
