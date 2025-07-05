@@ -1,0 +1,82 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The player's monster's HP resets after their turn because the server is sending back a stale battle state.
+
+Goal: Refactor the server's turn-processing logic to eliminate state corruption bugs and ensure player HP is correctly persisted between turns.
+
+File Modifications
+File: server/battleEngine.ts
+
+Action: We will introduce a new, master function called processTurn and refactor applyDamage and processAiTurn to use it. This centralizes the turn lifecycle and fixes the state bug.
+
+Step 1: Create the new processTurn function. Add this new function to the file.
+
+TypeScript
+
+// NEW MASTER FUNCTION
+const processTurn = async (battleState: any, ability: Ability, targetId?: number) => {
+  const isPlayerTurn = battleState.turn === 'player';
+
+  // PHASE 1: START OF TURN
+  const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
+  if (startOfTurnResult.turnSkipped) {
+    handleEndOfTurn(battleState);
+    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+  }
+
+  // PHASE 2: ACTION
+  const damageResult = await handleActionPhase(battleState, ability, targetId);
+  await handleMonsterDefeatLogic(battleState);
+
+  // PHASE 3: END OF TURN
+  handleEndOfTurn(battleState);
+
+  return { damageResult, battleState };
+};
+Step 2: Refactor applyDamage (Player's Turn). Replace the entire existing applyDamage function with this simpler version that calls our new master function.
+
+TypeScript
+
+export const applyDamage = async (battleId: string, abilityId: number, targetId?: number) => {
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
+
+  const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const monsterAbilities = battleState.abilities_map[activeMonster.monster.id] || [];
+  const ability = monsterAbilities.find(a => a.id === abilityId);
+  if (!ability) throw new Error(`Ability ${abilityId} not found`);
+
+  if (activeMonster.battleMp < (ability.mp_cost || 0)) {
+      throw new Error('Not enough MP');
+  }
+
+  const turnResult = await processTurn(battleState, ability, targetId);
+  battleSessions.set(battleId, turnResult.battleState);
+  return turnResult;
+};
+Step 3: Refactor processAiTurn (AI's Turn). Replace the entire existing processAiTurn function with this simpler version that also calls our new master function.
+
+TypeScript
+
+export const processAiTurn = async (battleId: string) => {
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
+  if (battleState.turn !== 'ai') throw new Error('Not AI turn');
+
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+  const activeAbilities = monsterAbilities.filter((a: any) => a.ability_type === 'ACTIVE');
+  const affordableAbilities = activeAbilities.filter((a: any) => (aiMonster.battleMp ?? 0) >= (a.mp_cost || 0));
+
+  let chosenAbility;
+  if (affordableAbilities.length > 0) {
+    chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+  } else {
+    chosenAbility = activeAbilities.find((a: any) => a.mp_cost === 0) || activeAbilities[0];
+  }
+  if (!chosenAbility) throw new Error("AI could not select an ability.");
+
+  const turnResult = await processTurn(battleState, chosenAbility);
+  battleSessions.set(battleId, turnResult.battleState);
+  return turnResult;
+};
