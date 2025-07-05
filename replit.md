@@ -963,6 +963,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Phase-by-phase logging: handleStartOfTurn → handleActionPhase → handleMonsterDefeatLogic → handleEndOfTurn
   - Enables precise identification of which specific function corrupts the HP state
   - Maintains server-authoritative debugging with targeted console output for efficient bug resolution
+- July 5, 2025: Self-Contained Turn Lifecycle Refactoring (Task 65)
+  - Removed central processTurn function to eliminate shared state corruption
+  - Refactored applyDamage function with self-contained 3-phase turn lifecycle
+  - Refactored processAiTurn function with self-contained 3-phase turn lifecycle
+  - Each function now creates its own deep copy of battleState for complete isolation
+  - Implemented direct phase management: START-OF-TURN → ACTION → END-OF-TURN within each function
+  - Eliminates state corruption by ensuring no shared references between player and AI turns
+  - Maintains server-authoritative architecture with guaranteed turn isolation and data integrity
 
 ## User Preferences
 

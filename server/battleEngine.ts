@@ -538,72 +538,45 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
   return { damage: finalDamage, isCritical, affinityMultiplier };
 };
 
-// NEW MASTER FUNCTION
-const processTurn = async (battleState: any, ability: Ability, targetId?: number) => {
-  const newState = JSON.parse(JSON.stringify(battleState));
-  const isPlayerTurn = newState.turn === 'player';
 
-  // --- BATTLE-PHASE LOGGING ---
-  const logHp = () => {
-    if (isPlayerTurn) {
-      const activePlayer = newState.playerTeam[newState.activePlayerIndex];
-      console.log(`- Player HP: ${activePlayer.battleHp}`);
-    }
-  };
-
-  // PHASE 1: START OF TURN
-  console.log("--- Executing Phase: handleStartOfTurn ---");
-  const startOfTurnResult = handleStartOfTurn(newState, isPlayerTurn);
-  logHp();
-
-  if (startOfTurnResult.turnSkipped) {
-    console.log("--- Turn Skipped, Executing Final Phase: handleEndOfTurn ---");
-    handleEndOfTurn(newState);
-    logHp();
-    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState: newState };
-  }
-
-  // PHASE 2: ACTION
-  console.log("--- Executing Phase: handleActionPhase ---");
-  const damageResult = await handleActionPhase(newState, ability, targetId);
-  logHp();
-
-  // Post-Action Defeat Logic
-  console.log("--- Executing Phase: handleMonsterDefeatLogic ---");
-  await handleMonsterDefeatLogic(newState);
-  logHp();
-
-  // PHASE 3: END OF TURN
-  console.log("--- Executing Final Phase: handleEndOfTurn ---");
-  handleEndOfTurn(newState);
-  logHp();
-
-  return { damageResult, battleState: newState };
-};
 
 // Server-authoritative damage application function with 3-phase turn lifecycle
 export const applyDamage = async (battleId: string, abilityId: number, targetId?: number) => {
-  const battleState = battleSessions.get(battleId);
-  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
+  const originalState = battleSessions.get(battleId);
+  if (!originalState) throw new Error(`Battle session ${battleId} not found`);
 
-
-
+  // Create a deep copy of the state for this turn to ensure isolation
+  const battleState = JSON.parse(JSON.stringify(originalState));
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
   const monsterAbilities = battleState.abilities_map[activeMonster.monster.id] || [];
-  const ability = monsterAbilities.find(a => a.id === abilityId);
-  if (!ability) throw new Error(`Ability ${abilityId} not found`);
+  const ability = monsterAbilities.find((a: any) => a.id === abilityId);
 
+  if (!ability) throw new Error(`Ability ${abilityId} not found`);
   if (activeMonster.battleMp < (ability.mp_cost || 0)) {
-      throw new Error('Not enough MP');
+    throw new Error('Not enough MP');
   }
 
-  const turnResult = await processTurn(battleState, ability, targetId);
-  battleSessions.set(battleId, turnResult.battleState);
+  // --- 3-PHASE TURN LIFECYCLE ---
 
+  // 1. START-OF-TURN
+  const startOfTurnResult = handleStartOfTurn(battleState, true);
+  if (startOfTurnResult.turnSkipped) {
+    handleEndOfTurn(battleState); // Process end-of-turn even if skipped
+    battleSessions.set(battleId, battleState);
+    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+  }
 
-  
-  return turnResult;
+  // 2. ACTION
+  const damageResult = await handleActionPhase(battleState, ability, targetId);
+  await handleMonsterDefeatLogic(battleState);
+
+  // 3. END-OF-TURN
+  handleEndOfTurn(battleState);
+
+  // Save the new state and return the result
+  battleSessions.set(battleId, battleState);
+  return { damageResult, battleState };
 };
 
 // Server-side battle session management
@@ -739,31 +712,48 @@ export const createBattleSession = async (playerTeam: UserMonster[], opponentTea
 
 // Server-side AI turn processing with 3-phase lifecycle
 export const processAiTurn = async (battleId: string) => {
-  const battleState = battleSessions.get(battleId);
-  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
-  if (battleState.turn !== 'ai') throw new Error('Not AI turn');
+    const originalState = battleSessions.get(battleId);
+    if (!originalState) throw new Error(`Battle session ${battleId} not found`);
+    if (originalState.turn !== 'ai') throw new Error('Not AI turn');
 
+    // Create a deep copy of the state for this turn
+    const battleState = JSON.parse(JSON.stringify(originalState));
 
+    const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+    const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+    const activeAbilities = monsterAbilities.filter((a: any) => a.ability_type === 'ACTIVE');
+    const affordableAbilities = activeAbilities.filter((a: any) => (aiMonster.battleMp ?? 0) >= (a.mp_cost || 0));
 
-  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
-  const activeAbilities = monsterAbilities.filter((a: any) => a.ability_type === 'ACTIVE');
-  const affordableAbilities = activeAbilities.filter((a: any) => (aiMonster.battleMp ?? 0) >= (a.mp_cost || 0));
+    let chosenAbility;
+    if (affordableAbilities.length > 0) {
+        chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+    } else {
+        chosenAbility = activeAbilities.find((a: any) => a.mp_cost === 0) || activeAbilities[0];
+    }
 
-  let chosenAbility;
-  if (affordableAbilities.length > 0) {
-    chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
-  } else {
-    chosenAbility = activeAbilities.find((a: any) => a.mp_cost === 0) || activeAbilities[0];
-  }
-  if (!chosenAbility) throw new Error("AI could not select an ability.");
+    if (!chosenAbility) throw new Error("AI could not select an ability.");
 
-  const turnResult = await processTurn(battleState, chosenAbility);
-  battleSessions.set(battleId, turnResult.battleState);
+    // --- 3-PHASE TURN LIFECYCLE FOR AI ---
 
-  
-  return turnResult;
-};;
+    // 1. START-OF-TURN
+    const startOfTurnResult = handleStartOfTurn(battleState, false);
+    if (startOfTurnResult.turnSkipped) {
+        handleEndOfTurn(battleState);
+        battleSessions.set(battleId, battleState);
+        return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+    }
+
+    // 2. ACTION
+    const damageResult = await handleActionPhase(battleState, chosenAbility);
+    await handleMonsterDefeatLogic(battleState);
+
+    // 3. END-OF-TURN
+    handleEndOfTurn(battleState);
+
+    // Save the new state and return
+    battleSessions.set(battleId, battleState);
+    return { damageResult, battleState };
+};
 
 // Server-authoritative monster swapping function
 export const performSwap = (battleId: string, newMonsterIndex: number) => {
