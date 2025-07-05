@@ -903,6 +903,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Removed four diagnostic console.log statements from handleStartOfTurn DISRUPTION case in battleEngine.ts
   - Cleaned up server logs by removing temporary debugging output used for CONFUSED status effect development
   - Maintains server-authoritative architecture with authentic database-driven affinity resolution
+- July 5, 2025: Server-Authoritative Swap End-of-Turn Fix (Task 57)
+  - Fixed performSwap function to call handleEndOfTurn instead of manual turn switching logic
+  - Eliminated architectural inconsistency where swap actions bypassed the 3-phase turn lifecycle
+  - End-of-turn status effects (Burn, Poison) now correctly trigger after player swap actions
+  - Passive abilities (Soothing Aura, Volcanic Heart) now properly activate during swap turns
+  - Maintains consistent server-authoritative battle flow for all player actions (attacks and swaps)
+  - Uses existing handleEndOfTurn function that already manages turn switching and effect processing
 
 ## User Preferences
 

@@ -869,14 +869,9 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   // Update the activePlayerIndex to the newMonsterIndex
   battleState.activePlayerIndex = newMonsterIndex;
 
-  // Handle turn transition based on current state
-  if (battleState.turn === 'player-must-swap') {
-    // If this was a forced swap, transition to AI turn
-    battleState.turn = 'ai';
-  } else {
-    // For voluntary swaps during player turn, transition to AI turn
-    battleState.turn = 'ai';
-  }
+  // The player's action was to swap, so now we process the end of their turn.
+  // handleEndOfTurn will correctly process effects and switch the turn to the AI.
+  handleEndOfTurn(battleState);
 
   // Save the updated battle state back into the battleSessions map
   battleSessions.set(battleId, battleState);
