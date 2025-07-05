@@ -1,0 +1,67 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Player's HP and MP reset after their turn due to a direct state mutation bug in the battle engine.
+
+Goal: Fix the state corruption bug by refactoring the executeAbility and executeHealingAbility functions to handle state updates immutably, ensuring all changes are correctly persisted.
+
+File Modifications
+File: server/battleEngine.ts
+
+Action 1: Fix executeAbility
+
+Location: Inside the executeAbility function.
+
+Code to Find and Replace:
+
+TypeScript
+
+// Apply damage to defender using standardized battleHp property
+const currentHp = defender.battleHp || 0;
+const newHp = Math.max(0, currentHp - damageResult.damage);
+defender.battleHp = newHp;
+New Code:
+
+TypeScript
+
+// IMMUTABLE UPDATE: Find the defender in the correct team array and update it.
+const teamToUpdate = isPlayerTurn ? battleState.aiTeam : battleState.playerTeam;
+const defenderIndex = teamToUpdate.findIndex(m => m.id === defender.id);
+if (defenderIndex !== -1) {
+    const updatedDefender = { ...teamToUpdate[defenderIndex] };
+    const currentHp = updatedDefender.battleHp || 0;
+    updatedDefender.battleHp = Math.max(0, currentHp - damageResult.damage);
+    teamToUpdate[defenderIndex] = updatedDefender;
+}
+Action 2: Fix executeHealingAbility
+
+Location: Inside the executeHealingAbility function.
+
+Code to Find and Replace:
+
+TypeScript
+
+// Apply healing, ensuring it doesn't exceed maxHp
+const newHp = Math.min(maxHp, currentHp + healingAmount);
+const actualHealing = newHp - currentHp;
+
+target.battleHp = newHp;
+New Code:
+
+TypeScript
+
+// IMMUTABLE UPDATE: Find the target in the correct team and update it.
+const teamToUpdate = battleState.playerTeam.some(m => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
+const targetIndex = teamToUpdate.findIndex(m => m.id === target.id);
+
+if(targetIndex !== -1) {
+    const updatedTarget = { ...teamToUpdate[targetIndex] };
+    const currentHp = updatedTarget.battleHp || 0;
+    const maxHp = updatedTarget.battleMaxHp || 0;
+    const newHp = Math.min(maxHp, currentHp + healingAmount);
+    const actualHealing = newHp - currentHp;
+    updatedTarget.battleHp = newHp;
+    teamToUpdate[targetIndex] = updatedTarget;
+}
+Action 3: Remove Diagnostic Logs
+
+Action: Remove all the console.log statements we added in the previous step from applyDamage, processAiTurn, and performSwap.
