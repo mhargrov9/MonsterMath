@@ -45,17 +45,11 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
   if (activeMonster.statusEffects && activeMonster.statusEffects.length > 0) {
     for (const effect of activeMonster.statusEffects) {
       if (effect.effectDetails?.effect_type === 'TURN_SKIP') {
-        // Calculate chance from database (default_value = 0.25 for 25% chance)
-        const skipChance = effect.override_value || effect.effectDetails.default_value || 0.25;
-        
-        if (Math.random() < skipChance) {
-          // If a monster has a TURN_SKIP effect, it loses its turn.
-          battleState.battleLog.push(
-            `${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`,
-          );
-          // Skip the rest of the start-of-turn phase and the entire action phase.
-          return { turnSkipped: true }; 
-        }
+        // Our design dictates a 100% turn skip for paralysis. No random chance is needed.
+        battleState.battleLog.push(
+          `${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`,
+        );
+        return { turnSkipped: true };
       }
     }
   }

@@ -826,6 +826,12 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Both player and AI turns properly handle paralysis with identical logic
   - Completes Start-of-Turn phase implementation as required by battle lifecycle
   - All logic remains server-authoritative with zero client-side modifications
+- July 4, 2025: Guaranteed Paralysis Turn-Skipping Fix (Task 46)
+  - Removed random chance element from TURN_SKIP status effects
+  - Paralyzed monsters now guaranteed to skip their entire turn (100% rate)
+  - Simplified game mechanics for more predictable strategic gameplay
+  - Maintains database-driven TURN_SKIP detection using effectDetails.effect_type
+  - Enhanced tactical reliability of paralysis-inducing abilities like Jolt
 
 ## User Preferences
 
