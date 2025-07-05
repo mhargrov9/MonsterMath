@@ -874,6 +874,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed bug where CONFUSED triggered at 40% instead of intended 100% when monster's turn began
   - Maintains proper phase separation: application uses override_chance, activation uses default_value
   - Preserves server-authoritative architecture with authentic database-driven status effect mechanics
+- July 5, 2025: Secondary Value Database Integration Fix (Task 53)
+  - Added secondaryValue: statusEffects.secondary_value to getAbilitiesForMonsters query in server/storage.ts
+  - Added secondary_value: result.secondaryValue to effectDetails object construction
+  - Enables CONFUSED self-damage calculations using authentic 40% modifier from database
+  - Completes missing data flow from status_effects table to battle engine
+  - Fixes bug where CONFUSED monsters skipped turns but didn't deal self-damage
+  - Maintains database-driven architecture with complete status effect data packages
 
 ## User Preferences
 

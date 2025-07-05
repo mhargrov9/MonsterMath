@@ -558,6 +558,7 @@ export class DatabaseStorage implements IStorage {
         effectType: statusEffects.effect_type,
         defaultDuration: statusEffects.default_duration,
         defaultValue: statusEffects.default_value,
+        secondaryValue: statusEffects.secondary_value,
         valueType: statusEffects.value_type,
         durationReductionPosition: statusEffects.duration_reduction_position,
         isPositive: statusEffects.is_positive,
@@ -585,6 +586,7 @@ export class DatabaseStorage implements IStorage {
         default_duration: result.defaultDuration,
         default_value: result.defaultValue,
         value_type: result.valueType,
+        secondary_value: result.secondaryValue,
         duration_reduction_position: result.durationReductionPosition,
         is_positive: result.isPositive,
       } : null;
