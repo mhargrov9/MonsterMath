@@ -1,0 +1,61 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: A status effect with a duration of 1 is expiring on the same turn it's applied, before it can have any gameplay impact.
+
+Goal: Refactor the status effect and end-of-turn logic to ensure an effect with a duration of 1 persists until the end of the afflicted monster's next turn.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action 1: Modify the executeAbility function. Inside the block that creates newStatusEffect, add a new property: isNew: true.
+
+Code to find:
+
+TypeScript
+
+const newStatusEffect = {
+  name: ability.effectDetails.name,
+  duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
+  // ...
+};
+Add this line:
+
+TypeScript
+
+const newStatusEffect = {
+  name: ability.effectDetails.name,
+  duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
+  isNew: true, // Add this line
+  // ...
+};
+Action 2: Modify the handleEndOfTurn function. Inside the loop that processes status effects, add new logic to check for the isNew flag before decrementing the duration.
+
+Code to find:
+
+TypeScript
+
+// Manage duration based on duration_reduction_position
+let shouldDecrementDuration = false;
+
+if (effect.effectDetails && effect.effectDetails.duration_reduction_position) {
+    //...
+}
+Replace that entire block with the following new logic, which includes the isNew check:
+
+TypeScript
+
+// Manage duration
+let shouldDecrementDuration = false;
+// A new effect should not have its duration decremented on the turn it is applied.
+if (effect.isNew) {
+  delete effect.isNew; // Remove the flag for the next turn
+} else {
+  const reductionPos = effect.effectDetails.duration_reduction_position;
+  if (reductionPos === 'ANY' || (reductionPos === 'ACTIVE_ONLY' && isActive)) {
+    shouldDecrementDuration = true;
+  }
+}
+
+if (shouldDecrementDuration && effect.duration !== null) {
+  effect.duration -= 1;
+}
