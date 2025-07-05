@@ -1,0 +1,52 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: A deep state corruption bug in the battle engine is causing player and AI HP to intermittently reset after a turn.
+
+Goal: Refactor the core battle engine logic to be fully immutable. All state changes will now produce new state objects instead of modifying existing ones, guaranteeing data integrity and fixing the reset bug.
+
+File Modifications
+File: server/battleEngine.ts
+
+Action: We are going to completely rewrite the executeAbility and executeHealingAbility functions to be immutable. We will also remove the now-unnecessary processTurn master function and integrate its logic back into applyDamage and processAiTurn to simplify the control flow.
+
+Step 1: Remove the processTurn function. Delete the entire processTurn function.
+
+Step 2: Replace the executeAbility function. Replace the entire existing executeAbility function with this new, immutable version:
+
+TypeScript
+
+const executeAbility = async (battleState: any, ability: Ability): Promise<any> => {
+  const newState = JSON.parse(JSON.stringify(battleState));
+  const isPlayerTurn = newState.turn === 'player';
+  const attackerTeam = isPlayerTurn ? newState.playerTeam : newState.aiTeam;
+  const defenderTeam = isPlayerTurn ? newState.aiTeam : newState.playerTeam;
+  const attackerIndex = isPlayerTurn ? newState.activePlayerIndex : newState.activeAiIndex;
+  const defenderIndex = isPlayerTurn ? newState.activeAiIndex : newState.activePlayerIndex;
+
+  const attacker = attackerTeam[attackerIndex];
+  const defender = defenderTeam[defenderIndex];
+
+  const damageResult = calculateDamage(attacker, defender, ability);
+
+  // --- IMMUTABLE UPDATES ---
+  const newAttacker = { ...attacker, battleMp: attacker.battleMp - (ability.mp_cost || 0) };
+  const newDefender = { ...defender, battleHp: Math.max(0, defender.battleHp - damageResult.damage) };
+
+  // Update teams with new monster states
+  const newAttackerTeam = attackerTeam.map((m: any, i: number) => i === attackerIndex ? newAttacker : m);
+  const newDefenderTeam = defenderTeam.map((m: any, i: number) => i === defenderIndex ? newDefender : m);
+
+  newState.playerTeam = isPlayerTurn ? newAttackerTeam : newDefenderTeam;
+  newState.aiTeam = isPlayerTurn ? newDefenderTeam : newAttackerTeam;
+
+  // --- LOGGING & STATUS EFFECTS ---
+  newState.battleLog.push(`${isPlayerTurn ? "Your" : "Opponent's"} ${attacker.monster?.name || attacker.name} used ${ability.name} on ${isPlayerTurn ? "Opponent's" : "Your"} ${defender.monster?.name || defender.name}, dealing ${damageResult.damage} damage!`);
+  if (damageResult.isCritical) newState.battleLog.push("A critical hit!");
+  if (damageResult.affinityMultiplier > 1) newState.battleLog.push("It's super effective!");
+  if (damageResult.affinityMultiplier < 1) newState.battleLog.push("It's not very effective...");
+
+  // (Status effect logic will be added back in a future step)
+
+  return { damageResult, battleState: newState };
+};
+Step 3: Refactor applyDamage and processAiTurn. Update both functions to call the new executeAbility and handle the full turn lifecycle directly, removing the call to the deleted processTurn.
