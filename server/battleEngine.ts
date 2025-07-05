@@ -57,7 +57,7 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
           console.log(`--- DISRUPTION CHECK ---`);
           console.log(`Effect Name: ${effect.name}`);
           console.log(`Effect Details:`, JSON.stringify(effect.effectDetails, null, 2));
-          const confusionChance = parseFloat(effect.override_chance || effect.effectDetails.default_value || '0.5');
+          const confusionChance = parseFloat(effect.effectDetails.default_value || '0.5');
           console.log(`Calculated confusionChance: ${confusionChance}`);
           
           // Read chance from the database (default_value), with a fallback.
@@ -405,7 +405,6 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
         effectDetails: ability.effectDetails,
         // Pass ability-specific override values
         override_value: ability.override_value,
-        override_chance: ability.override_chance,
       };
 
       // Add to target's statusEffects array

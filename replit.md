@@ -867,6 +867,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Positioned immediately inside case 'DISRUPTION' block before any other logic
   - Enables precise identification of CONFUSED self-damage bug root cause
   - Maintains server-authoritative debugging approach with authentic battle state data
+- July 5, 2025: CONFUSED Status Effect Chance Calculation Fix (Task 52)
+  - Removed override_chance property from newStatusEffect object in executeAbility function
+  - Simplified confusionChance calculation in handleStartOfTurn to use only default_value from database
+  - Correctly separated application chance (40% from Psy-Beam) from activation chance (100% from CONFUSED)
+  - Fixed bug where CONFUSED triggered at 40% instead of intended 100% when monster's turn began
+  - Maintains proper phase separation: application uses override_chance, activation uses default_value
+  - Preserves server-authoritative architecture with authentic database-driven status effect mechanics
 
 ## User Preferences
 
