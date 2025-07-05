@@ -261,29 +261,20 @@ const handleEndOfTurn = (battleState: any): void => {
           }
         }
         
-        // Manage duration based on duration_reduction_position
+        // Manage duration
         let shouldDecrementDuration = false;
-        
-        if (effect.effectDetails && effect.effectDetails.duration_reduction_position) {
-          switch (effect.effectDetails.duration_reduction_position) {
-            case 'ACTIVE_ONLY':
-              shouldDecrementDuration = isActive;
-              break;
-            case 'BENCH_ONLY':
-              shouldDecrementDuration = !isActive;
-              break;
-            case 'ANY':
-            default:
-              shouldDecrementDuration = true;
-              break;
-          }
+        // A new effect should not have its duration decremented on the turn it is applied.
+        if (effect.isNew) {
+          delete effect.isNew; // Remove the flag for the next turn
         } else {
-          // Default to ANY position if not specified
-          shouldDecrementDuration = true;
+          const reductionPos = effect.effectDetails.duration_reduction_position;
+          if (reductionPos === 'ANY' || (reductionPos === 'ACTIVE_ONLY' && isActive)) {
+            shouldDecrementDuration = true;
+          }
         }
-        
-        if (shouldDecrementDuration) {
-          effect.duration = (effect.duration || 0) - 1;
+
+        if (shouldDecrementDuration && effect.duration !== null) {
+          effect.duration -= 1;
         }
         
         // Keep effect if duration is still greater than 0
@@ -404,6 +395,7 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
       const newStatusEffect = {
         name: ability.effectDetails.name,
         duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
+        isNew: true, // Add this line
         // Pass the full details object for the engine to use in other functions
         effectDetails: ability.effectDetails,
         // Pass ability-specific override values

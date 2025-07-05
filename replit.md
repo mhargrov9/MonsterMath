@@ -853,6 +853,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Generates authentic battle log messages for confusion activation and self-damage
   - Maintains server-authoritative architecture with database-driven status effect mechanics
   - Enables strategic disruption gameplay through authentic confusion mechanics
+- July 5, 2025: Status Effect Duration Timing Fix (Task 50)
+  - Added isNew flag to newly applied status effects in executeAbility function
+  - Modified handleEndOfTurn duration logic to prevent duration decrement on application turn
+  - Status effects with duration=1 now persist until end of afflicted monster's next turn
+  - Preserves existing duration_reduction_position rules (ACTIVE_ONLY, ANY, etc.)
+  - Uses self-removing flag mechanism for clean duration management
+  - Fixes frustrating issue where status effects expired immediately after application
+  - Maintains server-authoritative architecture with authentic database duration values
 
 ## User Preferences
 
