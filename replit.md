@@ -917,6 +917,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Corrected data format to match server's expected abilityId parameter structure from recent server changes
   - Abilities like "Restoring Geyser" now execute successfully without "Error performing targeted action" failures
   - Strengthened server-authoritative architecture by completing ID-based communication pattern
+- July 5, 2025: Master Turn Processing Function Refactoring (Task 59)
+  - Created centralized processTurn master function implementing the 3-phase turn lifecycle
+  - Refactored applyDamage and processAiTurn to use the unified processTurn function
+  - Eliminated code duplication between player and AI turn processing logic
+  - Fixed HP reset bug by centralizing state management in single master function
+  - Simplified both functions to handle validation → processTurn → state saving pattern
+  - Enhanced maintainability by creating single source of truth for all turn mechanics
+  - Maintains strict server-authoritative architecture with consistent phase processing
 
 ## User Preferences
 
