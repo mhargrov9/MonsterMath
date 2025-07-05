@@ -1,0 +1,109 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: A severe state management bug in the handleEndOfTurn function is corrupting monster HP and causing changes to MP to be lost between turns.
+
+Goal: Completely replace the flawed handleEndOfTurn function in server/battleEngine.ts with a new, robust version that correctly processes passives and status effects without corrupting the battle state.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action: Locate and completely replace the existing handleEndOfTurn function with the following new, corrected code.
+
+Replacement Code:
+
+TypeScript
+
+const handleEndOfTurn = (battleState: any): void => {
+  const isPlayerTurnEnding = battleState.turn === 'player';
+  const currentTeam = isPlayerTurnEnding ? battleState.playerTeam : battleState.aiTeam;
+  const teamName = isPlayerTurnEnding ? "Your" : "Opponent's";
+
+  // Process effects and passives for every monster on the team that just finished its turn.
+  for (const monster of currentTeam) {
+    const monsterId = monster.monster?.id || monster.id;
+    const monsterName = monster.monster?.name || monster.name;
+    const isActive = monster === currentTeam[isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex];
+    const monsterAbilities = battleState.abilities_map[monsterId] || [];
+
+    // --- 1. Process END_OF_TURN Passive Abilities ---
+    for (const ability of monsterAbilities) {
+      if (ability.ability_type !== 'PASSIVE' || ability.activation_trigger !== 'END_OF_TURN' || !ability.effectDetails) {
+        continue;
+      }
+
+      const scope = ability.activation_scope;
+      const scopeMatches = (scope === 'ACTIVE' && isActive) || (scope === 'BENCH' && !isActive) || (scope === 'ANY_POSITION');
+
+      if (scopeMatches) {
+        const chance = parseFloat(ability.override_chance || ability.effectDetails.default_value || '1.0');
+        if (Math.random() < chance) {
+          if (ability.effectDetails.effect_type === 'HEALING_OVER_TIME') {
+            const target = (scope === 'ANY_POSITION' || scope === 'BENCH') ? currentTeam[isPlayerTurnEnding ? battleState.activePlayerIndex : battleState.activeAiIndex] : monster;
+            const healValue = parseFloat(ability.override_value || ability.effectDetails.default_value || '0');
+            let healAmount = 0;
+
+            if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
+              healAmount = Math.floor(target.battleMaxHp * (healValue / 100));
+            } else {
+              healAmount = healValue;
+            }
+
+            if (healAmount > 0) {
+              target.battleHp = Math.min(target.battleMaxHp, target.battleHp + healAmount);
+              const targetName = target.monster?.name || target.name;
+              battleState.battleLog.push(`${teamName} ${monsterName}'s ${ability.name} heals ${targetName} for ${healAmount} HP.`);
+            }
+          }
+        }
+      }
+    }
+
+    // --- 2. Process Active Status Effects ---
+    if (!monster.statusEffects || monster.statusEffects.length === 0) continue;
+
+    const newStatusEffects = [];
+    for (const effect of monster.statusEffects) {
+      if (!effect.effectDetails) {
+        newStatusEffects.push(effect);
+        continue;
+      }
+
+      switch (effect.effectDetails.effect_type) {
+        case 'DAMAGE_OVER_TIME': {
+          const damageValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+          let damageAmount = 0;
+          if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+            damageAmount = Math.floor(monster.battleMaxHp * (damageValue / 100));
+          } else {
+            damageAmount = damageValue;
+          }
+          if (damageAmount > 0) {
+            monster.battleHp = Math.max(0, monster.battleHp - damageAmount);
+            battleState.battleLog.push(`${teamName} ${monsterName} takes ${damageAmount} damage from ${effect.name}!`);
+          }
+          break;
+        }
+      }
+
+      let shouldDecrement = false;
+      const reductionPos = effect.effectDetails.duration_reduction_position;
+      if (reductionPos === 'ANY' || (reductionPos === 'ACTIVE_ONLY' && isActive)) {
+        shouldDecrement = true;
+      }
+
+      if (effect.duration !== null && shouldDecrement) {
+        effect.duration -= 1;
+      }
+
+      if (effect.duration === null || effect.duration > 0) {
+        newStatusEffects.push(effect);
+      } else {
+        battleState.battleLog.push(`The ${effect.name} on ${teamName} ${monsterName} wore off.`);
+      }
+    }
+    monster.statusEffects = newStatusEffects;
+  }
+
+  // --- 3. Switch Turns ---
+  battleState.turn = isPlayerTurnEnding ? 'ai' : 'player';
+};
