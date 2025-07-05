@@ -888,6 +888,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Uses authentic database-driven 40% self-damage modifier from secondary_value field
   - Completes CONFUSED status effect implementation with proper turn-skipping and self-damage mechanics
   - Maintains server-authoritative architecture with consistent stat calculation patterns
+- July 5, 2025: Monster-Specific Basic Attack Affinities Implementation (Task 55)
+  - Updated monster_abilities table to set override_affinity for each monster's Basic Attack (ability_id = 1)
+  - Assigned elemental types matching each monster's nature: Gigalith/Geode Tortoise (Earth), Aetherion (Psychic), Gale-Feather Griffin (Air), Cinder-Tail Salamander (Fire), River-Spirit Axolotl (Water), Spark-Tail Squirrel (Electric)
+  - Eliminated shared Physical Basic Attack that caused illogical type effectiveness calculations
+  - Monster Cards now display correct elemental icons for Basic Attacks based on database override values
+  - Enhanced strategic gameplay with authentic type matchups for all monster attacks
+  - Maintains database-driven architecture using existing override_affinity system in monster_abilities table
 
 ## User Preferences
 
