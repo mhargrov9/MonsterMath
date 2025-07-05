@@ -253,28 +253,28 @@ const handleEndOfTurn = (battleState: any): void => {
               battleState.battleLog.push(`${currentTeamName} ${monsterName} takes ${damageAmount} damage from ${effect.effectDetails.name}!`);
               break;
               
-            case 'HEALING_OVER_TIME':
-              // Calculate healing based on database values
-              let healAmount;
-              const healValue = effect.override_value || effect.effectDetails.default_value || 0;
-              
+            case 'HEALING_OVER_TIME': {
+              const healValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+              if (healValue === 0) break;
+
+              const maxHp = monster.battleMaxHp || 0;
+              const currentHp = monster.battleHp || 0;
+              let healAmount = 0;
+
+              // CORRECTED LOGIC: Properly check the value_type from the effect's details
               if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-                const maxHp = monster.battleMaxHp || 0;
                 healAmount = Math.floor(maxHp * (healValue / 100));
               } else {
-                // Default to FLAT healing
+                // Fallback to FLAT healing
                 healAmount = healValue;
               }
-              
-              // Apply healing
-              const currentHpHeal = monster.battleHp || 0;
-              const maxHpHeal = monster.battleMaxHp || 0;
-              const newHpHeal = Math.min(currentHpHeal + healAmount, maxHpHeal);
-              monster.battleHp = newHpHeal;
-              
-              // Add battle log message
-              battleState.battleLog.push(`${currentTeamName} ${monsterName} heals ${healAmount} HP from ${effect.effectDetails.name}!`);
+
+              if (healAmount > 0 && currentHp < maxHp) {
+                monster.battleHp = Math.min(maxHp, currentHp + healAmount);
+                battleState.battleLog.push(`${currentTeamName} ${monsterName} heals for ${healAmount} HP from ${effect.name}!`);
+              }
               break;
+            }
           }
         }
         

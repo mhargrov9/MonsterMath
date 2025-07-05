@@ -979,6 +979,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Eliminated shared reference corruption that caused player HP to reset to healed values
   - Soothing Aura and other passive healing abilities now correctly add healing to current HP
   - Maintains server-authoritative architecture with guaranteed state immutability
+- July 5, 2025: Percentage-Based Healing Fix - Status Effects Processing (Task 67)
+  - Added diagnostic logging to identify percentage healing calculation issues in passive abilities
+  - Fixed HEALING_OVER_TIME case in status effects processing with corrected value_type logic
+  - Implemented proper parseFloat() conversion for database effect values
+  - Added zero-value guard to prevent unnecessary processing
+  - Simplified immutable update pattern for better performance
+  - Corrected effect name reference to use effect.name instead of effect.effectDetails.name
+  - Ensures Soothing Aura 3% max HP healing works correctly as percentage-based calculation
 
 ## User Preferences
 
