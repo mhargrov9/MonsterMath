@@ -839,6 +839,12 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintains backward compatibility with existing single-parameter effects
   - Applied database migration successfully using npm run db:push
   - Foundation established for unlimited status effect complexity through database configuration
+- July 5, 2025: CONFUSED Status Effect Secondary Value Population (Task 48)
+  - Executed SQL UPDATE to set secondary_value = '0.40' for CONFUSED status effect
+  - CONFUSED now has complete parameters: 50% confusion chance + 40% self-damage modifier
+  - Enables battle engine to implement self-damage mechanics using authentic database values
+  - Maintains database-driven architecture with proper dual-parameter status effects
+  - Verified successful update affecting 1 row in status_effects table
 
 ## User Preferences
 
