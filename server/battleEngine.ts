@@ -178,27 +178,36 @@ const handleEndOfTurn = (battleState: any): void => {
               }
               
               if (target) {
-                const currentHp = target.battleHp || 0;
-                const maxHp = target.battleMaxHp || 0;
-                
-                if (currentHp < maxHp) {
-                  // Calculate heal amount using database effectDetails
-                  let healAmount;
-                  const effectValue = ability.override_value || ability.effectDetails.default_value || 0;
-                  
-                  if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
-                    healAmount = Math.floor(maxHp * (effectValue / 100));
-                  } else {
-                    // Default to FLAT healing
-                    healAmount = effectValue;
+                const targetTeam = battleState.playerTeam.some((m: any) => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
+                const targetIndex = targetTeam.findIndex((m: any) => m.id === target.id);
+
+                if (targetIndex !== -1) {
+                  const currentHp = target.battleHp || 0;
+                  const maxHp = target.battleMaxHp || 0;
+
+                  if (currentHp < maxHp) {
+                    // Create a new object for the update
+                    const updatedTarget = { ...targetTeam[targetIndex] };
+
+                    // Calculate heal amount
+                    let healAmount;
+                    const effectValue = parseFloat(ability.override_value || ability.effectDetails.default_value || '0');
+
+                    if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
+                      healAmount = Math.floor(maxHp * (effectValue / 100));
+                    } else {
+                      healAmount = effectValue;
+                    }
+
+                    // Apply healing to the new object
+                    updatedTarget.battleHp = Math.min(maxHp, currentHp + healAmount);
+
+                    // Replace the old object in the array with the updated one
+                    targetTeam[targetIndex] = updatedTarget;
+
+                    // Add battle log message
+                    battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} activated! ${targetName} healed for ${healAmount} HP.`);
                   }
-                  
-                  // Apply healing with cap
-                  const newHp = Math.min(currentHp + healAmount, maxHp);
-                  target.battleHp = newHp;
-                  
-                  // Add battle log message
-                  battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} activated! ${targetName} healed for ${healAmount} HP.`);
                 }
               }
             }

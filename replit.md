@@ -971,6 +971,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Implemented direct phase management: START-OF-TURN → ACTION → END-OF-TURN within each function
   - Eliminates state corruption by ensuring no shared references between player and AI turns
   - Maintains server-authoritative architecture with guaranteed turn isolation and data integrity
+- July 5, 2025: HP Reset Bug Fix - Immutable Passive Healing Implementation (Task 66)
+  - Fixed critical HP reset bug in handleEndOfTurn function's HEALING_OVER_TIME passive ability processing
+  - Replaced direct object mutation (target.battleHp = newHp) with immutable update pattern
+  - Implemented proper team identification and array index replacement for state updates
+  - Added parseFloat() for proper numeric parsing of effect values from database
+  - Eliminated shared reference corruption that caused player HP to reset to healed values
+  - Soothing Aura and other passive healing abilities now correctly add healing to current HP
+  - Maintains server-authoritative architecture with guaranteed state immutability
 
 ## User Preferences
 
