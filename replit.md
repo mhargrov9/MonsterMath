@@ -987,6 +987,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Simplified immutable update pattern for better performance
   - Corrected effect name reference to use effect.name instead of effect.effectDetails.name
   - Ensures Soothing Aura 3% max HP healing works correctly as percentage-based calculation
+- July 5, 2025: Database Fix - Regeneration Status Effect Value Type (Task 68)
+  - Identified root cause through diagnostic logging: Regeneration status effect had null value_type
+  - Executed SQL UPDATE to set value_type = 'PERCENT_MAX_HP' for Regeneration (ID 5)
+  - Fixed database integrity issue at source rather than patching code logic
+  - Removed diagnostic console logging for clean production code
+  - Soothing Aura now correctly heals 3% of max HP using authentic database-driven percentage calculation
+  - Maintains database-driven architecture with proper data integrity
 
 ## User Preferences
 

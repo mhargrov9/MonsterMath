@@ -164,13 +164,6 @@ const handleEndOfTurn = (battleState: any): void => {
           if (activates && ability.effectDetails) {
             // Process healing effects using new database structure
             if (ability.effectDetails.effect_type === 'HEALING_OVER_TIME') {
-              // --- START HEALING DIAGNOSTIC ---
-              console.log(`--- PASSIVE HEAL CHECK ---`);
-              console.log(`Ability: ${ability.name}`);
-              console.log(`Effect Value Type: ${ability.effectDetails.value_type}`);
-              console.log(`Effect Value: ${ability.override_value || ability.effectDetails.default_value}`);
-              // --- END HEALING DIAGNOSTIC ---
-              
               // Determine correct target based on activation scope
               let target;
               let targetName;
