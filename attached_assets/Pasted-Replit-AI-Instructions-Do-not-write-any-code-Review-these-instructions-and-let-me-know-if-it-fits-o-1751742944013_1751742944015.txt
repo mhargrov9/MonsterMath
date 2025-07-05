@@ -1,0 +1,82 @@
+Replit AI Instructions
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: A bug in the handleEndOfTurn function's passive healing logic is causing the active player's HP to reset to its maximum value at the end of their turn.
+
+Goal
+Fix the HP reset bug by refactoring the passive healing logic within the handleEndOfTurn function to use a safe, immutable update pattern. This will ensure that healing is correctly added to the monster's current HP without corrupting the state.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the handleEndOfTurn function. You will replace the if (target) { ... } block inside the HEALING_OVER_TIME case with new, immutable logic.
+
+Code to Find and Replace:
+
+Find this entire block within the handleEndOfTurn function:
+
+TypeScript
+
+if (target) {
+  const currentHp = target.battleHp || 0;
+  const maxHp = target.battleMaxHp || 0;
+
+  if (currentHp < maxHp) {
+    // Calculate heal amount using database effectDetails
+    let healAmount;
+    const effectValue = ability.override_value || ability.effectDetails.default_value || 0;
+
+    if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
+      healAmount = Math.floor(maxHp * (effectValue / 100));
+    } else {
+      // Default to FLAT healing
+      healAmount = effectValue;
+    }
+
+    // Apply healing with cap
+    const newHp = Math.min(currentHp + healAmount, maxHp);
+    target.battleHp = newHp;
+
+    // Add battle log message
+    battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} activated! ${targetName} healed for ${healAmount} HP.`);
+  }
+}
+New Replacement Code:
+
+Replace the block above with this new, corrected version:
+
+TypeScript
+
+if (target) {
+    const targetTeam = battleState.playerTeam.some((m: any) => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
+    const targetIndex = targetTeam.findIndex((m: any) => m.id === target.id);
+
+    if (targetIndex !== -1) {
+        const currentHp = target.battleHp || 0;
+        const maxHp = target.battleMaxHp || 0;
+
+        if (currentHp < maxHp) {
+            // Create a new object for the update
+            const updatedTarget = { ...targetTeam[targetIndex] };
+
+            // Calculate heal amount
+            let healAmount;
+            const effectValue = parseFloat(ability.override_value || ability.effectDetails.default_value || '0');
+
+            if (ability.effectDetails.value_type === 'PERCENT_MAX_HP') {
+                healAmount = Math.floor(maxHp * (effectValue / 100));
+            } else {
+                healAmount = effectValue;
+            }
+
+            // Apply healing to the new object
+            updatedTarget.battleHp = Math.min(maxHp, currentHp + healAmount);
+
+            // Replace the old object in the array with the updated one
+            targetTeam[targetIndex] = updatedTarget;
+
+            // Add battle log message
+            battleState.battleLog.push(`${currentTeamName} ${monsterName}'s ${ability.name} activated! ${targetName} healed for ${healAmount} HP.`);
+        }
+    }
+}
