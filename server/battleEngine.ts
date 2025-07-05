@@ -68,7 +68,7 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
             const selfDamageModifier = parseFloat(effect.effectDetails.secondary_value || '0.4');
 
             // Calculate self-damage based on the monster's own power stat.
-            const selfDamage = Math.floor(activeMonster.power * selfDamageModifier);
+            const selfDamage = Math.floor(getModifiedStat(activeMonster, 'power') * selfDamageModifier);
 
             if (selfDamage > 0) {
                 activeMonster.battleHp = Math.max(0, activeMonster.battleHp - selfDamage);

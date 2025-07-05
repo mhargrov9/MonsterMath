@@ -881,6 +881,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Completes missing data flow from status_effects table to battle engine
   - Fixes bug where CONFUSED monsters skipped turns but didn't deal self-damage
   - Maintains database-driven architecture with complete status effect data packages
+- July 5, 2025: CONFUSED Self-Damage Calculation Fix (Task 54)
+  - Fixed self-damage calculation in handleStartOfTurn DISRUPTION case using getModifiedStat helper function
+  - Replaced activeMonster.power with getModifiedStat(activeMonster, 'power') for universal stat access
+  - Enables proper self-damage for both player monsters (power property) and AI monsters (base_power property)
+  - Uses authentic database-driven 40% self-damage modifier from secondary_value field
+  - Completes CONFUSED status effect implementation with proper turn-skipping and self-damage mechanics
+  - Maintains server-authoritative architecture with consistent stat calculation patterns
 
 ## User Preferences
 
