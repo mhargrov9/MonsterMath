@@ -941,6 +941,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintains immutability of original battleState during turn processing
   - Ensures state changes only persist when turn completes successfully
   - Preserves server-authoritative architecture with improved data integrity
+- July 5, 2025: Immutable State Updates Implementation (Task 62)
+  - Refactored executeAbility function to use immutable monster updates with team array replacement
+  - Refactored executeHealingAbility function to use findIndex and object spread for safe state updates
+  - Eliminated direct object mutation that caused HP/MP reset corruption between turns
+  - All monster updates now create new object references instead of mutating shared state
+  - Fixed variable scoping issues with actualHealing calculation in healing functions
+  - Removed all diagnostic console.log statements for clean production code
+  - Maintains server-authoritative architecture with guaranteed state immutability
 
 ## User Preferences
 

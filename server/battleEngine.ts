@@ -301,13 +301,11 @@ const handleEndOfTurn = (battleState: any): void => {
 const executeHealingAbility = async (battleState: any, ability: any, attacker: any, target: any): Promise<DamageResult> => {
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
-  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} PRE-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   if (attacker.battleMp !== undefined) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
   } else {
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
-  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} POST-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
 
   // Calculate healing amount from database healing_power field
   const healingAmount = ability.healing_power || 0;
@@ -316,11 +314,20 @@ const executeHealingAbility = async (battleState: any, ability: any, attacker: a
   const currentHp = target.battleHp || 0;
   const maxHp = target.battleMaxHp || 0;
   
-  // Apply healing, ensuring it doesn't exceed maxHp
-  const newHp = Math.min(maxHp, currentHp + healingAmount);
-  const actualHealing = newHp - currentHp;
-  
-  target.battleHp = newHp;
+  // IMMUTABLE UPDATE: Find the target in the correct team and update it.
+  const teamToUpdate = battleState.playerTeam.some(m => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
+  const targetIndex = teamToUpdate.findIndex(m => m.id === target.id);
+
+  let actualHealing = 0;
+  if(targetIndex !== -1) {
+      const updatedTarget = { ...teamToUpdate[targetIndex] };
+      const currentHp = updatedTarget.battleHp || 0;
+      const maxHp = updatedTarget.battleMaxHp || 0;
+      const newHp = Math.min(maxHp, currentHp + healingAmount);
+      actualHealing = newHp - currentHp;
+      updatedTarget.battleHp = newHp;
+      teamToUpdate[targetIndex] = updatedTarget;
+  }
 
   // Add healing message to battle log
   const attackerName = attacker.monster?.name || attacker.name;
@@ -353,18 +360,21 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
-  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} PRE-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   if ('battleMp' in attacker) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
   } else {
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
-  console.log(`-- ${battleState?.turn === 'ai' ? 'AI' : 'PLAYER'} POST-ACTION -- Monster: ${attacker.monster?.name || attacker.name}, MP: ${attacker.battleMp || attacker.mp}`);
   
-  // Apply damage to defender using standardized battleHp property
-  const currentHp = defender.battleHp || 0;
-  const newHp = Math.max(0, currentHp - damageResult.damage);
-  defender.battleHp = newHp;
+  // IMMUTABLE UPDATE: Find the defender in the correct team array and update it.
+  const defenderTeamToUpdate = isPlayerTurn ? battleState.aiTeam : battleState.playerTeam;
+  const defenderUpdateIndex = defenderTeamToUpdate.findIndex(m => m.id === defender.id);
+  if (defenderUpdateIndex !== -1) {
+      const updatedDefender = { ...defenderTeamToUpdate[defenderUpdateIndex] };
+      const currentHp = updatedDefender.battleHp || 0;
+      updatedDefender.battleHp = Math.max(0, currentHp - damageResult.damage);
+      defenderTeamToUpdate[defenderUpdateIndex] = updatedDefender;
+  }
   
   // Add action to battle log with detailed damage information
   const attackerName = attacker.monster?.name || attacker.name;
@@ -555,9 +565,7 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const battleState = battleSessions.get(battleId);
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
 
-  // Add at the very beginning of the function
-  console.log('--- START of applyDamage ---');
-  console.log(JSON.stringify(battleState, null, 2));
+
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
   const monsterAbilities = battleState.abilities_map[activeMonster.monster.id] || [];
@@ -570,10 +578,7 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
 
   const turnResult = await processTurn(battleState, ability, targetId);
   battleSessions.set(battleId, turnResult.battleState);
-  
-  // Add immediately before the final 'return turnResult;'
-  console.log('--- END of applyDamage ---');
-  console.log(JSON.stringify(turnResult.battleState, null, 2));
+
   
   return turnResult;
 };
@@ -715,9 +720,7 @@ export const processAiTurn = async (battleId: string) => {
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
   if (battleState.turn !== 'ai') throw new Error('Not AI turn');
 
-  // Add at the very beginning of the function
-  console.log('--- START of processAiTurn ---');
-  console.log(JSON.stringify(battleState, null, 2));
+
 
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
   const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
@@ -734,10 +737,7 @@ export const processAiTurn = async (battleId: string) => {
 
   const turnResult = await processTurn(battleState, chosenAbility);
   battleSessions.set(battleId, turnResult.battleState);
-  
-  // Add immediately before the final 'return turnResult;'
-  console.log('--- END of processAiTurn ---');
-  console.log(JSON.stringify(turnResult.battleState, null, 2));
+
   
   return turnResult;
 };;
@@ -750,9 +750,7 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
     throw new Error(`Battle session ${battleId} not found`);
   }
 
-  // Add at the very beginning of the function
-  console.log('--- START of performSwap ---');
-  console.log(JSON.stringify(battleState, null, 2));
+
 
   // Perform validation checks
   const newMonster = battleState.playerTeam[newMonsterIndex];
@@ -789,9 +787,7 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   // Save the updated battle state back into the battleSessions map
   battleSessions.set(battleId, battleState);
 
-  // Add immediately before the final 'return battleState;'
-  console.log('--- END of performSwap ---');
-  console.log(JSON.stringify(battleState, null, 2));
+
 
   // Return the entire battleState object
   return battleState;
