@@ -543,19 +543,40 @@ const processTurn = async (battleState: any, ability: Ability, targetId?: number
   const newState = JSON.parse(JSON.stringify(battleState));
   const isPlayerTurn = newState.turn === 'player';
 
+  // --- BATTLE-PHASE LOGGING ---
+  const logHp = () => {
+    if (isPlayerTurn) {
+      const activePlayer = newState.playerTeam[newState.activePlayerIndex];
+      console.log(`- Player HP: ${activePlayer.battleHp}`);
+    }
+  };
+
   // PHASE 1: START OF TURN
+  console.log("--- Executing Phase: handleStartOfTurn ---");
   const startOfTurnResult = handleStartOfTurn(newState, isPlayerTurn);
+  logHp();
+
   if (startOfTurnResult.turnSkipped) {
+    console.log("--- Turn Skipped, Executing Final Phase: handleEndOfTurn ---");
     handleEndOfTurn(newState);
+    logHp();
     return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState: newState };
   }
 
   // PHASE 2: ACTION
+  console.log("--- Executing Phase: handleActionPhase ---");
   const damageResult = await handleActionPhase(newState, ability, targetId);
+  logHp();
+
+  // Post-Action Defeat Logic
+  console.log("--- Executing Phase: handleMonsterDefeatLogic ---");
   await handleMonsterDefeatLogic(newState);
+  logHp();
 
   // PHASE 3: END OF TURN
+  console.log("--- Executing Final Phase: handleEndOfTurn ---");
   handleEndOfTurn(newState);
+  logHp();
 
   return { damageResult, battleState: newState };
 };
@@ -565,8 +586,7 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const battleState = battleSessions.get(battleId);
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
 
-  console.log(`--- PRE-ACTION --- Battle State for battleId: ${battleId}`);
-  console.log(JSON.stringify(battleState, null, 2));
+
 
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
@@ -581,8 +601,7 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const turnResult = await processTurn(battleState, ability, targetId);
   battleSessions.set(battleId, turnResult.battleState);
 
-  console.log(`--- POST-ACTION --- Battle State for battleId: ${battleId}`);
-  console.log(JSON.stringify(turnResult.battleState, null, 2));
+
   
   return turnResult;
 };
