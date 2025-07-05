@@ -202,6 +202,7 @@ export const statusEffects = pgTable("status_effects", {
   effect_type: varchar("effect_type").notNull(),
   default_duration: integer("default_duration").default(1),
   default_value: decimal("default_value"),
+  secondary_value: decimal("secondary_value"),
   value_type: varchar("value_type"),
   duration_reduction_position: varchar("duration_reduction_position").default('ACTIVE_ONLY').notNull(),
   is_positive: boolean("is_positive").default(false).notNull(),

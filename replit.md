@@ -832,6 +832,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Simplified game mechanics for more predictable strategic gameplay
   - Maintains database-driven TURN_SKIP detection using effectDetails.effect_type
   - Enhanced tactical reliability of paralysis-inducing abilities like Jolt
+- July 5, 2025: Status Effects Secondary Value Column Addition (Task 47)
+  - Added nullable secondary_value decimal column to status_effects table
+  - Positioned after default_value column for logical primary/secondary parameter relationship
+  - Enables complex multi-parameter status effects like CONFUSED (chance + damage modifier)
+  - Maintains backward compatibility with existing single-parameter effects
+  - Applied database migration successfully using npm run db:push
+  - Foundation established for unlimited status effect complexity through database configuration
 
 ## User Preferences
 
