@@ -1,0 +1,109 @@
+Replit AI Instructions
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The player's active monster's HP is being reset to its maximum value after every attack due to a state corruption bug in the turn processing logic.
+
+Goal
+Fix the HP reset bug by refactoring the battle engine. This involves removing the central processTurn function and returning to a simpler model where applyDamage and processAiTurn each manage their own self-contained, 3-phase turn lifecycle. This ensures complete state isolation and prevents data corruption.
+
+File Modifications
+server/battleEngine.ts
+
+Action 1: Remove the processTurn function.
+
+Delete the entire const processTurn = async (...) => { ... }; function block.
+
+Action 2: Replace the applyDamage function.
+
+Replace the existing applyDamage function with the following new version. This new version performs the full 3-phase turn lifecycle internally.
+
+TypeScript
+
+// Server-authoritative damage application function with 3-phase turn lifecycle
+export const applyDamage = async (battleId: string, abilityId: number, targetId?: number) => {
+  const originalState = battleSessions.get(battleId);
+  if (!originalState) throw new Error(`Battle session ${battleId} not found`);
+
+  // Create a deep copy of the state for this turn to ensure isolation
+  const battleState = JSON.parse(JSON.stringify(originalState));
+
+  const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const monsterAbilities = battleState.abilities_map[activeMonster.monster.id] || [];
+  const ability = monsterAbilities.find((a: any) => a.id === abilityId);
+
+  if (!ability) throw new Error(`Ability ${abilityId} not found`);
+  if (activeMonster.battleMp < (ability.mp_cost || 0)) {
+    throw new Error('Not enough MP');
+  }
+
+  // --- 3-PHASE TURN LIFECYCLE ---
+
+  // 1. START-OF-TURN
+  const startOfTurnResult = handleStartOfTurn(battleState, true);
+  if (startOfTurnResult.turnSkipped) {
+    handleEndOfTurn(battleState); // Process end-of-turn even if skipped
+    battleSessions.set(battleId, battleState);
+    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+  }
+
+  // 2. ACTION
+  const damageResult = await handleActionPhase(battleState, ability, targetId);
+  await handleMonsterDefeatLogic(battleState);
+
+  // 3. END-OF-TURN
+  handleEndOfTurn(battleState);
+
+  // Save the new state and return the result
+  battleSessions.set(battleId, battleState);
+  return { damageResult, battleState };
+};
+Action 3: Replace the processAiTurn function.
+
+Replace the existing processAiTurn function with the following new version. This also performs the full 3-phase lifecycle internally, mirroring the new applyDamage function.
+
+TypeScript
+
+// Server-side AI turn processing with 3-phase lifecycle
+export const processAiTurn = async (battleId: string) => {
+    const originalState = battleSessions.get(battleId);
+    if (!originalState) throw new Error(`Battle session ${battleId} not found`);
+    if (originalState.turn !== 'ai') throw new Error('Not AI turn');
+
+    // Create a deep copy of the state for this turn
+    const battleState = JSON.parse(JSON.stringify(originalState));
+
+    const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+    const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+    const activeAbilities = monsterAbilities.filter((a: any) => a.ability_type === 'ACTIVE');
+    const affordableAbilities = activeAbilities.filter((a: any) => (aiMonster.battleMp ?? 0) >= (a.mp_cost || 0));
+
+    let chosenAbility;
+    if (affordableAbilities.length > 0) {
+        chosenAbility = affordableAbilities[Math.floor(Math.random() * affordableAbilities.length)];
+    } else {
+        chosenAbility = activeAbilities.find((a: any) => a.mp_cost === 0) || activeAbilities[0];
+    }
+
+    if (!chosenAbility) throw new Error("AI could not select an ability.");
+
+    // --- 3-PHASE TURN LIFECYCLE FOR AI ---
+
+    // 1. START-OF-TURN
+    const startOfTurnResult = handleStartOfTurn(battleState, false);
+    if (startOfTurnResult.turnSkipped) {
+        handleEndOfTurn(battleState);
+        battleSessions.set(battleId, battleState);
+        return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+    }
+
+    // 2. ACTION
+    const damageResult = await handleActionPhase(battleState, chosenAbility);
+    await handleMonsterDefeatLogic(battleState);
+
+    // 3. END-OF-TURN
+    handleEndOfTurn(battleState);
+
+    // Save the new state and return
+    battleSessions.set(battleId, battleState);
+    return { damageResult, battleState };
+};
