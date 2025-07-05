@@ -1,0 +1,56 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The player's monster's HP resets after their turn because of a server-side state corruption bug.
+
+Goal: Add temporary, detailed diagnostic logging to the battle engine to trace the entire battleState object through a full turn cycle. This will provide the necessary data to identify and fix the state corruption bug.
+
+File Modifications
+File: server/battleEngine.ts
+
+Action: We will add console.log statements to the beginning and end of the three most critical functions in the turn lifecycle to see the battleState at every step.
+
+Step 1: Log applyDamage (Player's Turn)
+
+Location: Inside the applyDamage function.
+
+Code to Add:
+
+TypeScript
+
+// Add at the very beginning of the function
+console.log('--- START of applyDamage ---');
+console.log(JSON.stringify(battleState, null, 2));
+
+// Add immediately before the final 'return turnResult;'
+console.log('--- END of applyDamage ---');
+console.log(JSON.stringify(turnResult.battleState, null, 2));
+Step 2: Log processAiTurn (AI's Turn)
+
+Location: Inside the processAiTurn function.
+
+Code to Add:
+
+TypeScript
+
+// Add at the very beginning of the function
+console.log('--- START of processAiTurn ---');
+console.log(JSON.stringify(battleState, null, 2));
+
+// Add immediately before the final 'return turnResult;'
+console.log('--- END of processAiTurn ---');
+console.log(JSON.stringify(turnResult.battleState, null, 2));
+Step 3: Log performSwap (Player's Swap Action)
+
+Location: Inside the performSwap function.
+
+Code to Add:
+
+TypeScript
+
+// Add at the very beginning of the function
+console.log('--- START of performSwap ---');
+console.log(JSON.stringify(battleState, null, 2));
+
+// Add immediately before the final 'return battleState;'
+console.log('--- END of performSwap ---');
+console.log(JSON.stringify(battleState, null, 2));
