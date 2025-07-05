@@ -54,11 +54,7 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
         }
 
         case 'DISRUPTION': { // For CONFUSED
-          console.log(`--- DISRUPTION CHECK ---`);
-          console.log(`Effect Name: ${effect.name}`);
-          console.log(`Effect Details:`, JSON.stringify(effect.effectDetails, null, 2));
           const confusionChance = parseFloat(effect.effectDetails.default_value || '0.5');
-          console.log(`Calculated confusionChance: ${confusionChance}`);
           
           // Read chance from the database (default_value), with a fallback.
 

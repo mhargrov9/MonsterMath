@@ -530,6 +530,7 @@ export class DatabaseStorage implements IStorage {
         abilityType: abilities.ability_type,
         mpCost: abilities.mp_cost,
         affinity: abilities.affinity,
+        overrideAffinity: monsterAbilities.override_affinity,
         powerMultiplier: abilities.power_multiplier,
         scalingStat: abilities.scaling_stat,
         healingPower: abilities.healing_power,
@@ -597,7 +598,8 @@ export class DatabaseStorage implements IStorage {
         description: result.description,
         ability_type: result.abilityType,
         mp_cost: result.mpCost,
-        affinity: result.affinity,
+        // Prioritize the override_affinity from the monster_abilities join table
+        affinity: result.overrideAffinity || result.affinity,
         power_multiplier: result.powerMultiplier,
         scaling_stat: result.scalingStat,
         healing_power: result.healingPower,

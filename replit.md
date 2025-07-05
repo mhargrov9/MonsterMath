@@ -895,6 +895,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Monster Cards now display correct elemental icons for Basic Attacks based on database override values
   - Enhanced strategic gameplay with authentic type matchups for all monster attacks
   - Maintains database-driven architecture using existing override_affinity system in monster_abilities table
+- July 5, 2025: Affinity Override Fix and Diagnostic Cleanup (Task 56)
+  - Fixed getAbilitiesForMonsters function to properly apply override_affinity from monster_abilities join table
+  - Added overrideAffinity: monsterAbilities.override_affinity to database query select fields
+  - Updated affinity assignment to use result.overrideAffinity || result.affinity precedence logic
+  - Enables player Basic Attacks to use correct elemental types (Fire/Water/Earth/etc.) instead of Physical
+  - Removed four diagnostic console.log statements from handleStartOfTurn DISRUPTION case in battleEngine.ts
+  - Cleaned up server logs by removing temporary debugging output used for CONFUSED status effect development
+  - Maintains server-authoritative architecture with authentic database-driven affinity resolution
 
 ## User Preferences
 
