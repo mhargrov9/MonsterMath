@@ -861,6 +861,12 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Uses self-removing flag mechanism for clean duration management
   - Fixes frustrating issue where status effects expired immediately after application
   - Maintains server-authoritative architecture with authentic database duration values
+- July 5, 2025: CONFUSED Status Effect Diagnostic Logging (Task 51)
+  - Added comprehensive diagnostic logging to DISRUPTION case in handleStartOfTurn function
+  - Logs effect name, complete effect details JSON, and calculated confusion chance
+  - Positioned immediately inside case 'DISRUPTION' block before any other logic
+  - Enables precise identification of CONFUSED self-damage bug root cause
+  - Maintains server-authoritative debugging approach with authentic battle state data
 
 ## User Preferences
 

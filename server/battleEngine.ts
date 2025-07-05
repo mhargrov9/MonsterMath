@@ -54,8 +54,13 @@ const handleStartOfTurn = (battleState: any, isPlayerTurn: boolean): { turnSkipp
         }
 
         case 'DISRUPTION': { // For CONFUSED
-          // Read chance from the database (default_value), with a fallback.
+          console.log(`--- DISRUPTION CHECK ---`);
+          console.log(`Effect Name: ${effect.name}`);
+          console.log(`Effect Details:`, JSON.stringify(effect.effectDetails, null, 2));
           const confusionChance = parseFloat(effect.override_chance || effect.effectDetails.default_value || '0.5');
+          console.log(`Calculated confusionChance: ${confusionChance}`);
+          
+          // Read chance from the database (default_value), with a fallback.
 
           if (Math.random() < confusionChance) {
             const monsterName = activeMonster.monster?.name || activeMonster.name;
