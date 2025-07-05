@@ -554,6 +554,10 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const battleState = battleSessions.get(battleId);
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
 
+  // Add at the very beginning of the function
+  console.log('--- START of applyDamage ---');
+  console.log(JSON.stringify(battleState, null, 2));
+
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
   const monsterAbilities = battleState.abilities_map[activeMonster.monster.id] || [];
   const ability = monsterAbilities.find(a => a.id === abilityId);
@@ -565,6 +569,11 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
 
   const turnResult = await processTurn(battleState, ability, targetId);
   battleSessions.set(battleId, turnResult.battleState);
+  
+  // Add immediately before the final 'return turnResult;'
+  console.log('--- END of applyDamage ---');
+  console.log(JSON.stringify(turnResult.battleState, null, 2));
+  
   return turnResult;
 };
 
@@ -705,6 +714,10 @@ export const processAiTurn = async (battleId: string) => {
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
   if (battleState.turn !== 'ai') throw new Error('Not AI turn');
 
+  // Add at the very beginning of the function
+  console.log('--- START of processAiTurn ---');
+  console.log(JSON.stringify(battleState, null, 2));
+
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
   const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
   const activeAbilities = monsterAbilities.filter((a: any) => a.ability_type === 'ACTIVE');
@@ -720,6 +733,11 @@ export const processAiTurn = async (battleId: string) => {
 
   const turnResult = await processTurn(battleState, chosenAbility);
   battleSessions.set(battleId, turnResult.battleState);
+  
+  // Add immediately before the final 'return turnResult;'
+  console.log('--- END of processAiTurn ---');
+  console.log(JSON.stringify(turnResult.battleState, null, 2));
+  
   return turnResult;
 };;
 
@@ -730,6 +748,10 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   if (!battleState) {
     throw new Error(`Battle session ${battleId} not found`);
   }
+
+  // Add at the very beginning of the function
+  console.log('--- START of performSwap ---');
+  console.log(JSON.stringify(battleState, null, 2));
 
   // Perform validation checks
   const newMonster = battleState.playerTeam[newMonsterIndex];
@@ -765,6 +787,10 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
 
   // Save the updated battle state back into the battleSessions map
   battleSessions.set(battleId, battleState);
+
+  // Add immediately before the final 'return battleState;'
+  console.log('--- END of performSwap ---');
+  console.log(JSON.stringify(battleState, null, 2));
 
   // Return the entire battleState object
   return battleState;
