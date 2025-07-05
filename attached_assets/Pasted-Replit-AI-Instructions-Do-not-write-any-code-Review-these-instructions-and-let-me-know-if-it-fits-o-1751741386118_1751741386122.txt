@@ -1,0 +1,62 @@
+Replit AI Instructions
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The player's active monster's HP is being reset to its maximum value during the processTurn function, but the specific phase causing the error is unknown.
+
+Goal
+Add temporary, hyper-focused diagnostic logs inside the processTurn function. These logs will track the player monster's battleHp as it passes through each phase of the turn, allowing us to identify the exact function that is corrupting the state.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the processTurn function. You will add four console.log statements to trace the battleHp value.
+
+Important: First, remove the two large JSON.stringify logging blocks we added to the applyDamage function in the last step to keep the console clean.
+
+Replacement Code for processTurn:
+
+Replace the entire existing processTurn function with the version below, which now includes the new phase-specific logging.
+
+TypeScript
+
+const processTurn = async (battleState: any, ability: Ability, targetId?: number) => {
+  const newState = JSON.parse(JSON.stringify(battleState));
+  const isPlayerTurn = newState.turn === 'player';
+
+  // --- BATTLE-PHASE LOGGING ---
+  const logHp = () => {
+    if (isPlayerTurn) {
+      const activePlayer = newState.playerTeam[newState.activePlayerIndex];
+      console.log(`- Player HP: ${activePlayer.battleHp}`);
+    }
+  };
+
+  // PHASE 1: START OF TURN
+  console.log("--- Executing Phase: handleStartOfTurn ---");
+  const startOfTurnResult = handleStartOfTurn(newState, isPlayerTurn);
+  logHp();
+
+  if (startOfTurnResult.turnSkipped) {
+    console.log("--- Turn Skipped, Executing Final Phase: handleEndOfTurn ---");
+    handleEndOfTurn(newState);
+    logHp();
+    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState: newState };
+  }
+
+  // PHASE 2: ACTION
+  console.log("--- Executing Phase: handleActionPhase ---");
+  const damageResult = await handleActionPhase(newState, ability, targetId);
+  logHp();
+
+  // Post-Action Defeat Logic
+  console.log("--- Executing Phase: handleMonsterDefeatLogic ---");
+  await handleMonsterDefeatLogic(newState);
+  logHp();
+
+  // PHASE 3: END OF TURN
+  console.log("--- Executing Final Phase: handleEndOfTurn ---");
+  handleEndOfTurn(newState);
+  logHp();
+
+  return { damageResult, battleState: newState };
+};
