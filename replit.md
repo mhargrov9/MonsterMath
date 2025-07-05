@@ -949,6 +949,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed variable scoping issues with actualHealing calculation in healing functions
   - Removed all diagnostic console.log statements for clean production code
   - Maintains server-authoritative architecture with guaranteed state immutability
+- July 5, 2025: HP Reset Bug Diagnostic Logging Implementation (Task 63)
+  - Added comprehensive diagnostic logging to applyDamage function for HP reset bug investigation
+  - LOG #1: Complete battleState JSON dump at turn start (PRE-ACTION)
+  - LOG #2: Complete turnResult.battleState JSON dump at turn end (POST-ACTION)
+  - Enables precise identification of when HP corruption occurs during player turn lifecycle
+  - Temporary server-side logging maintains server-authoritative debugging approach
+  - Foundation established for systematic HP reset bug identification and resolution
 
 ## User Preferences
 

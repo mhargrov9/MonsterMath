@@ -565,6 +565,8 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const battleState = battleSessions.get(battleId);
   if (!battleState) throw new Error(`Battle session ${battleId} not found`);
 
+  console.log(`--- PRE-ACTION --- Battle State for battleId: ${battleId}`);
+  console.log(JSON.stringify(battleState, null, 2));
 
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
@@ -579,6 +581,8 @@ export const applyDamage = async (battleId: string, abilityId: number, targetId?
   const turnResult = await processTurn(battleState, ability, targetId);
   battleSessions.set(battleId, turnResult.battleState);
 
+  console.log(`--- POST-ACTION --- Battle State for battleId: ${battleId}`);
+  console.log(JSON.stringify(turnResult.battleState, null, 2));
   
   return turnResult;
 };
