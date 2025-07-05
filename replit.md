@@ -933,6 +933,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Enables precise identification of HP reset state corruption bug location
   - Maintains server-authoritative debugging approach with complete state visibility
   - Foundation established for systematic battle engine bug identification and resolution
+- July 5, 2025: Deep Copy State Isolation Fix (Task 61)
+  - Added JSON.parse(JSON.stringify()) deep copy at beginning of processTurn master function
+  - Updated all battleState references to newState throughout processTurn function
+  - Fixed state corruption bug by ensuring complete turn isolation and atomic state updates
+  - Eliminated reference sharing between player and AI turns that caused HP reset issues
+  - Maintains immutability of original battleState during turn processing
+  - Ensures state changes only persist when turn completes successfully
+  - Preserves server-authoritative architecture with improved data integrity
 
 ## User Preferences
 

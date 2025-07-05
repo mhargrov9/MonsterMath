@@ -530,23 +530,24 @@ export const calculateDamage = (attacker: UserMonster | Monster, defender: UserM
 
 // NEW MASTER FUNCTION
 const processTurn = async (battleState: any, ability: Ability, targetId?: number) => {
-  const isPlayerTurn = battleState.turn === 'player';
+  const newState = JSON.parse(JSON.stringify(battleState));
+  const isPlayerTurn = newState.turn === 'player';
 
   // PHASE 1: START OF TURN
-  const startOfTurnResult = handleStartOfTurn(battleState, isPlayerTurn);
+  const startOfTurnResult = handleStartOfTurn(newState, isPlayerTurn);
   if (startOfTurnResult.turnSkipped) {
-    handleEndOfTurn(battleState);
-    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState };
+    handleEndOfTurn(newState);
+    return { damageResult: { damage: 0, isCritical: false, affinityMultiplier: 1.0 }, battleState: newState };
   }
 
   // PHASE 2: ACTION
-  const damageResult = await handleActionPhase(battleState, ability, targetId);
-  await handleMonsterDefeatLogic(battleState);
+  const damageResult = await handleActionPhase(newState, ability, targetId);
+  await handleMonsterDefeatLogic(newState);
 
   // PHASE 3: END OF TURN
-  handleEndOfTurn(battleState);
+  handleEndOfTurn(newState);
 
-  return { damageResult, battleState };
+  return { damageResult, battleState: newState };
 };
 
 // Server-authoritative damage application function with 3-phase turn lifecycle
