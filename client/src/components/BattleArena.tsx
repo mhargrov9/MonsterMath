@@ -145,7 +145,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
         credentials: 'include',
         body: JSON.stringify({
           battleId,
-          ability: targetingState.ability,
+          abilityId: targetingState.ability.id, // Send only the ID
           targetId
         })
       });
@@ -290,7 +290,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       const timer = setTimeout(handleAiAbility, 1500);
       return () => clearTimeout(timer);
     }
-  }, [turn, battleEnded, activeAiIndex, playerTeam]);
+  }, [turn, battleEnded, activeAiIndex]);
 
   // Invalidate client cache when battle ends to ensure fresh monster data
   useEffect(() => {

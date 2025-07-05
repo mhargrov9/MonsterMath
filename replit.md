@@ -910,6 +910,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Passive abilities (Soothing Aura, Volcanic Heart) now properly activate during swap turns
   - Maintains consistent server-authoritative battle flow for all player actions (attacks and swaps)
   - Uses existing handleEndOfTurn function that already manages turn switching and effect processing
+- July 5, 2025: Client-Side Battle State Management Fix (Task 58)
+  - Fixed HP/MP visual reset bug by removing playerTeam from useEffect dependency array
+  - Eliminated unnecessary re-renders that caused monster HP/MP to visually reset after player actions
+  - Fixed targeted ability execution by sending abilityId instead of full ability object in handleTargetSelected
+  - Corrected data format to match server's expected abilityId parameter structure from recent server changes
+  - Abilities like "Restoring Geyser" now execute successfully without "Error performing targeted action" failures
+  - Strengthened server-authoritative architecture by completing ID-based communication pattern
 
 ## User Preferences
 
