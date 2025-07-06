@@ -7,7 +7,7 @@ import crypto from 'crypto';
 const battleSessions = new Map();
 
 // Helper function to get modified stats (can be expanded with activeEffects later)
-const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
+export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
   // This function can be expanded with activeEffects later
   if ('monster' in monster) { // It's a UserMonster
       return monster[statName];
