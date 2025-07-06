@@ -1,0 +1,64 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Stat-modifying effects are being applied to monsters but are not yet affecting their stats in battle because the getModifiedStat function doesn't account for them.
+
+Goal
+Refactor the getModifiedStat function to read a monster's activeEffects array and correctly calculate the final stat value, applying FLAT modifiers first, then PERCENTAGE modifiers. Update the corresponding unit tests to verify this new logic.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Replace the existing getModifiedStat function with the following new, more comprehensive version.
+
+New getModifiedStat Code:
+
+TypeScript
+
+export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
+  const baseStat = 'monster' in monster ? monster[statName] : (monster as any)[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}`];
+
+  if (!monster.activeEffects || monster.activeEffects.length === 0) {
+    return baseStat;
+  }
+
+  let modifiedStat = baseStat;
+
+  // 1. Apply FLAT modifiers first
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'FLAT') {
+      modifiedStat += effect.value;
+    }
+  });
+
+  // 2. Apply PERCENTAGE modifiers second
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'PERCENTAGE') {
+      modifiedStat *= (1 + effect.value / 100);
+    }
+  });
+
+  return Math.floor(modifiedStat);
+};
+server/battleEngine.test.ts
+
+Action: Find the describe('getModifiedStat', ...) block and add a new test case to it to verify the new logic.
+
+Code to Add:
+
+TypeScript
+
+// Add this third 'it' block inside the 'getModifiedStat' describe block
+it('should apply active flat and percentage stat modifiers correctly', () => {
+  const monsterWithEffects: UserMonster = {
+    ...mockPlayerMonster,
+    power: 100, // Base power
+    activeEffects: [
+      { id: '1', stat: 'power', type: 'FLAT', value: 20, duration: 2 }, // 100 + 20 = 120
+      { id: '2', stat: 'power', type: 'PERCENTAGE', value: 50, duration: 2 }, // 120 * 1.5 = 180
+      { id: '3', stat: 'defense', type: 'PERCENTAGE', value: 50, duration: 1 } // Should be ignored
+    ]
+  };
+
+  // The final calculated power should be 180
+  expect(getModifiedStat(monsterWithEffects, 'power')).toBe(180);
+});
