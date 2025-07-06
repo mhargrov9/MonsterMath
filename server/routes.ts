@@ -62,6 +62,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   app.use('/assets', express.static('attached_assets'));
 
+  // Serve static files from the public directory
+  app.use(express.static('public'));
+
   // Also serve attached assets directly for custom monster images
   app.use('/attached_assets', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
