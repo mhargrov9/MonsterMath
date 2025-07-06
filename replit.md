@@ -1009,6 +1009,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Achieves 47/47 passing tests confirming authentic strategic team management gameplay
   - Enables realistic battle mechanics where benched monsters can be damaged by persistent status effects
   - Maintains server-authoritative architecture with database-driven effect calculations for all team members
+- July 6, 2025: Atomic Swap Logic Refactoring Implementation
+  - Refactored /api/battle/swap endpoint to chain swap and AI turn processing in single atomic operation
+  - Modified endpoint to call performSwap() followed immediately by processAiTurn() for seamless turn transitions
+  - Eliminated client-server state gaps that previously caused end-of-turn effects to be lost during swaps
+  - Exported battleSessions Map from battleEngine.ts for comprehensive testing capabilities
+  - Added Monster Swap Logic test suite validating atomic turn completion and proper state transitions
+  - Achieves 48/48 passing tests with new swap functionality maintaining all existing battle mechanics
+  - Enhanced user experience with faster, more responsive battle flow through reduced API round trips
+  - Strengthened server-authoritative architecture by consolidating turn processing logic server-side
   - Maintains database-driven architecture with proper data integrity
 - July 6, 2025: Vitest Testing Framework Implementation (Task 69)
   - Installed Vitest testing framework for comprehensive test coverage

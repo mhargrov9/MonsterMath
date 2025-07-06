@@ -590,15 +590,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {
     try {
       const { battleId, newMonsterIndex } = req.body;
-
       if (battleId === undefined || newMonsterIndex === undefined) {
-        return res
-          .status(400)
-          .json({ message: 'Missing battleId or newMonsterIndex' });
+        return res.status(400).json({ message: 'Missing battleId or newMonsterIndex' });
       }
 
-      const battleState = performSwap(battleId, newMonsterIndex);
-      res.json(battleState);
+      // Step 1: Process the player's swap action. This ends the player's turn.
+      performSwap(battleId, newMonsterIndex);
+
+      // Step 2: Immediately process the AI's resulting turn.
+      const aiTurnResult = await processAiTurn(battleId);
+
+      // Step 3: Return the final state after the AI has acted.
+      res.json(aiTurnResult.battleState);
+
     } catch (error) {
       handleError(error, res, 'Failed to perform monster swap');
     }

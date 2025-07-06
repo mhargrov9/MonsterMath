@@ -12,7 +12,7 @@ import { storage } from './storage.js';
 import crypto from 'crypto';
 
 // In-memory store for active battle sessions
-const battleSessions = new Map();
+export const battleSessions = new Map();
 
 export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
   // This check now correctly identifies player vs. AI monsters

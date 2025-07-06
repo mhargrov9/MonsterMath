@@ -6,6 +6,8 @@ import {
   handleStartOfTurn,
   executeAbility,
   getAffinityMultiplier,
+  performSwap,
+  battleSessions,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -968,6 +970,39 @@ describe('battleEngine Helpers', () => {
       expect(mockState.aiTeam[0].battleHp).toBeLessThan(200);
       expect(mockState.aiTeam[1].battleHp).toBeLessThan(200);
       expect(mockState.battleLog.filter(log => log.includes('dealing')).length).toBe(2);
+    });
+  });
+
+  describe('Monster Swap Logic', () => {
+    it('should complete the player turn and switch to AI when swapping', () => {
+      const mockState = {
+        turn: 'player',
+        playerTeam: [
+          { ...mockPlayerMonster, id: 1, battleHp: 100 },
+          { ...mockPlayerMonster, id: 2, battleHp: 300 }
+        ],
+        aiTeam: [{ ...mockAiMonster, id: 3 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {}
+      };
+
+      const battleId = 'swap-test-id';
+      battleSessions.set(battleId, mockState);
+
+      // Perform the swap - this should complete the player's turn via handleEndOfTurn
+      performSwap(battleId, 1); 
+
+      const finalState = battleSessions.get(battleId);
+
+      // Verify the swap was completed correctly
+      expect(finalState.activePlayerIndex).toBe(1);
+      // Verify that handleEndOfTurn was called and the turn switched to AI
+      expect(finalState.turn).toBe('ai');
+      // Verify that swap messages were added to battle log
+      expect(finalState.battleLog.some(log => log.includes('withdrew from battle'))).toBe(true);
+      expect(finalState.battleLog.some(log => log.includes('enters the battle'))).toBe(true);
     });
   });
 });
