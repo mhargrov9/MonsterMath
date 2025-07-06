@@ -1,0 +1,94 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The "Forfeit Turn" button that appears for a paralyzed monster is currently not functional.
+
+Goal: Implement the full client-to-server logic for the forfeit action. When a player clicks "Forfeit Turn," their turn should immediately end, and play should pass to the AI.
+
+File Modifications
+1. server/battleEngine.ts (The Engine Logic)
+
+Action: Create a new exported function named processForfeit. This function will handle the game logic for forfeiting a turn.
+
+Code to Add:
+
+TypeScript
+
+export const processForfeit = (battleId: string) => {
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
+
+  // Forfeiting simply moves to the end-of-turn phase.
+  handleEndOfTurn(battleState);
+
+  battleSessions.set(battleId, battleState);
+  return battleState;
+};
+Action: Add processForfeit to the list of exported functions from this file.
+
+2. server/routes.ts (The API Endpoint)
+
+Action: Add a new POST route to handle the forfeit action from the client.
+
+Position: Add this new route after the /api/battle/swap route.
+
+Code to Add:
+
+TypeScript
+
+app.post('/api/battle/forfeit-turn', isAuthenticated, async (req: any, res) => {
+  try {
+    const { battleId } = req.body;
+    if (!battleId) {
+      return res.status(400).json({ message: 'Missing battleId' });
+    }
+    const battleState = processForfeit(battleId);
+    res.json(battleState);
+  } catch (error) {
+    handleError(error, res, 'Failed to process forfeit turn');
+  }
+});
+Action: Add processForfeit to the import list from ./battleEngine.
+
+3. client/src/components/BattleArena.tsx (The Client Handler)
+
+Action: Create a new async function named handleForfeitTurn to call the new API endpoint.
+
+Code to Add:
+
+TypeScript
+
+const handleForfeitTurn = async () => {
+  if (turn !== 'player' || battleEnded || !battleId) return;
+
+  try {
+    const response = await fetch('/api/battle/forfeit-turn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // Ensure session cookie is sent
+      body: JSON.stringify({ battleId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Server responded with an error during forfeit.');
+    }
+
+    const battleState = await response.json();
+
+    // Update all client state from the server's authoritative response
+    setPlayerTeam(battleState.playerTeam);
+    setAiTeam(battleState.aiTeam);
+    setTurn(battleState.turn);
+    setBattleEnded(battleState.battleEnded);
+    setWinner(battleState.winner);
+    setBattleLog(battleState.battleLog);
+  } catch (error) {
+    console.error('Error forfeiting turn:', error);
+  }
+};
+Action: Find the <CombatView ... /> component and pass this new function as a prop: onForfeitTurn={handleForfeitTurn}.
+
+4. client/src/components/CombatView.tsx (Connecting the Button)
+
+Action: First, add onForfeitTurn?: () => void; to the CombatViewProps interface. Then, destructure it from the component's props.
+
+Action: Find the "Forfeit Turn" button you created in the last step and add an onClick handler that calls this new prop: onClick={onForfeitTurn}.
