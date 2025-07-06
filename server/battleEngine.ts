@@ -5,6 +5,7 @@ import {
   Monster,
   Ability,
   Turn,
+  StatusEffect,
 } from '../shared/types.js';
 import { storage } from './storage.js';
 import crypto from 'crypto';
@@ -310,7 +311,7 @@ export const handleEndOfTurn = (battleState: any): void => {
 
     // SECOND: Process statusEffects array for this monster
     if (monster.statusEffects && monster.statusEffects.length > 0) {
-      const newStatusEffects = [];
+      const newStatusEffects: any[] = [];
 
       monster.statusEffects.forEach((effect: any) => {
         if (effect.effectDetails) {
@@ -437,10 +438,10 @@ const executeHealingAbility = async (
   const maxHp = target.battleMaxHp || 0;
 
   // IMMUTABLE UPDATE: Find the target in the correct team and update it.
-  const teamToUpdate = battleState.playerTeam.some((m) => m.id === target.id)
+  const teamToUpdate = battleState.playerTeam.some((m: UserMonster) => m.id === target.id)
     ? battleState.playerTeam
     : battleState.aiTeam;
-  const targetIndex = teamToUpdate.findIndex((m) => m.id === target.id);
+  const targetIndex = teamToUpdate.findIndex((m: UserMonster) => m.id === target.id);
 
   let actualHealing = 0;
   if (targetIndex !== -1) {
@@ -508,7 +509,7 @@ const executeAbility = async (
     ? battleState.aiTeam
     : battleState.playerTeam;
   const defenderUpdateIndex = defenderTeamToUpdate.findIndex(
-    (m) => m.id === defender.id,
+    (m: UserMonster) => m.id === defender.id,
   );
   if (defenderUpdateIndex !== -1) {
     const updatedDefender = { ...defenderTeamToUpdate[defenderUpdateIndex] };

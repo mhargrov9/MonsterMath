@@ -2,6 +2,15 @@
 
 export type Turn = 'player' | 'ai' | 'pre-battle' | 'player-must-swap';
 
+export interface StatusEffect {
+  id: number;
+  name: string;
+  duration: number;
+  value?: number;
+  effectDetails?: any;
+  [key: string]: any;
+}
+
 export interface DamageResult {
   damage: number;
   isCritical: boolean;
@@ -30,7 +39,7 @@ export interface UserMonster {
   battleMp?: number;
   battleMaxMp?: number;
   isShattered?: boolean;
-  statusEffects?: Array<{ name: string; duration: number }>;
+  statusEffects?: StatusEffect[];
 }
 
 export interface Monster {
@@ -49,7 +58,7 @@ export interface Monster {
   gradient: string;
   abilities?: any[];
   resistances?: string[];
-  statusEffects?: Array<{ name: string; duration: number }>;
+  statusEffects?: StatusEffect[];
   battleHp?: number;
   battleMaxHp?: number;
   battleMp?: number;
@@ -74,6 +83,16 @@ export interface Ability {
   status_effect_applies?: string;
   status_effect_chance?: number;
   status_effect_duration?: number;
+  status_effect_id?: number;
+  effectDetails?: any;
+  override_chance?: number;
+  override_duration?: number;
+  override_value?: number;
+  activation_trigger?: string;
+  activation_scope?: string;
+  healing_power_multiplier?: number;
+  stat_modifiers?: any;
+  duration_reduction_position?: string;
 }
 
 export interface GameUser {
