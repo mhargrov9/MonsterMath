@@ -30,7 +30,7 @@ export interface UserMonster {
   battleMp?: number;
   battleMaxMp?: number;
   isShattered?: boolean;
-  statusEffects?: Array<{name: string; duration: number}>;
+  statusEffects?: Array<{ name: string; duration: number }>;
 }
 
 export interface Monster {
@@ -49,7 +49,7 @@ export interface Monster {
   gradient: string;
   abilities?: any[];
   resistances?: string[];
-  statusEffects?: Array<{name: string; duration: number}>;
+  statusEffects?: Array<{ name: string; duration: number }>;
   battleHp?: number;
   battleMaxHp?: number;
   battleMp?: number;
@@ -129,5 +129,5 @@ export interface FloatingText {
   isPlayerTarget: boolean;
 }
 
-export type Subject = "math" | "spelling" | "mixed";
-export type GameTab = "learn" | "lab" | "battle" | "story";
+export type Subject = 'math' | 'spelling' | 'mixed';
+export type GameTab = 'learn' | 'lab' | 'battle' | 'story';
