@@ -115,7 +115,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    body: JSON.stringify({ tpl: 100 })
                 });
                 
                 console.log('Step 3: Response received, status:', response.status);

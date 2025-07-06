@@ -1196,6 +1196,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Server now returns HTTP 200 responses for static files instead of 404 errors
   - Infrastructure enhancement supports development workflow without affecting game architecture
   - Follows Express.js best practices for static file serving with proper middleware order
+- July 6, 2025: Test Battle Page API Request Fix
+  - Fixed test_battle.html to include required TPL parameter in API request body
+  - Added `body: JSON.stringify({ tpl: 100 })` to fetch call for /api/battle/generate-opponent
+  - Resolved 400 Bad Request error caused by missing Team Power Level parameter
+  - Test value of 100 TPL provides reasonable opponent generation for testing
+  - API call now properly formatted to match server endpoint expectations
+  - Note: Endpoint requires authentication, so test page needs logged-in session for full functionality
+  - Technical fix complete - request format now complies with server API contract
 
 ## User Preferences
 
