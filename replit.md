@@ -1126,6 +1126,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Complete stat modifier lifecycle: application → consumption → expiration
   - All tests passing (12/12) confirming full stat modifier system functionality
   - Temporary stat changes now properly expire preventing permanent modifications
+- July 6, 2025: ON_BEING_HIT Passive Abilities Implementation (Task 85)
+  - Enhanced executeAbility function to process defensive passive abilities triggered when attacked
+  - Added ON_BEING_HIT activation trigger support for reactive monster abilities
+  - Defensive passives now trigger after damage calculation but before health application
+  - Uses database abilities_map for authentic passive ability data and trigger conditions
+  - Implements probability-based activation using override_chance and effectDetails.default_value
+  - Applies status effects to defender when passive triggers with proper battle logging
+  - Created comprehensive unit test validating Phase Shift passive with 100% trigger chance
+  - All tests passing (13/13) confirming defensive passive abilities work correctly
+  - Foundation established for tactical defensive gameplay with reactive monster abilities
 
 ## User Preferences
 

@@ -368,6 +368,7 @@ describe('battleEngine Helpers', () => {
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
+        abilities_map: {},
       };
 
       await executeAbility(mockState, mockAbilityWithDebuff);
@@ -376,6 +377,38 @@ describe('battleEngine Helpers', () => {
       const effect = mockState.aiTeam[0].activeEffects[0];
       expect(effect.stat).toBe('speed');
       expect(effect.value).toBe(-10);
+    });
+
+    it('should trigger an ON_BEING_HIT passive on the defender', async () => {
+      const defenderWithPassive = {
+        ...mockAiMonster,
+        statusEffects: [],
+      };
+
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [defenderWithPassive],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          [mockAiMonster.id]: [{
+            name: 'Test Phase Shift',
+            ability_type: 'PASSIVE',
+            activation_trigger: 'ON_BEING_HIT',
+            status_effect_id: 99, // Dummy ID for test
+            override_chance: 1.0, // Force 100% chance for test
+            effectDetails: { name: 'Phasing' }
+          }]
+        }
+      };
+
+      await executeAbility(mockState, mockAbility);
+
+      expect(defenderWithPassive.statusEffects).toHaveLength(1);
+      expect(defenderWithPassive.statusEffects[0].name).toBe('Phasing');
+      expect(mockState.battleLog).toContain("Test AiMon's Test Phase Shift activated!");
     });
   });
 });

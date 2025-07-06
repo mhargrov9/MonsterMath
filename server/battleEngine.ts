@@ -511,6 +511,34 @@ export const executeAbility = async (
   // Calculate damage using existing logic
   const damageResult = calculateDamage(attacker, defender, ability);
 
+  // --- Check for ON_BEING_HIT Passives on the Defender ---
+  const defenderAbilities = battleState.abilities_map[defender.monster?.id || defender.id] || [];
+  for (const passive of defenderAbilities) {
+    if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_BEING_HIT' && passive.effectDetails) {
+
+      const chance = parseFloat(passive.override_chance || passive.effectDetails.default_value || '1.0');
+
+      if (Math.random() < chance) {
+        // For now, we'll focus on passives that apply a status effect to the defender
+        if (passive.status_effect_id) {
+          if (!defender.statusEffects) {
+            defender.statusEffects = [];
+          }
+          const newStatusEffect = {
+            name: passive.effectDetails.name,
+            duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
+            isNew: true,
+            effectDetails: passive.effectDetails,
+            override_value: passive.override_value,
+          };
+          defender.statusEffects.push(newStatusEffect);
+          const defenderName = defender.monster?.name || defender.name;
+          battleState.battleLog.push(`${defenderName}'s ${passive.name} activated!`);
+        }
+      }
+    }
+  }
+
   // Apply MP cost to attacker
   const mpCost = ability.mp_cost || 0;
   if ('battleMp' in attacker) {
