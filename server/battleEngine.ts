@@ -1,5 +1,5 @@
 // Import shared types for the battle system
-import { DamageResult, UserMonster, Monster, Ability, Turn } from '../shared/types.js';
+import { DamageResult, UserMonster, Monster, Ability, Turn, StatusEffect } from '../shared/types.js';
 import { storage } from './storage.js';
 import crypto from 'crypto';
 
@@ -218,16 +218,16 @@ export const handleEndOfTurn = (battleState: any): void => {
     
     // SECOND: Process statusEffects array for this monster
     if (monster.statusEffects && monster.statusEffects.length > 0) {
-      const newStatusEffects = [];
+      const newStatusEffects: StatusEffect[] = [];
       
-      monster.statusEffects.forEach((effect: any) => {
+      monster.statusEffects.forEach((effect: StatusEffect) => {
         if (effect.effectDetails) {
           // Process status effect based on effect_type
           switch (effect.effectDetails.effect_type) {
             case 'DAMAGE_OVER_TIME':
               // Calculate damage based on database values
-              let damageAmount;
-              const effectValue = effect.override_value || effect.effectDetails.default_value || 0;
+              let damageAmount: number;
+              const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
               
               if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
                 const maxHp = monster.battleMaxHp || 0;
@@ -324,8 +324,8 @@ const executeHealingAbility = async (battleState: any, ability: any, attacker: a
   const maxHp = target.battleMaxHp || 0;
   
   // IMMUTABLE UPDATE: Find the target in the correct team and update it.
-  const teamToUpdate = battleState.playerTeam.some(m => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
-  const targetIndex = teamToUpdate.findIndex(m => m.id === target.id);
+  const teamToUpdate = battleState.playerTeam.some((m: any) => m.id === target.id) ? battleState.playerTeam : battleState.aiTeam;
+  const targetIndex = teamToUpdate.findIndex((m: any) => m.id === target.id);
 
   let actualHealing = 0;
   if(targetIndex !== -1) {
@@ -377,7 +377,7 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   
   // IMMUTABLE UPDATE: Find the defender in the correct team array and update it.
   const defenderTeamToUpdate = isPlayerTurn ? battleState.aiTeam : battleState.playerTeam;
-  const defenderUpdateIndex = defenderTeamToUpdate.findIndex(m => m.id === defender.id);
+  const defenderUpdateIndex = defenderTeamToUpdate.findIndex((m: any) => m.id === defender.id);
   if (defenderUpdateIndex !== -1) {
       const updatedDefender = { ...defenderTeamToUpdate[defenderUpdateIndex] };
       const currentHp = updatedDefender.battleHp || 0;
@@ -407,7 +407,7 @@ const executeAbility = async (battleState: any, ability: Ability): Promise<Damag
   // Check if ability applies a status effect using the new normalized structure
   if (ability.status_effect_id && ability.effectDetails) {
     // Use override values from the ability, or fall back to the defaults from the status_effect
-    const chance = ability.override_chance ?? ability.effectDetails.default_value ?? 1.0;
+    const chance = ability.override_chance ?? parseFloat(ability.effectDetails.default_value) ?? 1.0;
 
     // Compare the random float (0.0-1.0) directly against the probability
     if (Math.random() < chance) {
