@@ -1215,6 +1215,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintains server-authoritative architecture by reading from existing battle data
   - Provides clear visual feedback with red border and explanatory text
   - Button placeholders ready for future forfeit/swap functionality implementation
+- July 6, 2025: Paralysis Testing Enablement - Database Configuration
+  - Updated monsters table to include Spark-Tail Squirrel (ID 12) in AI opponent pool
+  - Changed starter_set from true to false for testing accessibility
+  - Enables players to encounter AI opponents with Jolt ability (25% paralysis chance)
+  - Allows comprehensive testing of paralysis UI enhancement with authentic battle mechanics
+  - Uses real database-driven status effect system for proper feature validation
+  - Temporary change to support development workflow and feature testing
+  - Maintains database-driven architecture with authentic monster data and abilities
 
 ## User Preferences
 
