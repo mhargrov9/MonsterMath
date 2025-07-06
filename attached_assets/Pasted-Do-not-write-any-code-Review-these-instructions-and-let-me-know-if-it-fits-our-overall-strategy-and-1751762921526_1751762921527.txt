@@ -1,0 +1,82 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The codebase currently lacks consistent formatting and a system for automatically catching common coding errors and style issues.
+
+Problem: As the project grows, the risk of technical debt and hard-to-maintain code increases.
+
+Goal
+Install and configure ESLint and Prettier to establish a professional code quality and formatting standard for the entire project. Create the necessary configuration files and add npm scripts to run these tools.
+
+Actions
+Install Dependencies:
+
+Action: Install the following devDependencies using the package manager: eslint, prettier, eslint-plugin-react, eslint-plugin-react-hooks, @typescript-eslint/parser, @typescript-eslint/eslint-plugin, eslint-config-prettier, eslint-plugin-prettier.
+
+Create New File: .eslintrc.json
+
+Action: Create this new configuration file in the project's root directory.
+
+Content:
+
+JSON
+
+{
+  "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:prettier/recommended"
+  ],
+  "plugins": ["react", "react-hooks", "@typescript-eslint"],
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "rules": {
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off",
+    "@typescript-eslint/no-explicit-any": "warn"
+  }
+}
+Create New File: .prettierrc.json
+
+Action: Create this new configuration file in the project's root directory.
+
+Content:
+
+JSON
+
+{
+  "semi": true,
+  "trailingComma": "all",
+  "singleQuote": true,
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false
+}
+package.json
+
+Action: Add two new scripts to the "scripts" object: "lint" and "format".
+
+JSON
+
+"scripts": {
+  "dev": "NODE_ENV=development tsx server/index.ts",
+  "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+  "start": "NODE_ENV=production node dist/index.js",
+  "check": "tsc",
+  "db:push": "drizzle-kit push",
+  "test": "vitest",
+  "lint": "eslint \"src/**/*.{ts,tsx}\" --quiet",
+  "format": "prettier \"src/**/*.{ts,tsx}\" --write"
+},
