@@ -1,0 +1,84 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Defensive passive abilities that should trigger when a monster is attacked (e.g., Phase Shift) do not work because the ON_BEING_HIT trigger is not implemented.
+
+Goal
+Enhance the executeAbility function to check for and process ON_BEING_HIT passive abilities on the defending monster. For this first implementation, the logic will focus on applying a status effect to the defender when the passive triggers.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the executeAbility function.
+
+Position: Add this new logic block immediately after the const damageResult = calculateDamage(...) line, but before the damage is applied to the defender's health.
+
+Code to Add:
+
+TypeScript
+
+// --- Check for ON_BEING_HIT Passives on the Defender ---
+const defenderAbilities = battleState.abilities_map[defender.monster?.id || defender.id] || [];
+for (const passive of defenderAbilities) {
+  if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_BEING_HIT' && passive.effectDetails) {
+
+    const chance = parseFloat(passive.override_chance || passive.effectDetails.default_value || '1.0');
+
+    if (Math.random() < chance) {
+      // For now, we'll focus on passives that apply a status effect to the defender
+      if (passive.status_effect_id) {
+        if (!defender.statusEffects) {
+          defender.statusEffects = [];
+        }
+        const newStatusEffect = {
+          name: passive.effectDetails.name,
+          duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
+          isNew: true,
+          effectDetails: passive.effectDetails,
+          override_value: passive.override_value,
+        };
+        defender.statusEffects.push(newStatusEffect);
+        battleState.battleLog.push(`${defenderName}'s ${passive.name} activated!`);
+      }
+    }
+  }
+}
+server/battleEngine.test.ts
+
+Action: Add a new unit test to verify the ON_BEING_HIT logic.
+
+Code to Add:
+
+TypeScript
+
+// Add this test inside a new or existing describe block
+it('should trigger an ON_BEING_HIT passive on the defender', async () => {
+  const defenderWithPassive = {
+    ...mockAiMonster,
+    statusEffects: [],
+  };
+
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [defenderWithPassive],
+    activePlayerIndex: 0,
+    activeAiIndex: 0,
+    battleLog: [],
+    abilities_map: {
+      [mockAiMonster.id]: [{
+        name: 'Test Phase Shift',
+        ability_type: 'PASSIVE',
+        activation_trigger: 'ON_BEING_HIT',
+        status_effect_id: 99, // Dummy ID for test
+        override_chance: 1.0, // Force 100% chance for test
+        effectDetails: { name: 'Phasing' }
+      }]
+    }
+  };
+
+  await executeAbility(mockState, mockAbility);
+
+  expect(defenderWithPassive.statusEffects).toHaveLength(1);
+  expect(defenderWithPassive.statusEffects[0].name).toBe('Phasing');
+  expect(mockState.battleLog).toContain("Test AiMon's Test Phase Shift activated!");
+});
