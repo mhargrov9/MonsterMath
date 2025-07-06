@@ -1,0 +1,67 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: There is no automated way to populate a new, empty database with the essential game data required for the application to function.
+
+Problem: Testing and setting up new developer environments is difficult without a consistent, clean data set.
+
+Goal
+Create a database seed script that can be run from the command line. As the first step, this script will populate the ranks table with all the player ranks from Bronze to Grandmaster.
+
+Actions
+Create New File: server/seed.ts
+
+Action: Create a new file at this path.
+
+Content: Populate the new file with the following TypeScript code. This script will define all the rank data and contain a function to insert it into the database.
+
+TypeScript
+
+import { db } from './db';
+import { ranks } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+const rankData = [
+  { tier_name: 'Bronze', sub_tier: 3, xp_required: 0 },
+  { tier_name: 'Bronze', sub_tier: 2, xp_required: 100 },
+  { tier_name: 'Bronze', sub_tier: 1, xp_required: 250 },
+  { tier_name: 'Silver', sub_tier: 3, xp_required: 500 },
+  { tier_name: 'Silver', sub_tier: 2, xp_required: 800 },
+  { tier_name: 'Silver', sub_tier: 1, xp_required: 1200 },
+  { tier_name: 'Gold', sub_tier: 3, xp_required: 1700 },
+  { tier_name: 'Gold', sub_tier: 2, xp_required: 2300 },
+  { tier_name: 'Gold', sub_tier: 1, xp_required: 3000 },
+  { tier_name: 'Platinum', sub_tier: 3, xp_required: 4000 },
+  { tier_name: 'Platinum', sub_tier: 2, xp_required: 5200 },
+  { tier_name: 'Platinum', sub_tier: 1, xp_required: 6500 },
+  { tier_name: 'Diamond', sub_tier: 3, xp_required: 8000 },
+  { tier_name: 'Diamond', sub_tier: 2, xp_required: 10000 },
+  { tier_name: 'Diamond', sub_tier: 1, xp_required: 12500 },
+  { tier_name: 'Master', sub_tier: 1, xp_required: 15000 },
+  { tier_name: 'Grandmaster', sub_tier: 1, xp_required: 20000 },
+];
+
+async function seedRanks() {
+  console.log('Seeding ranks...');
+  // For each rank, update it if it exists, or insert it if it does not.
+  for (const rank of rankData) {
+    await db.insert(ranks)
+      .values(rank)
+      .onConflictDoUpdate({ 
+        target: ranks.xp_required, 
+        set: { tier_name: rank.tier_name, sub_tier: rank.sub_tier } 
+      });
+  }
+  console.log('Finished seeding ranks.');
+}
+
+async function seedAll() {
+  await seedRanks();
+}
+
+seedAll().catch((e) => {
+  console.error('Error during database seeding:', e);
+  process.exit(1);
+});
+package.json
+
+Action: Add a new script to the "scripts" object: "db:seed": "tsx server/seed.ts". This will allow us to run the seed script easily from the command line.

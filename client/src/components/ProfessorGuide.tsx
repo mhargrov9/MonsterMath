@@ -10,10 +10,12 @@ export default function ProfessorGuide() {
           <div className="flex-1">
             <div className="bg-white rounded-2xl p-4 relative shadow-xl">
               <div className="absolute -left-2 top-4 w-4 h-4 bg-white rotate-45"></div>
-              <h3 className="font-fredoka text-vibrant-purple text-xl mb-2">Professor Quibble</h3>
+              <h3 className="font-fredoka text-vibrant-purple text-xl mb-2">
+                Professor Quibble
+              </h3>
               <p className="text-gray-700">
-                Welcome back, Monster Trainer! Ready to earn some Gold by solving questions? 
-                Your monsters are getting stronger! 🧪⚡
+                Welcome back, Monster Trainer! Ready to earn some Gold by
+                solving questions? Your monsters are getting stronger! 🧪⚡
               </p>
             </div>
           </div>

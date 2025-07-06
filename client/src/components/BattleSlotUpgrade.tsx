@@ -2,7 +2,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Gem, Users, ArrowUp, Crown } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -14,7 +24,11 @@ interface BattleSlotUpgradeProps {
   onUpgrade?: () => void;
 }
 
-export default function BattleSlotUpgrade({ currentSlots, diamonds, onUpgrade }: BattleSlotUpgradeProps) {
+export default function BattleSlotUpgrade({
+  currentSlots,
+  diamonds,
+  onUpgrade,
+}: BattleSlotUpgradeProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -27,44 +41,54 @@ export default function BattleSlotUpgrade({ currentSlots, diamonds, onUpgrade }:
   const purchaseSlotMutation = useMutation({
     mutationFn: async () => {
       return await apiRequest('/api/battle/purchase-slot', {
-        method: 'POST'
+        method: 'POST',
       });
     },
     onSuccess: (data) => {
       toast({
-        title: "Battle Slot Purchased!",
+        title: 'Battle Slot Purchased!',
         description: `You now have ${data.user.battleSlots} battle slots`,
-        variant: "default"
+        variant: 'default',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       onUpgrade?.();
     },
     onError: (error) => {
       toast({
-        title: "Purchase Failed",
+        title: 'Purchase Failed',
         description: error.message,
-        variant: "destructive"
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const getSlotDescription = (slots: number) => {
     switch (slots) {
-      case 2: return "Current: Basic dual monster battles";
-      case 3: return "Upgrade to: Triple threat formations";
-      case 4: return "Upgrade to: Quad squad dominance";
-      case 5: return "Upgrade to: Elite five-monster army";
-      default: return "Maximum battle capacity reached";
+      case 2:
+        return 'Current: Basic dual monster battles';
+      case 3:
+        return 'Upgrade to: Triple threat formations';
+      case 4:
+        return 'Upgrade to: Quad squad dominance';
+      case 5:
+        return 'Upgrade to: Elite five-monster army';
+      default:
+        return 'Maximum battle capacity reached';
     }
   };
 
   const getRankTitle = (slots: number) => {
     switch (slots) {
-      case 2: return "Novice Trainer";
-      case 3: return "Skilled Tactician";
-      case 4: return "Battle Commander";
-      case 5: return "Monster Master";
-      default: return "Legendary Champion";
+      case 2:
+        return 'Novice Trainer';
+      case 3:
+        return 'Skilled Tactician';
+      case 4:
+        return 'Battle Commander';
+      case 5:
+        return 'Monster Master';
+      default:
+        return 'Legendary Champion';
     }
   };
 
@@ -122,15 +146,19 @@ export default function BattleSlotUpgrade({ currentSlots, diamonds, onUpgrade }:
 
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button 
+            <Button
               disabled={!canUpgrade || purchaseSlotMutation.isPending}
               className="w-full"
               size="lg"
             >
               {purchaseSlotMutation.isPending ? (
-                "Purchasing..."
+                'Purchasing...'
               ) : !canUpgrade ? (
-                diamonds < cost ? `Need ${cost - diamonds} More Diamonds` : "Max Slots Reached"
+                diamonds < cost ? (
+                  `Need ${cost - diamonds} More Diamonds`
+                ) : (
+                  'Max Slots Reached'
+                )
               ) : (
                 <>
                   <Gem className="w-4 h-4 mr-2" />
@@ -144,7 +172,8 @@ export default function BattleSlotUpgrade({ currentSlots, diamonds, onUpgrade }:
               <AlertDialogTitle>Purchase Battle Slot</AlertDialogTitle>
               <AlertDialogDescription className="space-y-2">
                 <p>
-                  Upgrade from <strong>{currentSlots} slots</strong> to <strong>{nextSlot} slots</strong>
+                  Upgrade from <strong>{currentSlots} slots</strong> to{' '}
+                  <strong>{nextSlot} slots</strong>
                 </p>
                 <p>
                   Cost: <strong>{cost} Diamonds</strong>
@@ -153,7 +182,8 @@ export default function BattleSlotUpgrade({ currentSlots, diamonds, onUpgrade }:
                   Your Balance: <strong>{diamonds} Diamonds</strong>
                 </p>
                 <p className="text-sm text-gray-600">
-                  More battle slots allow you to bring additional monsters into battle for strategic advantage.
+                  More battle slots allow you to bring additional monsters into
+                  battle for strategic advantage.
                 </p>
               </AlertDialogDescription>
             </AlertDialogHeader>

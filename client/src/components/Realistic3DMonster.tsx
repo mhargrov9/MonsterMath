@@ -9,18 +9,18 @@ interface Realistic3DMonsterProps {
   facingDirection?: 'left' | 'right';
 }
 
-export default function Realistic3DMonster({ 
-  monsterId, 
-  evolutionStage, 
-  upgradeChoices, 
+export default function Realistic3DMonster({
+  monsterId,
+  evolutionStage,
+  upgradeChoices,
   size = 'medium',
   animationState = 'idle',
-  facingDirection = 'right'
+  facingDirection = 'right',
 }: Realistic3DMonsterProps) {
   const dimensions = {
     small: { width: 200, height: 200 },
     medium: { width: 320, height: 320 },
-    large: { width: 450, height: 450 }
+    large: { width: 450, height: 450 },
   };
 
   const { width, height } = dimensions[size];
@@ -32,11 +32,11 @@ export default function Realistic3DMonster({
     const hasMuscles = upgradeChoices?.muscles === 'enhanced';
     const hasWings = upgradeChoices?.wings === 'flame';
     const tailType = upgradeChoices?.tail || 'normal';
-    
+
     // Animation transforms
     const getTransform = () => {
       const baseTransform = facingDirection === 'left' ? 'scaleX(-1)' : '';
-      
+
       switch (animationState) {
         case 'windup':
           return `${baseTransform} scale(0.9) rotate(-5deg)`;
@@ -54,23 +54,26 @@ export default function Realistic3DMonster({
     };
 
     return (
-      <div 
+      <div
         className="relative transition-all duration-300 ease-out"
-        style={{ 
+        style={{
           transform: getTransform(),
-          filter: animationState === 'attack' ? 'drop-shadow(0 0 20px rgba(255, 107, 107, 0.8))' : 'none'
+          filter:
+            animationState === 'attack'
+              ? 'drop-shadow(0 0 20px rgba(255, 107, 107, 0.8))'
+              : 'none',
         }}
       >
         {/* Realistic 3D-style Fire Phoenix */}
         <div className="relative" style={{ width, height }}>
           {/* Shadow/Base */}
-          <div 
+          <div
             className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-black/20 rounded-full blur-sm"
             style={{ width: width * 0.8, height: height * 0.15 }}
           />
-          
+
           {/* Main Body - Realistic texture */}
-          <div 
+          <div
             className="absolute inset-0 rounded-full bg-gradient-to-br from-red-500 via-orange-500 to-red-700"
             style={{
               width: width * 0.7,
@@ -86,36 +89,36 @@ export default function Realistic3DMonster({
                 inset 0 0 ${width * 0.05}px rgba(255, 100, 100, 0.8),
                 0 ${height * 0.05}px ${height * 0.1}px rgba(0, 0, 0, 0.3)
               `,
-              filter: hasMuscles ? 'contrast(1.2) saturate(1.3)' : 'none'
+              filter: hasMuscles ? 'contrast(1.2) saturate(1.3)' : 'none',
             }}
           />
 
           {/* Muscle Definition */}
           {hasMuscles && (
             <>
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-red-400 to-transparent rounded-full opacity-60"
                 style={{
                   width: width * 0.2,
                   height: height * 0.3,
                   left: '25%',
-                  top: '35%'
+                  top: '35%',
                 }}
               />
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-red-400 to-transparent rounded-full opacity-60"
                 style={{
                   width: width * 0.2,
                   height: height * 0.3,
                   left: '55%',
-                  top: '35%'
+                  top: '35%',
                 }}
               />
             </>
           )}
 
           {/* Head - 3D realistic */}
-          <div 
+          <div
             className="absolute rounded-full bg-gradient-to-br from-red-400 via-orange-400 to-red-600"
             style={{
               width: width * 0.45,
@@ -129,56 +132,56 @@ export default function Realistic3DMonster({
               boxShadow: `
                 inset 0 0 ${width * 0.08}px rgba(255, 255, 255, 0.4),
                 0 ${height * 0.03}px ${height * 0.06}px rgba(0, 0, 0, 0.2)
-              `
+              `,
             }}
           />
 
           {/* Eyes - Realistic 3D */}
-          <div 
+          <div
             className="absolute rounded-full bg-gradient-to-br from-yellow-300 to-orange-500"
             style={{
               width: width * 0.08,
               height: width * 0.08,
               left: '35%',
               top: '20%',
-              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.8), 0 0 ${width * 0.01}px rgba(255, 255, 0, 0.6)`
+              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.8), 0 0 ${width * 0.01}px rgba(255, 255, 0, 0.6)`,
             }}
           />
-          <div 
+          <div
             className="absolute rounded-full bg-gradient-to-br from-yellow-300 to-orange-500"
             style={{
               width: width * 0.08,
               height: width * 0.08,
               left: '57%',
               top: '20%',
-              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.8), 0 0 ${width * 0.01}px rgba(255, 255, 0, 0.6)`
+              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.8), 0 0 ${width * 0.01}px rgba(255, 255, 0, 0.6)`,
             }}
           />
 
           {/* Eye pupils */}
-          <div 
+          <div
             className="absolute rounded-full bg-black"
             style={{
               width: width * 0.04,
               height: width * 0.04,
               left: '37%',
-              top: '22%'
+              top: '22%',
             }}
           />
-          <div 
+          <div
             className="absolute rounded-full bg-black"
             style={{
               width: width * 0.04,
               height: width * 0.04,
               left: '59%',
-              top: '22%'
+              top: '22%',
             }}
           />
 
           {/* Teeth - Enhanced if upgraded */}
           {hasSharpTeeth && (
             <>
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-white to-gray-300 transform rotate-12"
                 style={{
                   width: width * 0.03,
@@ -186,10 +189,10 @@ export default function Realistic3DMonster({
                   left: '42%',
                   top: '32%',
                   clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                  boxShadow: `0 0 ${width * 0.01}px rgba(255, 255, 255, 0.8)`
+                  boxShadow: `0 0 ${width * 0.01}px rgba(255, 255, 255, 0.8)`,
                 }}
               />
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-white to-gray-300 transform -rotate-12"
                 style={{
                   width: width * 0.03,
@@ -197,7 +200,7 @@ export default function Realistic3DMonster({
                   left: '55%',
                   top: '32%',
                   clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                  boxShadow: `0 0 ${width * 0.01}px rgba(255, 255, 255, 0.8)`
+                  boxShadow: `0 0 ${width * 0.01}px rgba(255, 255, 255, 0.8)`,
                 }}
               />
             </>
@@ -206,7 +209,7 @@ export default function Realistic3DMonster({
           {/* Wings - Flame wings if upgraded */}
           {hasWings && (
             <>
-              <div 
+              <div
                 className="absolute bg-gradient-to-r from-orange-400 via-red-500 to-yellow-400 opacity-80"
                 style={{
                   width: width * 0.3,
@@ -215,10 +218,13 @@ export default function Realistic3DMonster({
                   top: '20%',
                   clipPath: 'polygon(0% 20%, 100% 0%, 90% 100%, 10% 80%)',
                   filter: 'blur(1px)',
-                  animation: animationState === 'attack' ? 'flutter 0.3s ease-in-out' : 'none'
+                  animation:
+                    animationState === 'attack'
+                      ? 'flutter 0.3s ease-in-out'
+                      : 'none',
                 }}
               />
-              <div 
+              <div
                 className="absolute bg-gradient-to-l from-orange-400 via-red-500 to-yellow-400 opacity-80"
                 style={{
                   width: width * 0.3,
@@ -227,7 +233,10 @@ export default function Realistic3DMonster({
                   top: '20%',
                   clipPath: 'polygon(0% 0%, 100% 20%, 90% 80%, 10% 100%)',
                   filter: 'blur(1px)',
-                  animation: animationState === 'attack' ? 'flutter 0.3s ease-in-out' : 'none'
+                  animation:
+                    animationState === 'attack'
+                      ? 'flutter 0.3s ease-in-out'
+                      : 'none',
                 }}
               />
             </>
@@ -236,7 +245,7 @@ export default function Realistic3DMonster({
           {/* Spikes - Metallic spikes if upgraded */}
           {hasSpikes && (
             <>
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-gray-300 to-gray-600"
                 style={{
                   width: width * 0.04,
@@ -244,10 +253,10 @@ export default function Realistic3DMonster({
                   left: '30%',
                   top: '15%',
                   clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                  boxShadow: `0 0 ${width * 0.005}px rgba(255, 255, 255, 0.8)`
+                  boxShadow: `0 0 ${width * 0.005}px rgba(255, 255, 255, 0.8)`,
                 }}
               />
-              <div 
+              <div
                 className="absolute bg-gradient-to-b from-gray-300 to-gray-600"
                 style={{
                   width: width * 0.04,
@@ -255,14 +264,14 @@ export default function Realistic3DMonster({
                   left: '66%',
                   top: '15%',
                   clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                  boxShadow: `0 0 ${width * 0.005}px rgba(255, 255, 255, 0.8)`
+                  boxShadow: `0 0 ${width * 0.005}px rgba(255, 255, 255, 0.8)`,
                 }}
               />
             </>
           )}
 
           {/* Tail - Enhanced based on upgrade */}
-          <div 
+          <div
             className="absolute bg-gradient-to-t from-red-600 to-red-400"
             style={{
               width: width * 0.15,
@@ -271,36 +280,39 @@ export default function Realistic3DMonster({
               top: '45%',
               borderRadius: '50% 50% 50% 50% / 60% 60% 40% 40%',
               transform: `rotate(${animationState === 'attack' ? '45deg' : '25deg'})`,
-              background: tailType === 'spiked' ? 
-                'linear-gradient(135deg, #ff4757 0%, #ff3838 50%, #c23616 100%)' :
-                'linear-gradient(135deg, #ff6b6b 0%, #ff4757 50%, #e55039 100%)',
-              boxShadow: `0 ${height * 0.02}px ${height * 0.04}px rgba(0, 0, 0, 0.2)`
+              background:
+                tailType === 'spiked'
+                  ? 'linear-gradient(135deg, #ff4757 0%, #ff3838 50%, #c23616 100%)'
+                  : 'linear-gradient(135deg, #ff6b6b 0%, #ff4757 50%, #e55039 100%)',
+              boxShadow: `0 ${height * 0.02}px ${height * 0.04}px rgba(0, 0, 0, 0.2)`,
             }}
           />
 
           {/* Fire Effects for Attack Animation */}
           {animationState === 'attack' && (
             <>
-              <div 
+              <div
                 className="absolute animate-pulse"
                 style={{
                   width: width * 0.2,
                   height: width * 0.2,
                   left: '70%',
                   top: '30%',
-                  background: 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, transparent 70%)',
-                  borderRadius: '50%'
+                  background:
+                    'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, transparent 70%)',
+                  borderRadius: '50%',
                 }}
               />
-              <div 
+              <div
                 className="absolute animate-ping"
                 style={{
                   width: width * 0.15,
                   height: width * 0.15,
                   left: '75%',
                   top: '35%',
-                  background: 'radial-gradient(circle, rgba(255, 69, 0, 0.6) 0%, transparent 70%)',
-                  borderRadius: '50%'
+                  background:
+                    'radial-gradient(circle, rgba(255, 69, 0, 0.6) 0%, transparent 70%)',
+                  borderRadius: '50%',
                 }}
               />
             </>
@@ -317,11 +329,11 @@ export default function Realistic3DMonster({
     const hasMuscles = upgradeChoices?.muscles === 'enhanced';
     const hasWings = upgradeChoices?.wings === 'ice';
     const tailType = upgradeChoices?.tail || 'normal';
-    
+
     // Animation transforms
     const getTransform = () => {
       const baseTransform = facingDirection === 'left' ? 'scaleX(-1)' : '';
-      
+
       switch (animationState) {
         case 'windup':
           return `${baseTransform} scale(0.9) rotate(-5deg)`;
@@ -339,23 +351,26 @@ export default function Realistic3DMonster({
     };
 
     return (
-      <div 
+      <div
         className="relative transition-all duration-300 ease-out"
-        style={{ 
+        style={{
           transform: getTransform(),
-          filter: animationState === 'attack' ? 'drop-shadow(0 0 20px rgba(107, 185, 255, 0.8))' : 'none'
+          filter:
+            animationState === 'attack'
+              ? 'drop-shadow(0 0 20px rgba(107, 185, 255, 0.8))'
+              : 'none',
         }}
       >
         {/* Realistic 3D-style Ice Dragon */}
         <div className="relative" style={{ width, height }}>
           {/* Shadow/Base */}
-          <div 
+          <div
             className="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-black/20 rounded-full blur-sm"
             style={{ width: width * 0.8, height: height * 0.15 }}
           />
-          
+
           {/* Main Body - Realistic ice texture */}
-          <div 
+          <div
             className="absolute inset-0 rounded-full"
             style={{
               width: width * 0.7,
@@ -371,12 +386,12 @@ export default function Realistic3DMonster({
                 inset 0 0 ${width * 0.05}px rgba(180, 220, 255, 0.8),
                 0 ${height * 0.05}px ${height * 0.1}px rgba(0, 0, 0, 0.3)
               `,
-              filter: hasMuscles ? 'contrast(1.2) saturate(1.3)' : 'none'
+              filter: hasMuscles ? 'contrast(1.2) saturate(1.3)' : 'none',
             }}
           />
 
           {/* Ice Crystal Texture */}
-          <div 
+          <div
             className="absolute rounded-full opacity-30"
             style={{
               width: width * 0.6,
@@ -398,12 +413,12 @@ export default function Realistic3DMonster({
                   transparent 2px,
                   transparent 8px
                 )
-              `
+              `,
             }}
           />
 
           {/* Head - 3D realistic */}
-          <div 
+          <div
             className="absolute rounded-full"
             style={{
               width: width * 0.45,
@@ -417,77 +432,81 @@ export default function Realistic3DMonster({
               boxShadow: `
                 inset 0 0 ${width * 0.08}px rgba(255, 255, 255, 0.5),
                 0 ${height * 0.03}px ${height * 0.06}px rgba(0, 0, 0, 0.2)
-              `
+              `,
             }}
           />
 
           {/* Eyes - Realistic 3D ice blue */}
-          <div 
+          <div
             className="absolute rounded-full"
             style={{
               width: width * 0.08,
               height: width * 0.08,
               left: '35%',
               top: '20%',
-              background: 'radial-gradient(circle, #e0f7ff 0%, #74b9ff 50%, #0984e3 100%)',
-              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.6), 0 0 ${width * 0.01}px rgba(116, 185, 255, 0.8)`
+              background:
+                'radial-gradient(circle, #e0f7ff 0%, #74b9ff 50%, #0984e3 100%)',
+              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.6), 0 0 ${width * 0.01}px rgba(116, 185, 255, 0.8)`,
             }}
           />
-          <div 
+          <div
             className="absolute rounded-full"
             style={{
               width: width * 0.08,
               height: width * 0.08,
               left: '57%',
               top: '20%',
-              background: 'radial-gradient(circle, #e0f7ff 0%, #74b9ff 50%, #0984e3 100%)',
-              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.6), 0 0 ${width * 0.01}px rgba(116, 185, 255, 0.8)`
+              background:
+                'radial-gradient(circle, #e0f7ff 0%, #74b9ff 50%, #0984e3 100%)',
+              boxShadow: `inset 0 0 ${width * 0.02}px rgba(0, 0, 0, 0.6), 0 0 ${width * 0.01}px rgba(116, 185, 255, 0.8)`,
             }}
           />
 
           {/* Eye pupils */}
-          <div 
+          <div
             className="absolute rounded-full bg-black"
             style={{
               width: width * 0.04,
               height: width * 0.04,
               left: '37%',
-              top: '22%'
+              top: '22%',
             }}
           />
-          <div 
+          <div
             className="absolute rounded-full bg-black"
             style={{
               width: width * 0.04,
               height: width * 0.04,
               left: '59%',
-              top: '22%'
+              top: '22%',
             }}
           />
 
           {/* Ice Breath Effect for Attack Animation */}
           {animationState === 'attack' && (
             <>
-              <div 
+              <div
                 className="absolute animate-pulse"
                 style={{
                   width: width * 0.3,
                   height: width * 0.15,
                   left: '70%',
                   top: '30%',
-                  background: 'linear-gradient(90deg, rgba(180, 220, 255, 0.8) 0%, transparent 100%)',
-                  borderRadius: '50%'
+                  background:
+                    'linear-gradient(90deg, rgba(180, 220, 255, 0.8) 0%, transparent 100%)',
+                  borderRadius: '50%',
                 }}
               />
-              <div 
+              <div
                 className="absolute animate-ping"
                 style={{
                   width: width * 0.2,
                   height: width * 0.1,
                   left: '75%',
                   top: '35%',
-                  background: 'linear-gradient(90deg, rgba(116, 185, 255, 0.6) 0%, transparent 100%)',
-                  borderRadius: '50%'
+                  background:
+                    'linear-gradient(90deg, rgba(116, 185, 255, 0.6) 0%, transparent 100%)',
+                  borderRadius: '50%',
                 }}
               />
             </>
@@ -516,8 +535,6 @@ export default function Realistic3DMonster({
   return (
     <div className="relative flex items-center justify-center">
       {renderMonster()}
-      
-
     </div>
   );
 }

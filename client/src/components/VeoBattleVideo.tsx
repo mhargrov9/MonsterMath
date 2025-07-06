@@ -10,13 +10,13 @@ interface VeoBattleVideoProps {
   onVideoEnd?: () => void;
 }
 
-export default function VeoBattleVideo({ 
-  playerMonsterId, 
-  aiMonsterId, 
-  playerUpgrades, 
+export default function VeoBattleVideo({
+  playerMonsterId,
+  aiMonsterId,
+  playerUpgrades,
   aiUpgrades,
   isPlaying,
-  onVideoEnd
+  onVideoEnd,
 }: VeoBattleVideoProps) {
   const [videoData, setVideoData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function VeoBattleVideo({
   const generateBattleVideo = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await apiRequest('/api/generate/battle-video', {
         method: 'POST',
@@ -42,8 +42,8 @@ export default function VeoBattleVideo({
           playerMonsterId,
           aiMonsterId,
           playerUpgrades,
-          aiUpgrades
-        })
+          aiUpgrades,
+        }),
       });
 
       if (response.success && response.videoData) {
@@ -87,13 +87,13 @@ export default function VeoBattleVideo({
             {error}
           </p>
           <div className="flex gap-2 justify-center">
-            <button 
+            <button
               onClick={generateBattleVideo}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               Retry
             </button>
-            <button 
+            <button
               onClick={onVideoEnd}
               className="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition-colors"
             >

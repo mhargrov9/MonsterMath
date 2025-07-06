@@ -1,66 +1,82 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { Question, Subject } from "@/shared/types";
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { Question, Subject } from '@/shared/types';
 
 export default function LearningSystem() {
-  const [selectedSubject, setSelectedSubject] = useState<Subject>("mixed");
-  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<Subject>('mixed');
+  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
   const [showHint, setShowHint] = useState(false);
   const [usedHint, setUsedHint] = useState(false);
   const { toast } = useToast();
 
-  const { data: question, isLoading, refetch } = useQuery<Question>({
-    queryKey: ["/api/questions", selectedSubject, 2],
+  const {
+    data: question,
+    isLoading,
+    refetch,
+  } = useQuery<Question>({
+    queryKey: ['/api/questions', selectedSubject, 2],
     queryFn: async () => {
-      const response = await fetch(`/api/questions?subject=${selectedSubject}&difficulty=2`, {
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to fetch question");
+      const response = await fetch(
+        `/api/questions?subject=${selectedSubject}&difficulty=2`,
+        {
+          credentials: 'include',
+        },
+      );
+      if (!response.ok) throw new Error('Failed to fetch question');
       return response.json();
     },
   });
 
   const answerMutation = useMutation({
-    mutationFn: async ({ answer, isCorrect }: { answer: string; isCorrect: boolean }) => {
-      const response = await apiRequest("POST", "/api/questions/answer", {
+    mutationFn: async ({
+      answer,
+      isCorrect,
+    }: {
+      answer: string;
+      isCorrect: boolean;
+    }) => {
+      const response = await apiRequest('POST', '/api/questions/answer', {
         questionId: question?.id,
         answer,
         isCorrect,
         usedHint,
         subject: selectedSubject,
-        difficulty: 2
+        difficulty: 2,
       });
       return await response.json();
     },
     onSuccess: (data) => {
       if (data.isCorrect) {
         toast({
-          title: "Correct! 🎉",
+          title: 'Correct! 🎉',
           description: `You earned ${data.goldEarned} Gold!`,
-          className: "bg-lime-green text-white",
+          className: 'bg-lime-green text-white',
         });
 
         // If there's a next question, update the cache with it
         if (data.nextQuestion) {
-          queryClient.setQueryData(["/api/questions", selectedSubject, 2], data.nextQuestion);
+          queryClient.setQueryData(
+            ['/api/questions', selectedSubject, 2],
+            data.nextQuestion,
+          );
         } else {
           // No more questions available, refetch to potentially reset
           refetch();
         }
       } else {
         toast({
-          title: "Incorrect ❌",
-          description: "Try again! You can do it!",
-          variant: "destructive",
+          title: 'Incorrect ❌',
+          description: 'Try again! You can do it!',
+          variant: 'destructive',
         });
       }
 
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      setSelectedAnswer("");
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      setSelectedAnswer('');
       setShowHint(false);
       setUsedHint(false);
     },
@@ -73,7 +89,7 @@ export default function LearningSystem() {
   };
 
   const handleNewQuestion = () => {
-    setSelectedAnswer("");
+    setSelectedAnswer('');
     setShowHint(false);
     setUsedHint(false);
     refetch();
@@ -101,19 +117,21 @@ export default function LearningSystem() {
     <div className="space-y-4 sm:space-y-6">
       {/* Subject Selection */}
       <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border border-white/20">
-        <h3 className="font-fredoka text-xl sm:text-2xl text-white mb-3 sm:mb-4">Choose Your Challenge</h3>
+        <h3 className="font-fredoka text-xl sm:text-2xl text-white mb-3 sm:mb-4">
+          Choose Your Challenge
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <Button
             onClick={() => {
-              setSelectedSubject("math");
-              setSelectedAnswer("");
+              setSelectedSubject('math');
+              setSelectedAnswer('');
               setShowHint(false);
               setUsedHint(false);
             }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
-              selectedSubject === "math"
-                ? "bg-gradient-to-r from-bright-orange to-gold-yellow text-white"
-                : "bg-gradient-to-r from-bright-orange/50 to-gold-yellow/50 text-white"
+              selectedSubject === 'math'
+                ? 'bg-gradient-to-r from-bright-orange to-gold-yellow text-white'
+                : 'bg-gradient-to-r from-bright-orange/50 to-gold-yellow/50 text-white'
             }`}
           >
             <i className="fas fa-calculator text-lg sm:text-2xl mb-1 sm:mb-2 block"></i>
@@ -122,15 +140,15 @@ export default function LearningSystem() {
 
           <Button
             onClick={() => {
-              setSelectedSubject("spelling");
-              setSelectedAnswer("");
+              setSelectedSubject('spelling');
+              setSelectedAnswer('');
               setShowHint(false);
               setUsedHint(false);
             }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
-              selectedSubject === "spelling"
-                ? "bg-gradient-to-r from-vibrant-purple to-electric-blue text-white"
-                : "bg-gradient-to-r from-vibrant-purple/50 to-electric-blue/50 text-white"
+              selectedSubject === 'spelling'
+                ? 'bg-gradient-to-r from-vibrant-purple to-electric-blue text-white'
+                : 'bg-gradient-to-r from-vibrant-purple/50 to-electric-blue/50 text-white'
             }`}
           >
             <i className="fas fa-spell-check text-lg sm:text-2xl mb-1 sm:mb-2 block"></i>
@@ -139,15 +157,15 @@ export default function LearningSystem() {
 
           <Button
             onClick={() => {
-              setSelectedSubject("mixed");
-              setSelectedAnswer("");
+              setSelectedSubject('mixed');
+              setSelectedAnswer('');
               setShowHint(false);
               setUsedHint(false);
             }}
             className={`p-3 sm:p-4 rounded-xl font-bold hover:scale-105 transition-transform touch-manipulation ${
-              selectedSubject === "mixed"
-                ? "bg-gradient-to-r from-lime-green to-diamond-blue text-white"
-                : "bg-gradient-to-r from-lime-green/50 to-diamond-blue/50 text-white"
+              selectedSubject === 'mixed'
+                ? 'bg-gradient-to-r from-lime-green to-diamond-blue text-white'
+                : 'bg-gradient-to-r from-lime-green/50 to-diamond-blue/50 text-white'
             }`}
           >
             <i className="fas fa-magic text-lg sm:text-2xl mb-1 sm:mb-2 block"></i>
@@ -164,7 +182,10 @@ export default function LearningSystem() {
               <div className="inline-flex items-center space-x-2 bg-gold-yellow/20 px-3 sm:px-4 py-2 rounded-full">
                 <i className="fas fa-star text-gold-yellow text-sm sm:text-base"></i>
                 <span className="font-bold text-gray-700 text-sm sm:text-base">
-                  Question Worth: <span className="text-gold-yellow">{question.goldReward} Gold</span>
+                  Question Worth:{' '}
+                  <span className="text-gold-yellow">
+                    {question.goldReward} Gold
+                  </span>
                 </span>
               </div>
             </div>
@@ -231,7 +252,10 @@ export default function LearningSystem() {
           <span className="text-gold-yellow font-bold">Keep Learning! 🔥</span>
         </div>
         <div className="bg-white/20 rounded-full h-4 mb-2">
-          <div className="bg-gradient-to-r from-lime-green to-gold-yellow h-4 rounded-full" style={{width: "70%"}}></div>
+          <div
+            className="bg-gradient-to-r from-lime-green to-gold-yellow h-4 rounded-full"
+            style={{ width: '70%' }}
+          ></div>
         </div>
         <div className="flex justify-between text-sm text-white/80">
           <span>Great progress today!</span>

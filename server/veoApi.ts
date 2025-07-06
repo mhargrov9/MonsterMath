@@ -34,7 +34,9 @@ export class VeoApiClient {
     }
     // Force clear cache to load all Aetherion level images
     this.imageCache.clear();
-    console.log('Cache cleared - loading all 10 Aetherion level images with full display');
+    console.log(
+      'Cache cleared - loading all 10 Aetherion level images with full display',
+    );
   }
 
   // Clear cache to regenerate images with new prompts
@@ -45,63 +47,83 @@ export class VeoApiClient {
 
   // Force clear cache for specific monster to reload level images
   clearMonsterCache(monsterId: number) {
-    const keysToDelete = Array.from(this.imageCache.keys()).filter(key => 
-      key.startsWith(`monster_${monsterId}_`)
+    const keysToDelete = Array.from(this.imageCache.keys()).filter((key) =>
+      key.startsWith(`monster_${monsterId}_`),
     );
-    keysToDelete.forEach(key => this.imageCache.delete(key));
-    console.log(`Cleared cache for monster ${monsterId} - ${keysToDelete.length} entries removed`);
+    keysToDelete.forEach((key) => this.imageCache.delete(key));
+    console.log(
+      `Cleared cache for monster ${monsterId} - ${keysToDelete.length} entries removed`,
+    );
   }
 
-  async generateMonsterImage(monsterId: number, upgradeChoices: Record<string, any>): Promise<string> {
+  async generateMonsterImage(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): Promise<string> {
     // Create cache key based on monster type and upgrades (including level)
     const level = upgradeChoices.level || 1;
     const cacheKey = `monster_${monsterId}_level_${level}_${JSON.stringify(upgradeChoices)}`;
-    
+
     // Return cached image if available
     if (this.imageCache.has(cacheKey)) {
-      console.log(`Returning cached image for monster ${monsterId} level ${level}`);
+      console.log(
+        `Returning cached image for monster ${monsterId} level ${level}`,
+      );
       return this.imageCache.get(cacheKey)!;
     }
 
     // For custom monsters with uploaded artwork, use the specific level images
-    if (monsterId === 6 || monsterId === 7 || (monsterId >= 8 && monsterId <= 12)) {
-      console.log(`Using custom uploaded image for monster ${monsterId} level ${level}`);
-      const customImage = this.generateHighQualityImageData(monsterId, upgradeChoices);
+    if (
+      monsterId === 6 ||
+      monsterId === 7 ||
+      (monsterId >= 8 && monsterId <= 12)
+    ) {
+      console.log(
+        `Using custom uploaded image for monster ${monsterId} level ${level}`,
+      );
+      const customImage = this.generateHighQualityImageData(
+        monsterId,
+        upgradeChoices,
+      );
       this.imageCache.set(cacheKey, customImage);
       return customImage;
     }
 
     const prompt = this.buildMonsterImagePrompt(monsterId, upgradeChoices);
     console.log(`Generating new image for monster ${monsterId}: ${prompt}`);
-    
+
     try {
       // Use Hugging Face first (faster than Replicate)
-      const response = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.HUGGINGFACE_API_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: prompt,
+            parameters: {
+              negative_prompt:
+                'cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals',
+              num_inference_steps: 20, // Reduced for faster generation
+              guidance_scale: 7.5,
+              width: 512,
+              height: 512,
+            },
+          }),
         },
-        body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals",
-            num_inference_steps: 20, // Reduced for faster generation
-            guidance_scale: 7.5,
-            width: 512,
-            height: 512
-          }
-        })
-      });
+      );
 
       if (response.ok) {
         const imageBuffer = await response.arrayBuffer();
         const base64Image = Buffer.from(imageBuffer).toString('base64');
-        
+
         // Cache the generated image
         this.imageCache.set(cacheKey, base64Image);
         console.log(`Cached new image for monster ${monsterId}`);
-        
+
         return base64Image;
       } else {
         const errorText = await response.text();
@@ -116,62 +138,78 @@ export class VeoApiClient {
       const response = await fetch('https://api.replicate.com/v1/predictions', {
         method: 'POST',
         headers: {
-          'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+          Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+          version:
+            '39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
           input: {
             prompt: prompt,
-            negative_prompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals",
+            negative_prompt:
+              'cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, child-like, cute, friendly, text, watermark, multiple creatures, group, many monsters, crowd, duo, pair, two dragons, three dragons, multiple animals',
             width: 512,
             height: 512,
             num_inference_steps: 20, // Reduced for speed
             guidance_scale: 7.5,
-            scheduler: "DPMSolverMultistep" // Faster scheduler
-          }
-        })
+            scheduler: 'DPMSolverMultistep', // Faster scheduler
+          },
+        }),
       });
 
       if (response.ok) {
-        const prediction = await response.json() as any;
-        
+        const prediction = (await response.json()) as any;
+
         // Poll for completion with shorter intervals
         let result = prediction;
         let attempts = 0;
-        while ((result.status === 'starting' || result.status === 'processing') && attempts < 30) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Shorter interval
+        while (
+          (result.status === 'starting' || result.status === 'processing') &&
+          attempts < 30
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 500)); // Shorter interval
           attempts++;
-          
-          const statusResponse = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
-            headers: {
-              'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
+
+          const statusResponse = await fetch(
+            `https://api.replicate.com/v1/predictions/${result.id}`,
+            {
+              headers: {
+                Authorization: `Token ${process.env.REPLICATE_API_TOKEN}`,
+              },
             },
-          });
-          
+          );
+
           if (statusResponse.ok) {
             result = await statusResponse.json();
           } else {
             break;
           }
         }
-        
-        if (result.status === 'succeeded' && result.output && result.output[0]) {
+
+        if (
+          result.status === 'succeeded' &&
+          result.output &&
+          result.output[0]
+        ) {
           const imageResponse = await fetch(result.output[0]);
           if (imageResponse.ok) {
             const imageBuffer = await imageResponse.arrayBuffer();
             const base64Image = Buffer.from(imageBuffer).toString('base64');
-            
+
             // Cache the generated image
             this.imageCache.set(cacheKey, base64Image);
             console.log(`Cached new Replicate image for monster ${monsterId}`);
-            
+
             return base64Image;
           } else {
-            console.log(`Failed to fetch Replicate image: ${imageResponse.status}`);
+            console.log(
+              `Failed to fetch Replicate image: ${imageResponse.status}`,
+            );
           }
         } else {
-          console.log(`Replicate generation failed. Status: ${result.status}, Error: ${result.error || 'No error message'}`);
+          console.log(
+            `Replicate generation failed. Status: ${result.status}, Error: ${result.error || 'No error message'}`,
+          );
         }
       }
     } catch (error) {
@@ -179,46 +217,61 @@ export class VeoApiClient {
     }
 
     // Generate high-quality base64 image as fallback
-    const fallbackImage = this.generateHighQualityImageData(monsterId, upgradeChoices);
+    const fallbackImage = this.generateHighQualityImageData(
+      monsterId,
+      upgradeChoices,
+    );
     this.imageCache.set(cacheKey, fallbackImage);
     return fallbackImage;
   }
 
   private async generateImageWithGeminiVision(prompt: string): Promise<string> {
     const requestBody = {
-      contents: [{
-        parts: [{
-          text: `Create a photorealistic image description and generate SVG code for: ${prompt}. Make it extremely detailed and realistic, not cartoon-like.`
-        }]
-      }],
+      contents: [
+        {
+          parts: [
+            {
+              text: `Create a photorealistic image description and generate SVG code for: ${prompt}. Make it extremely detailed and realistic, not cartoon-like.`,
+            },
+          ],
+        },
+      ],
       generationConfig: {
         temperature: 0.8,
         topK: 40,
         topP: 0.95,
         maxOutputTokens: 4096,
-      }
+      },
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/models/gemini-1.5-pro:generateContent?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${this.baseUrl}/models/gemini-1.5-pro:generateContent?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody)
-      });
+      );
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Gemini API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const data = await response.json() as any;
-      
+      const data = (await response.json()) as any;
+
       if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
         // Generate enhanced SVG based on AI description
-        return this.generateEnhancedSVG(data.candidates[0].content.parts[0].text, prompt);
+        return this.generateEnhancedSVG(
+          data.candidates[0].content.parts[0].text,
+          prompt,
+        );
       }
-      
+
       throw new Error('No response received from Gemini API');
     } catch (error) {
       console.error('Error with Gemini Vision:', error);
@@ -227,41 +280,71 @@ export class VeoApiClient {
     }
   }
 
-  private generateEnhancedSVG(aiDescription: string, originalPrompt: string): string {
+  private generateEnhancedSVG(
+    aiDescription: string,
+    originalPrompt: string,
+  ): string {
     // Parse AI description and generate complex SVG
-    const monsterId = originalPrompt.includes('fire') ? 1 : 
-                     originalPrompt.includes('ice') ? 2 :
-                     originalPrompt.includes('thunder') ? 3 :
-                     originalPrompt.includes('water') ? 4 : 5;
-    
+    const monsterId = originalPrompt.includes('fire')
+      ? 1
+      : originalPrompt.includes('ice')
+        ? 2
+        : originalPrompt.includes('thunder')
+          ? 3
+          : originalPrompt.includes('water')
+            ? 4
+            : 5;
+
     return this.generatePhotorealisticSVG(monsterId, originalPrompt);
   }
 
   private generateEnhancedPlaceholder(prompt: string): string {
-    const monsterId = prompt.includes('fire') ? 1 : 
-                     prompt.includes('ice') ? 2 :
-                     prompt.includes('thunder') ? 3 :
-                     prompt.includes('water') ? 4 : 5;
-    
+    const monsterId = prompt.includes('fire')
+      ? 1
+      : prompt.includes('ice')
+        ? 2
+        : prompt.includes('thunder')
+          ? 3
+          : prompt.includes('water')
+            ? 4
+            : 5;
+
     return this.generatePhotorealisticSVG(monsterId, prompt);
   }
 
-  private generateUltraRealisticImage(monsterId: number, upgradeChoices: Record<string, any>, instructions: string): string {
+  private generateUltraRealisticImage(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+    instructions: string,
+  ): string {
     // For now, return the most realistic possible representation
     // This would ideally connect to a proper image generation service
-    return this.generatePhotorealisticCanvas(monsterId, upgradeChoices, instructions);
+    return this.generatePhotorealisticCanvas(
+      monsterId,
+      upgradeChoices,
+      instructions,
+    );
   }
 
-  private generatePhotorealisticCanvas(monsterId: number, upgradeChoices: Record<string, any>, description: string): string {
+  private generatePhotorealisticCanvas(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+    description: string,
+  ): string {
     // Generate a data URL for a realistic-looking creature using HTML5 Canvas techniques
     // This creates a base64 PNG that looks more photorealistic than SVG
-    
+
     const canvas = this.createVirtualCanvas(512, 512);
     const ctx = canvas.getContext('2d')!;
-    
+
     // Set up realistic lighting and atmospheric effects
-    this.renderPhotorealisticMonster(ctx, monsterId, upgradeChoices, description);
-    
+    this.renderPhotorealisticMonster(
+      ctx,
+      monsterId,
+      upgradeChoices,
+      description,
+    );
+
     return canvas.toDataURL('image/png').split(',')[1]; // Return base64 data
   }
 
@@ -284,45 +367,61 @@ export class VeoApiClient {
         fill: () => {},
         stroke: () => {},
         createRadialGradient: () => ({
-          addColorStop: () => {}
+          addColorStop: () => {},
         }),
         createLinearGradient: () => ({
-          addColorStop: () => {}
-        })
+          addColorStop: () => {},
+        }),
       }),
       toDataURL: () => {
         // Return a realistic monster image as base64
         return this.generateRealisticBase64Image(1, {});
-      }
+      },
     };
   }
 
-  private renderPhotorealisticMonster(ctx: any, monsterId: number, upgradeChoices: Record<string, any>, description: string): void {
+  private renderPhotorealisticMonster(
+    ctx: any,
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+    description: string,
+  ): void {
     // This would contain complex canvas rendering logic for photorealistic effects
     // Including: realistic lighting, texture mapping, shadow rendering, etc.
     // For now, we'll use the fallback approach
   }
 
-  private generateRealisticBase64Image(monsterId: number, upgradeChoices: Record<string, any>): string {
+  private generateRealisticBase64Image(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): string {
     // Generate a realistic-looking creature image
     // This creates actual image data rather than SVG
-    const imageData = this.createPhotorealisticImageData(monsterId, upgradeChoices);
+    const imageData = this.createPhotorealisticImageData(
+      monsterId,
+      upgradeChoices,
+    );
     return `data:image/png;base64,${imageData}`;
   }
 
-  private createPhotorealisticImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
+  private createPhotorealisticImageData(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): string {
     // Create realistic creature image data using advanced algorithms
     // This would use actual image processing libraries in production
-    
+
     const monsterTypes = {
       1: this.generateFireDragonData(),
-      2: this.generateIceDragonData(), 
+      2: this.generateIceDragonData(),
       3: this.generateThunderDragonData(),
       4: this.generateWaterDragonData(),
-      5: this.generateEarthDragonData()
+      5: this.generateEarthDragonData(),
     };
 
-    return monsterTypes[monsterId as keyof typeof monsterTypes] || monsterTypes[1];
+    return (
+      monsterTypes[monsterId as keyof typeof monsterTypes] || monsterTypes[1]
+    );
   }
 
   private generateFireDragonData(): string {
@@ -347,116 +446,128 @@ export class VeoApiClient {
     return this.generateAdvancedCreatureImage('#5D4037', '#8D6E63', 'earth');
   }
 
-  private generateAdvancedCreatureImage(primaryColor: string, accentColor: string, element: string): string {
+  private generateAdvancedCreatureImage(
+    primaryColor: string,
+    accentColor: string,
+    element: string,
+  ): string {
     // This represents actual photorealistic image generation
     // Using mathematical algorithms to create realistic creature textures
-    
+
     const width = 512;
     const height = 512;
     const imageData = new Array(width * height * 4); // RGBA pixels
-    
+
     // Generate realistic creature features using advanced algorithms
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const index = (y * width + x) * 4;
-        
+
         // Create realistic creature silhouette and features
         const centerX = width / 2;
         const centerY = height / 2;
         const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        
+
         // Body shape with realistic proportions
         const bodyRadius = 180;
         const headRadius = 80;
         const headY = centerY - 120;
         const headDistance = Math.sqrt((x - centerX) ** 2 + (y - headY) ** 2);
-        
-        let r = 0, g = 0, b = 0, a = 0;
-        
+
+        let r = 0,
+          g = 0,
+          b = 0,
+          a = 0;
+
         // Generate realistic creature body
         if (distance < bodyRadius) {
-          const intensity = 1 - (distance / bodyRadius);
+          const intensity = 1 - distance / bodyRadius;
           r = Math.floor(139 * intensity); // Dark realistic tones
           g = Math.floor(69 * intensity);
           b = Math.floor(19 * intensity);
           a = 255;
-          
+
           // Add realistic texture and shading
           const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 20;
           r = Math.max(0, Math.min(255, r + noise));
           g = Math.max(0, Math.min(255, g + noise * 0.5));
           b = Math.max(0, Math.min(255, b + noise * 0.3));
         }
-        
+
         // Generate realistic head
         if (headDistance < headRadius) {
-          const intensity = 1 - (headDistance / headRadius);
+          const intensity = 1 - headDistance / headRadius;
           r = Math.floor(160 * intensity);
           g = Math.floor(82 * intensity);
           b = Math.floor(45 * intensity);
           a = 255;
         }
-        
+
         // Add realistic eyes
         const leftEyeX = centerX - 25;
         const rightEyeX = centerX + 25;
         const eyeY = headY + 10;
         const leftEyeDist = Math.sqrt((x - leftEyeX) ** 2 + (y - eyeY) ** 2);
         const rightEyeDist = Math.sqrt((x - rightEyeX) ** 2 + (y - eyeY) ** 2);
-        
+
         if (leftEyeDist < 15 || rightEyeDist < 15) {
           r = 255; // Glowing eyes
           g = element === 'fire' ? 100 : element === 'ice' ? 200 : 50;
           b = element === 'fire' ? 0 : element === 'ice' ? 255 : 0;
           a = 255;
         }
-        
+
         imageData[index] = r;
         imageData[index + 1] = g;
         imageData[index + 2] = b;
         imageData[index + 3] = a;
       }
     }
-    
+
     // Convert to base64 PNG format
     return this.encodeImageDataToPNG(imageData, width, height);
   }
 
-  private generateHighQualityImageData(monsterId: number, upgradeChoices: Record<string, any>): string {
+  private generateHighQualityImageData(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): string {
     // Map database IDs to custom monsters
     const monsterSVGs = {
-      6: this.generateGigalithGraphic(upgradeChoices),          // Gigalith (ID 6 in database)
-      7: this.generateAetherionGraphic(upgradeChoices),         // Aetherion (ID 7 in database)
-      8: this.generateGeodeTortoiseGraphic(upgradeChoices),     // Geode Tortoise (ID 8)
+      6: this.generateGigalithGraphic(upgradeChoices), // Gigalith (ID 6 in database)
+      7: this.generateAetherionGraphic(upgradeChoices), // Aetherion (ID 7 in database)
+      8: this.generateGeodeTortoiseGraphic(upgradeChoices), // Geode Tortoise (ID 8)
       9: this.generateGaleFeatherGriffinGraphic(upgradeChoices), // Gale-Feather Griffin (ID 9)
       10: this.generateCinderTailSalamanderGraphic(upgradeChoices), // Cinder-Tail Salamander (ID 10)
-      11: this.generateRiverSpiritAxolotlGraphic(upgradeChoices),   // River-Spirit Axolotl (ID 11)
-      12: this.generateSparkTailSquirrelGraphic(upgradeChoices)     // Spark-Tail Squirrel (ID 12)
+      11: this.generateRiverSpiritAxolotlGraphic(upgradeChoices), // River-Spirit Axolotl (ID 11)
+      12: this.generateSparkTailSquirrelGraphic(upgradeChoices), // Spark-Tail Squirrel (ID 12)
     };
 
-    const svgContent = monsterSVGs[monsterId as keyof typeof monsterSVGs] || this.generatePlaceholderMonster(monsterId);
+    const svgContent =
+      monsterSVGs[monsterId as keyof typeof monsterSVGs] ||
+      this.generatePlaceholderMonster(monsterId);
     return Buffer.from(svgContent).toString('base64');
   }
 
   private generateGigalithGraphic(upgrades: Record<string, any>): string {
     const level = upgrades.level || 1;
-    
+
     // Map each level to its corresponding uploaded image
     const levelImages = {
-      1: "Gigalith_Level_1_1749856385841.png",
-      2: "Gigalith_Level_2_1749856393905.png", 
-      3: "Gigalith_Level_3_1749856409063.png",
-      4: "Gigalith_Level_4_1749856409062.png",
-      5: "Gigalith_Level_5_1749856409060.png",
-      6: "Gigalith_Level_6_1749856409059.png",
-      7: "Gigalith_Level_7_1749856409059.png",
-      8: "Gigalith_Level_8_1749856409058.png",
-      9: "Gigalith_Level_9_1749856409058.png",
-      10: "Gigalith_Level_10_1749856409057.png"
+      1: 'Gigalith_Level_1_1749856385841.png',
+      2: 'Gigalith_Level_2_1749856393905.png',
+      3: 'Gigalith_Level_3_1749856409063.png',
+      4: 'Gigalith_Level_4_1749856409062.png',
+      5: 'Gigalith_Level_5_1749856409060.png',
+      6: 'Gigalith_Level_6_1749856409059.png',
+      7: 'Gigalith_Level_7_1749856409059.png',
+      8: 'Gigalith_Level_8_1749856409058.png',
+      9: 'Gigalith_Level_9_1749856409058.png',
+      10: 'Gigalith_Level_10_1749856409057.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
@@ -528,7 +639,7 @@ export class VeoApiClient {
 
   private generateAetherionGraphic(upgrades: Record<string, any>): string {
     const level = upgrades.level || 1;
-    
+
     // Map all 10 Aetherion level images
     const levelImages = {
       1: 'Aetherion_Level_1_1749866902477.png',
@@ -540,17 +651,17 @@ export class VeoApiClient {
       7: 'Aetherion_Level_7_1749866902474.png',
       8: 'Aetherion_Level_8_1749866902474.png',
       9: 'Aetherion_Level_9_1749866902473.png',
-      10: 'Aetherion_Level_10_1749866902471.png'
+      10: 'Aetherion_Level_10_1749866902471.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     // Placeholder for higher levels until you upload Aetherion level images
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
@@ -941,11 +1052,11 @@ export class VeoApiClient {
     </svg>`;
   }
 
-
-
-
-
-  private encodeImageDataToPNG(imageData: number[], width: number, height: number): string {
+  private encodeImageDataToPNG(
+    imageData: number[],
+    width: number,
+    height: number,
+  ): string {
     // Simplified PNG encoding - in production would use proper image library
     // For now, create a minimal valid base64 image
     const header = 'iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6';
@@ -953,55 +1064,67 @@ export class VeoApiClient {
     return header + data.substring(0, 1000); // Truncated for demonstration
   }
 
-  private generateCinemaQualitySVG(monsterId: number, upgradeChoices: Record<string, any>, description: string): string {
+  private generateCinemaQualitySVG(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+    description: string,
+  ): string {
     const monsterConfigs = {
-      1: { // Fire Dragon
+      1: {
+        // Fire Dragon
         primaryColor: '#1A0A0A',
-        secondaryColor: '#8B0000', 
+        secondaryColor: '#8B0000',
         accentColor: '#FF4500',
         eyeColor: '#FF0000',
         effectColor: '#FF6347',
-        scales: '#2F1B14'
+        scales: '#2F1B14',
       },
-      2: { // Ice Dragon  
+      2: {
+        // Ice Dragon
         primaryColor: '#0F1B2C',
         secondaryColor: '#1E3A5F',
         accentColor: '#4A90E2',
         eyeColor: '#00BFFF',
         effectColor: '#B0E0E6',
-        scales: '#2C3E50'
+        scales: '#2C3E50',
       },
-      3: { // Thunder Dragon
+      3: {
+        // Thunder Dragon
         primaryColor: '#1A0A2E',
         secondaryColor: '#16213E',
         accentColor: '#9B59B6',
         eyeColor: '#F1C40F',
         effectColor: '#E74C3C',
-        scales: '#2C3E50'
+        scales: '#2C3E50',
       },
-      4: { // Water Dragon
+      4: {
+        // Water Dragon
         primaryColor: '#0A1A1A',
         secondaryColor: '#1E3A3A',
         accentColor: '#2ECC71',
         eyeColor: '#1ABC9C',
         effectColor: '#3498DB',
-        scales: '#34495E'
+        scales: '#34495E',
       },
-      5: { // Earth Dragon
+      5: {
+        // Earth Dragon
         primaryColor: '#2C1810',
         secondaryColor: '#5D4037',
         accentColor: '#8D6E63',
         eyeColor: '#FF8F00',
         effectColor: '#4CAF50',
-        scales: '#3E2723'
-      }
+        scales: '#3E2723',
+      },
     };
 
-    const config = monsterConfigs[monsterId as keyof typeof monsterConfigs] || monsterConfigs[1];
+    const config =
+      monsterConfigs[monsterId as keyof typeof monsterConfigs] ||
+      monsterConfigs[1];
     const hasWings = upgradeChoices.wings || description.includes('wing');
     const hasSpikes = upgradeChoices.spikes || description.includes('spike');
-    const hasEnhancedMuscles = upgradeChoices.muscles === 'enhanced' || description.includes('muscular');
-    
+    const hasEnhancedMuscles =
+      upgradeChoices.muscles === 'enhanced' || description.includes('muscular');
+
     const svg = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <!-- Ultra-realistic gradients with multiple color stops -->
@@ -1070,7 +1193,9 @@ export class VeoApiClient {
       <!-- Background atmospheric effect -->
       <rect width="512" height="512" fill="radial-gradient(circle at 30% 30%, ${config.primaryColor}20, #00000040)"/>
       
-      ${hasWings ? `
+      ${
+        hasWings
+          ? `
       <!-- Massive detailed wings -->
       <path d="M50 220 Q10 150, 5 280 Q30 380, 85 320 Q130 280, 100 240 Q75 220, 50 220" 
             fill="url(#bodyGrad${monsterId})" filter="url(#realisticShadow${monsterId})" opacity="0.9"/>
@@ -1084,7 +1209,9 @@ export class VeoApiClient {
       <!-- Wing bone structure -->
       <path d="M60 230 L25 200 M70 240 L35 210 M80 250 L45 220" stroke="${config.scales}" stroke-width="3" opacity="0.8"/>
       <path d="M452 230 L487 200 M442 240 L477 210 M432 250 L467 220" stroke="${config.scales}" stroke-width="3" opacity="0.8"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Main body with enhanced musculature -->
       <ellipse cx="256" cy="340" rx="${hasEnhancedMuscles ? '155' : '140'}" ry="${hasEnhancedMuscles ? '100' : '85'}" 
@@ -1092,12 +1219,16 @@ export class VeoApiClient {
       <ellipse cx="256" cy="340" rx="${hasEnhancedMuscles ? '150' : '135'}" ry="${hasEnhancedMuscles ? '95' : '80'}" 
                fill="url(#dragonScales${monsterId})" filter="url(#scaleTexture${monsterId})" opacity="0.7"/>
       
-      ${hasEnhancedMuscles ? `
+      ${
+        hasEnhancedMuscles
+          ? `
       <!-- Enhanced muscle definition -->
       <ellipse cx="200" cy="320" rx="45" ry="25" fill="url(#muscleDef${monsterId})" filter="url(#muscleDefinition${monsterId})" opacity="0.8"/>
       <ellipse cx="312" cy="320" rx="45" ry="25" fill="url(#muscleDef${monsterId})" filter="url(#muscleDefinition${monsterId})" opacity="0.8"/>
       <ellipse cx="256" cy="300" rx="35" ry="20" fill="url(#muscleDef${monsterId})" filter="url(#muscleDefinition${monsterId})" opacity="0.6"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Chest and neck connection with realistic anatomy -->
       <ellipse cx="256" cy="240" rx="85" ry="65" fill="url(#bodyGrad${monsterId})" filter="url(#realisticShadow${monsterId})"/>
@@ -1116,17 +1247,23 @@ export class VeoApiClient {
       <polygon points="250,195 255,215 260,195" fill="#F5F5F5" opacity="0.9"/>
       <polygon points="265,195 270,210 275,195" fill="#F5F5F5" opacity="0.9"/>
       
-      ${upgradeChoices.teeth === 'razor' ? `
+      ${
+        upgradeChoices.teeth === 'razor'
+          ? `
       <!-- Enhanced razor fangs -->
       <polygon points="240,195 245,220 250,195" fill="#E8E8E8" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="262,195 267,220 272,195" fill="#E8E8E8" filter="url(#realisticShadow${monsterId})"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Nostrils with smoke/breath effect -->
       <ellipse cx="245" cy="180" rx="4" ry="7" fill="#000000" opacity="0.9"/>
       <ellipse cx="267" cy="180" rx="4" ry="7" fill="#000000" opacity="0.9"/>
       
-      ${monsterId === 1 ? `
+      ${
+        monsterId === 1
+          ? `
       <!-- Fire breath effect -->
       <ellipse cx="245" cy="180" rx="3" ry="12" fill="#FF4500" opacity="0.7">
         <animate attributeName="ry" values="12;18;12" dur="2s" repeatCount="indefinite"/>
@@ -1134,7 +1271,9 @@ export class VeoApiClient {
       <ellipse cx="267" cy="180" rx="3" ry="12" fill="#FF4500" opacity="0.7">
         <animate attributeName="ry" values="12;18;12" dur="2s" repeatCount="indefinite"/>
       </ellipse>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Hyper-realistic eyes with depth and reflection -->
       <ellipse cx="230" cy="145" rx="18" ry="22" fill="#000000" opacity="0.95"/>
@@ -1158,13 +1297,17 @@ export class VeoApiClient {
       <polygon points="220,115 225,85 235,120" fill="${config.secondaryColor}" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="277,120 287,85 292,115" fill="${config.secondaryColor}" filter="url(#realisticShadow${monsterId})"/>
       
-      ${hasSpikes ? `
+      ${
+        hasSpikes
+          ? `
       <!-- Aggressive back spikes -->
       <polygon points="220,260 225,200 235,265" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="240,255 245,195 255,260" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="257,260 262,195 272,255" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="277,265 282,200 292,260" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Powerful legs with realistic muscle definition -->
       <ellipse cx="190" cy="420" rx="35" ry="60" fill="url(#muscleDef${monsterId})" filter="url(#realisticShadow${monsterId})"/>
@@ -1187,24 +1330,34 @@ export class VeoApiClient {
       <ellipse cx="450" cy="420" rx="35" ry="18" fill="${config.primaryColor}" 
                filter="url(#realisticShadow${monsterId})" transform="rotate(60 450 420)"/>
       
-      ${upgradeChoices.tail === 'spiked' ? `
+      ${
+        upgradeChoices.tail === 'spiked'
+          ? `
       <!-- Weaponized tail spikes -->
       <polygon points="440,410 450,390 460,415" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
       <polygon points="455,425 465,405 475,430" fill="${config.accentColor}" filter="url(#realisticShadow${monsterId})"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Battle scars and details -->
       <path d="M200 280 Q210 285, 220 280" stroke="${config.secondaryColor}" stroke-width="2" fill="none" opacity="0.6"/>
       <path d="M290 290 Q300 295, 310 290" stroke="${config.secondaryColor}" stroke-width="2" fill="none" opacity="0.6"/>
       
       <!-- Atmospheric effects based on monster type -->
-      ${monsterId === 2 ? `
+      ${
+        monsterId === 2
+          ? `
       <!-- Ice crystal formations -->
       <polygon points="180,100 185,85 195,105 190,115" fill="#E0FFFF" opacity="0.8"/>
       <polygon points="317,105 322,85 332,100 327,115" fill="#E0FFFF" opacity="0.8"/>
-      ` : ''}
+      `
+          : ''
+      }
       
-      ${monsterId === 3 ? `
+      ${
+        monsterId === 3
+          ? `
       <!-- Lightning energy crackling -->
       <path d="M210 130 L220 140 L215 150 L225 160" stroke="#FFFF00" stroke-width="3" fill="none" opacity="0.9">
         <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1s" repeatCount="indefinite"/>
@@ -1212,53 +1365,62 @@ export class VeoApiClient {
       <path d="M287 160 L297 150 L292 140 L302 130" stroke="#FFFF00" stroke-width="3" fill="none" opacity="0.9">
         <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1s" repeatCount="indefinite"/>
       </path>
-      ` : ''}
+      `
+          : ''
+      }
     </svg>`;
-    
+
     return Buffer.from(svg).toString('base64');
   }
 
   private generatePhotorealisticSVG(monsterId: number, prompt: string): string {
     const monsterConfigs = {
-      1: { // Fire Dragon
+      1: {
+        // Fire Dragon
         primaryColor: '#B22222',
-        secondaryColor: '#FF4500', 
+        secondaryColor: '#FF4500',
         accentColor: '#FFD700',
         eyeColor: '#FF6347',
-        effectColor: '#FF4500'
+        effectColor: '#FF4500',
       },
-      2: { // Ice Dragon  
+      2: {
+        // Ice Dragon
         primaryColor: '#4682B4',
         secondaryColor: '#87CEEB',
-        accentColor: '#E0FFFF', 
+        accentColor: '#E0FFFF',
         eyeColor: '#00BFFF',
-        effectColor: '#87CEEB'
+        effectColor: '#87CEEB',
       },
-      3: { // Thunder Dragon
+      3: {
+        // Thunder Dragon
         primaryColor: '#4B0082',
         secondaryColor: '#9370DB',
         accentColor: '#FFFF00',
-        eyeColor: '#FFFF00', 
-        effectColor: '#FFFF00'
+        eyeColor: '#FFFF00',
+        effectColor: '#FFFF00',
       },
-      4: { // Water Dragon
+      4: {
+        // Water Dragon
         primaryColor: '#008B8B',
         secondaryColor: '#00CED1',
         accentColor: '#AFEEEE',
         eyeColor: '#00FFFF',
-        effectColor: '#00CED1'
+        effectColor: '#00CED1',
       },
-      5: { // Earth Dragon
-        primaryColor: '#8B4513', 
+      5: {
+        // Earth Dragon
+        primaryColor: '#8B4513',
         secondaryColor: '#CD853F',
         accentColor: '#DEB887',
         eyeColor: '#FF8C00',
-        effectColor: '#228B22'
-      }
+        effectColor: '#228B22',
+      },
     };
 
-    const config = monsterConfigs[monsterId as keyof typeof monsterConfigs] || monsterConfigs[1];
-    
+    const config =
+      monsterConfigs[monsterId as keyof typeof monsterConfigs] ||
+      monsterConfigs[1];
+
     const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <!-- Complex gradients for photorealistic effect -->
@@ -1328,7 +1490,9 @@ export class VeoApiClient {
       <polygon points="160,85 165,45 175,90" fill="${config.accentColor}" filter="url(#realisticShadow)"/>
       <polygon points="225,90 235,45 240,85" fill="${config.accentColor}" filter="url(#realisticShadow)"/>
       
-      ${prompt.includes('wings') || prompt.includes('wing') ? `
+      ${
+        prompt.includes('wings') || prompt.includes('wing')
+          ? `
       <!-- Detailed wings -->
       <path d="M80 180 Q20 120, 10 220 Q40 280, 90 240 Q110 210, 80 180" 
             fill="${config.secondaryColor}" opacity="0.8" filter="url(#realisticShadow)"/>
@@ -1337,14 +1501,20 @@ export class VeoApiClient {
       <!-- Wing membrane details -->
       <path d="M85 185 Q50 160, 45 200 Q65 230, 85 210" fill="${config.primaryColor}" opacity="0.6"/>
       <path d="M315 185 Q350 160, 355 200 Q335 230, 315 210" fill="${config.primaryColor}" opacity="0.6"/>
-      ` : ''}
+      `
+          : ''
+      }
       
-      ${prompt.includes('spikes') || prompt.includes('spike') ? `
+      ${
+        prompt.includes('spikes') || prompt.includes('spike')
+          ? `
       <!-- Back spikes -->
       <polygon points="180,200 185,160 190,200" fill="${config.accentColor}" filter="url(#realisticShadow)"/>
       <polygon points="195,195 200,155 205,195" fill="${config.accentColor}" filter="url(#realisticShadow)"/>
       <polygon points="210,200 215,160 220,200" fill="${config.accentColor}" filter="url(#realisticShadow)"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Powerful legs -->
       <ellipse cx="150" cy="320" rx="25" ry="45" fill="${config.primaryColor}" filter="url(#realisticShadow)"/>
@@ -1363,7 +1533,9 @@ export class VeoApiClient {
                filter="url(#realisticShadow)" transform="rotate(45 350 310)"/>
       
       <!-- Atmospheric effects -->
-      ${monsterId === 1 ? `
+      ${
+        monsterId === 1
+          ? `
       <!-- Fire effects -->
       <ellipse cx="190" cy="135" rx="2" ry="8" fill="#FF4500" opacity="0.8">
         <animate attributeName="ry" values="8;12;8" dur="1.5s" repeatCount="indefinite"/>
@@ -1371,37 +1543,50 @@ export class VeoApiClient {
       <ellipse cx="210" cy="135" rx="2" ry="8" fill="#FF4500" opacity="0.8">
         <animate attributeName="ry" values="8;12;8" dur="1.5s" repeatCount="indefinite"/>
       </ellipse>
-      ` : ''}
+      `
+          : ''
+      }
       
-      ${monsterId === 2 ? `
+      ${
+        monsterId === 2
+          ? `
       <!-- Ice crystal effects -->
       <polygon points="150,70 155,60 160,70 155,80" fill="#E0FFFF" opacity="0.7"/>
       <polygon points="240,70 245,60 250,70 245,80" fill="#E0FFFF" opacity="0.7"/>
-      ` : ''}
+      `
+          : ''
+      }
       
-      ${monsterId === 3 ? `
+      ${
+        monsterId === 3
+          ? `
       <!-- Lightning effects -->
       <path d="M170 90 L175 95 L172 100 L178 105" stroke="#FFFF00" stroke-width="2" fill="none" opacity="0.8">
         <animate attributeName="opacity" values="0.8;0.3;0.8" dur="0.8s" repeatCount="indefinite"/>
       </path>
-      ` : ''}
+      `
+          : ''
+      }
     </svg>`;
-    
+
     return Buffer.from(svg).toString('base64');
   }
 
-  private generatePlaceholderImage(monsterId: number, upgradeChoices: Record<string, any>): string {
+  private generatePlaceholderImage(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): string {
     // Generate a base64 encoded SVG as placeholder for photorealistic monster
     const colors = {
       1: '#FF4500', // Fire dragon - orange-red
-      2: '#4682B4', // Ice dragon - steel blue  
+      2: '#4682B4', // Ice dragon - steel blue
       3: '#9370DB', // Thunder dragon - medium purple
       4: '#00CED1', // Water dragon - dark turquoise
-      5: '#8B4513'  // Earth dragon - saddle brown
+      5: '#8B4513', // Earth dragon - saddle brown
     };
-    
+
     const color = colors[monsterId as keyof typeof colors] || colors[1];
-    
+
     const svg = `<svg width="320" height="320" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="monsterGrad" cx="50%" cy="30%" r="70%">
@@ -1426,18 +1611,26 @@ export class VeoApiClient {
       <circle cx="145" cy="110" r="4" fill="#000"/>
       <circle cx="175" cy="110" r="4" fill="#000"/>
       
-      ${upgradeChoices.wings ? `
+      ${
+        upgradeChoices.wings
+          ? `
       <!-- Wings -->
       <path d="M80 150 Q50 120, 40 180 Q60 200, 90 170" fill="${color}" opacity="0.8"/>
       <path d="M240 150 Q270 120, 280 180 Q260 200, 230 170" fill="${color}" opacity="0.8"/>
-      ` : ''}
+      `
+          : ''
+      }
       
-      ${upgradeChoices.spikes ? `
+      ${
+        upgradeChoices.spikes
+          ? `
       <!-- Spikes -->
       <polygon points="140,80 145,60 150,80" fill="#C0C0C0"/>
       <polygon points="155,85 160,65 165,85" fill="#C0C0C0"/>
       <polygon points="170,80 175,60 180,80" fill="#C0C0C0"/>
-      ` : ''}
+      `
+          : ''
+      }
       
       <!-- Tail -->
       <ellipse cx="240" cy="220" rx="30" ry="15" fill="${color}" opacity="0.9" transform="rotate(30 240 220)"/>
@@ -1446,45 +1639,61 @@ export class VeoApiClient {
         Photorealistic Monster (Generated)
       </text>
     </svg>`;
-    
+
     return Buffer.from(svg).toString('base64');
   }
 
-  async generateBattleVideo(playerMonsterId: number, aiMonsterId: number, playerUpgrades: Record<string, any>, aiUpgrades: Record<string, any>): Promise<string> {
-    const prompt = this.buildBattleVideoPrompt(playerMonsterId, aiMonsterId, playerUpgrades, aiUpgrades);
-    
+  async generateBattleVideo(
+    playerMonsterId: number,
+    aiMonsterId: number,
+    playerUpgrades: Record<string, any>,
+    aiUpgrades: Record<string, any>,
+  ): Promise<string> {
+    const prompt = this.buildBattleVideoPrompt(
+      playerMonsterId,
+      aiMonsterId,
+      playerUpgrades,
+      aiUpgrades,
+    );
+
     const requestBody = {
       prompt: prompt,
-      aspectRatio: "16:9",
-      duration: "5s",
-      negativePrompt: "cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, static",
+      aspectRatio: '16:9',
+      duration: '5s',
+      negativePrompt:
+        'cartoon, anime, 2D, flat, low quality, blurry, pixelated, simple, static',
       safetySettings: [
         {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        }
-      ]
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+      ],
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/models/veo-001:generateVideo?key=${this.apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${this.baseUrl}/models/veo-001:generateVideo?key=${this.apiKey}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody)
-      });
+      );
 
       if (!response.ok) {
-        throw new Error(`Veo API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Veo API error: ${response.status} ${response.statusText}`,
+        );
       }
 
-      const data = await response.json() as any;
-      
+      const data = (await response.json()) as any;
+
       if (data.candidates && data.candidates[0]?.video?.data) {
         return data.candidates[0].video.data; // Base64 encoded video
       }
-      
+
       throw new Error('No video data received from Veo API');
     } catch (error) {
       console.error('Error generating battle video:', error);
@@ -1492,95 +1701,118 @@ export class VeoApiClient {
     }
   }
 
-  private buildMonsterImagePrompt(monsterId: number, upgradeChoices: Record<string, any>): string {
+  private buildMonsterImagePrompt(
+    monsterId: number,
+    upgradeChoices: Record<string, any>,
+  ): string {
     // Monster type names for consistency
     const monsterNames = {
-      1: "Fire Dragon",
-      2: "Ice Dragon", 
-      3: "Thunder Dragon",
-      4: "Water Dragon",
-      5: "Earth Dragon"
+      1: 'Fire Dragon',
+      2: 'Ice Dragon',
+      3: 'Thunder Dragon',
+      4: 'Water Dragon',
+      5: 'Earth Dragon',
     };
 
     const basePrompts = {
-      1: "Single photorealistic Fire Dragon creature, one massive red and black scaled beast with glowing orange eyes, molten lava dripping from mouth, dark volcanic scales with red highlights, powerful muscular build, sharp claws and fangs, fire breathing from nostrils, solo creature only",
-      2: "Single photorealistic Ice Dragon creature, one enormous blue and white scaled beast with piercing ice-blue eyes, frost covering dark blue scales, crystalline ice formations on body, powerful build with sharp icy claws, cold mist emanating from mouth and nostrils, solo creature only",
-      3: "Single photorealistic Thunder Dragon creature, one gigantic purple and black scaled monster with bright yellow lightning eyes, electric energy crackling across dark purple scales, storm clouds around it, metallic silver accents, powerful frame with lightning-charged claws, solo creature only",
-      4: "Single photorealistic Water Dragon creature, one large teal and blue scaled beast with glowing cyan eyes, wet glistening scales in shades of dark teal and blue, water droplets covering body, sleek powerful build with webbed claws, aquatic predator appearance, solo creature only",
-      5: "Single photorealistic Earth Dragon creature, one massive brown and green scaled beast with amber golden eyes, rocky stone-like scales with moss and earth tones, dirt and small rocks embedded in hide, incredibly muscular build with stone-crushing claws, solo creature only"
+      1: 'Single photorealistic Fire Dragon creature, one massive red and black scaled beast with glowing orange eyes, molten lava dripping from mouth, dark volcanic scales with red highlights, powerful muscular build, sharp claws and fangs, fire breathing from nostrils, solo creature only',
+      2: 'Single photorealistic Ice Dragon creature, one enormous blue and white scaled beast with piercing ice-blue eyes, frost covering dark blue scales, crystalline ice formations on body, powerful build with sharp icy claws, cold mist emanating from mouth and nostrils, solo creature only',
+      3: 'Single photorealistic Thunder Dragon creature, one gigantic purple and black scaled monster with bright yellow lightning eyes, electric energy crackling across dark purple scales, storm clouds around it, metallic silver accents, powerful frame with lightning-charged claws, solo creature only',
+      4: 'Single photorealistic Water Dragon creature, one large teal and blue scaled beast with glowing cyan eyes, wet glistening scales in shades of dark teal and blue, water droplets covering body, sleek powerful build with webbed claws, aquatic predator appearance, solo creature only',
+      5: 'Single photorealistic Earth Dragon creature, one massive brown and green scaled beast with amber golden eyes, rocky stone-like scales with moss and earth tones, dirt and small rocks embedded in hide, incredibly muscular build with stone-crushing claws, solo creature only',
     };
 
-    const monsterName = monsterNames[monsterId as keyof typeof monsterNames] || "Fire Dragon";
-    let prompt = basePrompts[monsterId as keyof typeof basePrompts] || basePrompts[1];
-    
+    const monsterName =
+      monsterNames[monsterId as keyof typeof monsterNames] || 'Fire Dragon';
+    let prompt =
+      basePrompts[monsterId as keyof typeof basePrompts] || basePrompts[1];
+
     // Add seed for consistency
     prompt = `${monsterName}: ${prompt}`;
-    
+
     // Add upgrade details with specific descriptions
     if (upgradeChoices.teeth === 'razor') {
-      prompt += ", enhanced with massive razor-sharp fangs and enlarged teeth";
-    }
-    
-    if (upgradeChoices.spikes === 'metallic' || upgradeChoices.spikes === 'ice') {
-      prompt += ", featuring deadly metallic spikes protruding from back and shoulders";
-    }
-    
-    if (upgradeChoices.muscles === 'enhanced') {
-      prompt += ", with extraordinarily enhanced musculature and powerful defined muscles";
-    }
-    
-    if (upgradeChoices.wings === 'flame' || upgradeChoices.wings === 'ice') {
-      prompt += ", displaying massive spread wings with detailed membrane texture";
-    }
-    
-    if (upgradeChoices.tail === 'spiked') {
-      prompt += ", equipped with a weaponized spiked tail ready to strike";
+      prompt += ', enhanced with massive razor-sharp fangs and enlarged teeth';
     }
 
-    prompt += ". Professional creature photography, cinematic lighting, 8K hyperrealistic detail, practical movie monster quality, menacing predatory pose, dark atmospheric background, masterpiece creature design.";
-    
+    if (
+      upgradeChoices.spikes === 'metallic' ||
+      upgradeChoices.spikes === 'ice'
+    ) {
+      prompt +=
+        ', featuring deadly metallic spikes protruding from back and shoulders';
+    }
+
+    if (upgradeChoices.muscles === 'enhanced') {
+      prompt +=
+        ', with extraordinarily enhanced musculature and powerful defined muscles';
+    }
+
+    if (upgradeChoices.wings === 'flame' || upgradeChoices.wings === 'ice') {
+      prompt +=
+        ', displaying massive spread wings with detailed membrane texture';
+    }
+
+    if (upgradeChoices.tail === 'spiked') {
+      prompt += ', equipped with a weaponized spiked tail ready to strike';
+    }
+
+    prompt +=
+      '. Professional creature photography, cinematic lighting, 8K hyperrealistic detail, practical movie monster quality, menacing predatory pose, dark atmospheric background, masterpiece creature design.';
+
     return prompt;
   }
 
-  private buildBattleVideoPrompt(playerMonsterId: number, aiMonsterId: number, playerUpgrades: Record<string, any>, aiUpgrades: Record<string, any>): string {
+  private buildBattleVideoPrompt(
+    playerMonsterId: number,
+    aiMonsterId: number,
+    playerUpgrades: Record<string, any>,
+    aiUpgrades: Record<string, any>,
+  ): string {
     const monsterTypes = {
-      1: "fire dragon",
-      2: "ice dragon", 
-      3: "thunder dragon",
-      4: "water dragon",
-      5: "earth dragon"
+      1: 'fire dragon',
+      2: 'ice dragon',
+      3: 'thunder dragon',
+      4: 'water dragon',
+      5: 'earth dragon',
     };
 
-    const playerType = monsterTypes[playerMonsterId as keyof typeof monsterTypes] || "fire dragon";
-    const aiType = monsterTypes[aiMonsterId as keyof typeof monsterTypes] || "ice dragon";
+    const playerType =
+      monsterTypes[playerMonsterId as keyof typeof monsterTypes] ||
+      'fire dragon';
+    const aiType =
+      monsterTypes[aiMonsterId as keyof typeof monsterTypes] || 'ice dragon';
 
     let prompt = `Cinematic battle scene between a photorealistic ${playerType} and a photorealistic ${aiType}. `;
-    prompt += "The monsters are engaged in fierce combat, with one lunging forward to attack while the other recoils from impact. ";
-    prompt += "Dramatic lighting with sparks, fire, ice, or energy effects. ";
-    prompt += "Professional cinematography, 8K video quality, slow motion battle sequences, ";
-    prompt += "hyperrealistic creature movement, dynamic camera angles, epic fantasy battle.";
-    
+    prompt +=
+      'The monsters are engaged in fierce combat, with one lunging forward to attack while the other recoils from impact. ';
+    prompt += 'Dramatic lighting with sparks, fire, ice, or energy effects. ';
+    prompt +=
+      'Professional cinematography, 8K video quality, slow motion battle sequences, ';
+    prompt +=
+      'hyperrealistic creature movement, dynamic camera angles, epic fantasy battle.';
+
     return prompt;
   }
 
   private generateGeodeTortoiseGraphic(upgrades: Record<string, any>): string {
     const level = upgrades.level || 1;
-    
+
     // Map level-specific images using your uploaded artwork
     const levelImages = {
       1: 'Geode Tortoise_Level_1_1750198366952.png',
-      2: 'Geode Tortoise_Level_2_1750198366941.png', 
-      3: 'Geode Tortoise_Level_3_1750198366935.png'
+      2: 'Geode Tortoise_Level_2_1750198366941.png',
+      3: 'Geode Tortoise_Level_3_1750198366935.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     // Fallback for levels without uploaded images
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
@@ -1596,23 +1828,25 @@ export class VeoApiClient {
     </svg>`;
   }
 
-  private generateGaleFeatherGriffinGraphic(upgrades: Record<string, any>): string {
+  private generateGaleFeatherGriffinGraphic(
+    upgrades: Record<string, any>,
+  ): string {
     const level = upgrades.level || 1;
-    
+
     const levelImages = {
       1: 'Gale-Feather Griffin_Level_1_1750198352902.png',
       2: 'Gale-Feather Griffin_Level_2_1750198352909.png',
-      3: 'Gale-Feather Griffin_Level_3_1750198352897.png'
+      3: 'Gale-Feather Griffin_Level_3_1750198352897.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="galeGriffin" cx="50%" cy="50%">
@@ -1628,23 +1862,25 @@ export class VeoApiClient {
     </svg>`;
   }
 
-  private generateCinderTailSalamanderGraphic(upgrades: Record<string, any>): string {
+  private generateCinderTailSalamanderGraphic(
+    upgrades: Record<string, any>,
+  ): string {
     const level = upgrades.level || 1;
-    
+
     const levelImages = {
       1: 'Cinder-Tail Salamander_Level_1_1750198337385.png',
       2: 'Cinder-Tail Salamander_Level_2_1750198337394.png',
-      3: 'Cinder-Tail Salamander_Level_3_1750198337399.png'
+      3: 'Cinder-Tail Salamander_Level_3_1750198337399.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="cinderSalamander" cx="50%" cy="50%">
@@ -1660,23 +1896,25 @@ export class VeoApiClient {
     </svg>`;
   }
 
-  private generateRiverSpiritAxolotlGraphic(upgrades: Record<string, any>): string {
+  private generateRiverSpiritAxolotlGraphic(
+    upgrades: Record<string, any>,
+  ): string {
     const level = upgrades.level || 1;
-    
+
     const levelImages = {
       1: 'River-Spirit Axolotl_Level_1_1750198323311.png',
       2: 'River-Spirit Axolotl_Level_2_1750198323302.png',
-      3: 'River-Spirit Axolotl_Level_3_1750198323314.png'
+      3: 'River-Spirit Axolotl_Level_3_1750198323314.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="riverAxolotl" cx="50%" cy="50%">
@@ -1693,23 +1931,25 @@ export class VeoApiClient {
     </svg>`;
   }
 
-  private generateSparkTailSquirrelGraphic(upgrades: Record<string, any>): string {
+  private generateSparkTailSquirrelGraphic(
+    upgrades: Record<string, any>,
+  ): string {
     const level = upgrades.level || 1;
-    
+
     const levelImages = {
       1: 'Spark-Tail Squirrel_Level_1_1750198309057.png',
       2: 'Spark-Tail Squirrel_Level_2_1750198309051.png',
-      3: 'Spark-Tail Squirrel_Level_3_1750198309026.png'
+      3: 'Spark-Tail Squirrel_Level_3_1750198309026.png',
     };
-    
+
     const imageFile = levelImages[level as keyof typeof levelImages];
-    
+
     if (imageFile) {
       return `<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         <image href="/attached_assets/${encodeURIComponent(imageFile)}" x="0" y="0" width="100" height="100" preserveAspectRatio="xMidYMid meet"/>
       </svg>`;
     }
-    
+
     return `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
       <defs>
         <radialGradient id="sparkSquirrel" cx="50%" cy="50%">
@@ -1725,7 +1965,6 @@ export class VeoApiClient {
       <text x="256" y="425" text-anchor="middle" fill="#FF8C00" font-size="16">Level ${level}</text>
     </svg>`;
   }
-
 }
 
 export const veoClient = new VeoApiClient();

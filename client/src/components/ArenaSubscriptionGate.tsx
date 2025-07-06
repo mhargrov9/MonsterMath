@@ -1,27 +1,31 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface ArenaSubscriptionGateProps {
   onClose: () => void;
 }
 
-export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGateProps) {
+export default function ArenaSubscriptionGate({
+  onClose,
+}: ArenaSubscriptionGateProps) {
   const [currentStep, setCurrentStep] = useState<'offer' | 'email'>('offer');
-  const [selectedIntent, setSelectedIntent] = useState<'monthly' | 'yearly' | null>(null);
+  const [selectedIntent, setSelectedIntent] = useState<
+    'monthly' | 'yearly' | null
+  >(null);
   const [email, setEmail] = useState('');
   const { toast } = useToast();
 
   const recordIntentMutation = useMutation({
     mutationFn: async (intent: 'monthly' | 'yearly') => {
-      return await apiRequest('POST', '/api/interest/subscription', { 
-        intent, 
-        source: 'arena' 
+      return await apiRequest('POST', '/api/interest/subscription', {
+        intent,
+        source: 'arena',
       });
     },
     onSuccess: (_, intent) => {
@@ -30,7 +34,7 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
     onError: (error) => {
       console.error('Arena subscription intent error:', error);
       toast({
-        title: "Selection Recorded Locally",
+        title: 'Selection Recorded Locally',
         description: "We'll save your preference when you proceed.",
       });
     },
@@ -43,15 +47,16 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
     onSuccess: () => {
       toast({
         title: "You're on the list!",
-        description: "We'll notify you the moment Primal Rift goes live (and send you a code for a special launch-day monster!)!",
+        description:
+          "We'll notify you the moment Primal Rift goes live (and send you a code for a special launch-day monster!)!",
       });
       onClose();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to save email. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save email. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -65,9 +70,9 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
   const handleEmailSubmit = () => {
     if (!email.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
       });
       return;
     }
@@ -86,15 +91,19 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
                 Thank You For Your Interest!
               </CardTitle>
               <p className="text-lg text-muted-foreground">
-                {selectedIntent === 'monthly' ? 'Monthly Plan Selected' : 'Yearly Plan Selected'}
+                {selectedIntent === 'monthly'
+                  ? 'Monthly Plan Selected'
+                  : 'Yearly Plan Selected'}
               </p>
             </CardHeader>
-            
+
             <CardContent className="space-y-6">
               <p className="text-center text-muted-foreground">
-                Primal Rift is in the final stages of development. Enter your email below, and we'll notify you the moment it goes live (and send you a code for a special launch-day monster!)
+                Primal Rift is in the final stages of development. Enter your
+                email below, and we'll notify you the moment it goes live (and
+                send you a code for a special launch-day monster!)
               </p>
-              
+
               <div className="space-y-4">
                 <Input
                   type="email"
@@ -103,15 +112,15 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
                   onChange={(e) => setEmail(e.target.value)}
                   className="text-center text-lg p-4"
                 />
-                
-                <Button 
+
+                <Button
                   onClick={handleEmailSubmit}
                   disabled={recordEmailMutation.isPending}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
                 >
-                  {recordEmailMutation.isPending ? "Saving..." : "Notify Me!"}
+                  {recordEmailMutation.isPending ? 'Saving...' : 'Notify Me!'}
                 </Button>
-                
+
                 <Button
                   onClick={onClose}
                   variant="ghost"
@@ -138,30 +147,37 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
               Battle Arena - Premium Access
             </CardTitle>
             <p className="text-lg text-muted-foreground">
-              You've used all your free battle tokens! Upgrade to continue battling.
+              You've used all your free battle tokens! Upgrade to continue
+              battling.
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-8">
             <div className="text-center space-y-4">
-              <h3 className="text-xl font-semibold">Free Trial Limit Reached</h3>
+              <h3 className="text-xl font-semibold">
+                Free Trial Limit Reached
+              </h3>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Free players get 5 battle tokens that refresh every 24 hours. Upgrade to Primal Rift Premium for unlimited battles, exclusive monsters, and special abilities!
+                Free players get 5 battle tokens that refresh every 24 hours.
+                Upgrade to Primal Rift Premium for unlimited battles, exclusive
+                monsters, and special abilities!
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
               {/* Monthly Plan */}
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                  selectedIntent === 'monthly' 
-                    ? 'ring-4 ring-purple-500 shadow-lg' 
+                  selectedIntent === 'monthly'
+                    ? 'ring-4 ring-purple-500 shadow-lg'
                     : 'hover:shadow-md'
                 }`}
                 onClick={() => handleIntent('monthly')}
               >
                 <CardContent className="p-6 text-center space-y-4">
-                  <Badge variant="secondary" className="text-sm">Most Popular</Badge>
+                  <Badge variant="secondary" className="text-sm">
+                    Most Popular
+                  </Badge>
                   <div className="space-y-2">
                     <h4 className="text-2xl font-bold">Monthly Plan</h4>
                     <p className="text-3xl font-bold text-purple-600">$9.99</p>
@@ -177,21 +193,25 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
               </Card>
 
               {/* Yearly Plan */}
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                  selectedIntent === 'yearly' 
-                    ? 'ring-4 ring-purple-500 shadow-lg' 
+                  selectedIntent === 'yearly'
+                    ? 'ring-4 ring-purple-500 shadow-lg'
                     : 'hover:shadow-md'
                 }`}
                 onClick={() => handleIntent('yearly')}
               >
                 <CardContent className="p-6 text-center space-y-4">
-                  <Badge variant="default" className="bg-green-600 text-sm">Best Value</Badge>
+                  <Badge variant="default" className="bg-green-600 text-sm">
+                    Best Value
+                  </Badge>
                   <div className="space-y-2">
                     <h4 className="text-2xl font-bold">Yearly Plan</h4>
                     <p className="text-3xl font-bold text-purple-600">$99</p>
                     <p className="text-sm text-muted-foreground">per year</p>
-                    <p className="text-xs text-green-600 font-medium">Save $20 vs Monthly!</p>
+                    <p className="text-xs text-green-600 font-medium">
+                      Save $20 vs Monthly!
+                    </p>
                   </div>
                   <ul className="text-sm space-y-2 text-left">
                     <li>✓ Everything in Monthly</li>
@@ -202,20 +222,22 @@ export default function ArenaSubscriptionGate({ onClose }: ArenaSubscriptionGate
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="mt-8 text-center space-y-3">
               <Button
                 onClick={() => setCurrentStep('email')}
                 disabled={!selectedIntent}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
               >
-                Continue with {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
+                Continue with{' '}
+                {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
               </Button>
-              
+
               <div className="text-xs text-muted-foreground">
-                No payment required now - this is just for early access notifications
+                No payment required now - this is just for early access
+                notifications
               </div>
-              
+
               <Button
                 onClick={onClose}
                 variant="ghost"

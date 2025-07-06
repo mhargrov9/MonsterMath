@@ -1,18 +1,24 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Landing() {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: ""
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
   });
   const { toast } = useToast();
 
@@ -26,8 +32,8 @@ export default function Landing() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: formData.username,
-          password: formData.password
-        })
+          password: formData.password,
+        }),
       });
 
       const data = await response.json();
@@ -36,16 +42,16 @@ export default function Landing() {
         window.location.reload();
       } else {
         toast({
-          title: "Login Failed",
+          title: 'Login Failed',
           description: data.message,
-          variant: "destructive"
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Login Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive"
+        title: 'Login Error',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -54,12 +60,12 @@ export default function Landing() {
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Password Mismatch",
-        description: "Passwords do not match",
-        variant: "destructive"
+        title: 'Password Mismatch',
+        description: 'Passwords do not match',
+        variant: 'destructive',
       });
       return;
     }
@@ -73,33 +79,35 @@ export default function Landing() {
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
-          password: formData.password
-        })
+          password: formData.password,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         toast({
-          title: "Account Created!",
-          description: "You can now log in with your new account.",
-          variant: "default"
+          title: 'Account Created!',
+          description: 'You can now log in with your new account.',
+          variant: 'default',
         });
         // Switch to login tab
-        const loginTab = document.querySelector('[data-value="login"]') as HTMLElement;
+        const loginTab = document.querySelector(
+          '[data-value="login"]',
+        ) as HTMLElement;
         loginTab?.click();
       } else {
         toast({
-          title: "Registration Failed",
+          title: 'Registration Failed',
           description: data.message,
-          variant: "destructive"
+          variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: "Registration Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive"
+        title: 'Registration Error',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -113,96 +121,384 @@ export default function Landing() {
         {/* First Layer - Main Grid */}
         <div className="grid grid-cols-10 gap-1 transform rotate-12 scale-125 -translate-x-20 -translate-y-32">
           {/* Row 1 */}
-          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          
+          <img
+            src="/assets/Gigalith_Level_1_1749856385841.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_1_1749866902477.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_3_1749856409063.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_3_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_5_1749856409060.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_5_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_7_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_7_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_9_1749856409058.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_9_1749866902473.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+
           {/* Row 2 */}
-          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          
+          <img
+            src="/assets/Aetherion_Level_2_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_2_1749856393905.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_4_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_4_1749856409062.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_6_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_6_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_8_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_8_1749856409058.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_10_1749856409057.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_10_1749866902471.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+
           {/* Row 3 */}
-          <img src="/assets/Gigalith 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          
+          <img
+            src="/assets/Gigalith 1.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion 1.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_1_1749856385841.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_1_1749866902477.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_2_1749856393905.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_2_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_3_1749856409063.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_3_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_4_1749856409062.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_4_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+
           {/* Row 4 */}
-          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          
+          <img
+            src="/assets/Gigalith_Level_5_1749856409060.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_5_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_6_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_6_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_7_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_7_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_8_1749856409058.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_8_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_9_1749856409058.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_9_1749866902473.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+
           {/* Row 5 */}
-          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion 1.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_1_1749856385841.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_1_1749866902477.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_2_1749856393905.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_2_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          
+          <img
+            src="/assets/Gigalith_Level_10_1749856409057.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_10_1749866902471.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith 1.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion 1.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_1_1749856385841.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_1_1749866902477.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_2_1749856393905.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_2_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_3_1749856409063.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_3_1749866902476.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+
           {/* Row 6 */}
-          <img src="/assets/Gigalith_Level_4_1749856409062.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_4_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_6_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_6_1749866902475.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_8_1749856409058.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_8_1749866902474.png" alt="" className="w-20 h-28 object-cover rounded-lg" />
+          <img
+            src="/assets/Gigalith_Level_4_1749856409062.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_4_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_5_1749856409060.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_5_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_6_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_6_1749866902475.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_7_1749856409059.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_7_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_8_1749856409058.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_8_1749866902474.png"
+            alt=""
+            className="w-20 h-28 object-cover rounded-lg"
+          />
         </div>
-        
+
         {/* Second Layer - Offset Grid for Full Coverage */}
         <div className="absolute inset-0 grid grid-cols-12 gap-1 transform rotate-6 scale-110 translate-x-32 -translate-y-16">
           {/* Additional overlapping cards */}
-          <img src="/assets/Gigalith_Level_9_1749856409058.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_9_1749866902473.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_10_1749856409057.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_10_1749866902471.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Gigalith 1.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion 1.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_5_1749856409060.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_5_1749866902475.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_3_1749856409063.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_3_1749866902476.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Gigalith_Level_7_1749856409059.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
-          <img src="/assets/Aetherion_Level_7_1749866902474.png" alt="" className="w-16 h-24 object-cover rounded-lg" />
+          <img
+            src="/assets/Gigalith_Level_9_1749856409058.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_9_1749866902473.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_10_1749856409057.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_10_1749866902471.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith 1.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion 1.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_5_1749856409060.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_5_1749866902475.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_3_1749856409063.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_3_1749866902476.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Gigalith_Level_7_1749856409059.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
+          <img
+            src="/assets/Aetherion_Level_7_1749866902474.png"
+            alt=""
+            className="w-16 h-24 object-cover rounded-lg"
+          />
         </div>
       </div>
-      
+
       <div className="relative z-10 min-h-screen flex items-center justify-center p-6">
         <div className="max-w-4xl w-full">
           <div className="text-center mb-8">
@@ -222,7 +518,8 @@ export default function Landing() {
                   Learn & Earn
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Answer math and spelling questions to earn Gold and level up your monsters!
+                  Answer math and spelling questions to earn Gold and level up
+                  your monsters!
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -234,7 +531,8 @@ export default function Landing() {
                   Monster Lab
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Buy and upgrade amazing creatures in Professor Quibble's laboratory!
+                  Buy and upgrade amazing creatures in Professor Quibble's
+                  laboratory!
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -246,7 +544,8 @@ export default function Landing() {
                   Battle Arena
                 </CardTitle>
                 <CardDescription className="text-white/70">
-                  Challenge other trainers in epic monster battles to earn Diamonds!
+                  Challenge other trainers in epic monster battles to earn
+                  Diamonds!
                 </CardDescription>
               </CardHeader>
             </Card>
@@ -261,42 +560,61 @@ export default function Landing() {
             <CardContent>
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-white/20">
-                  <TabsTrigger value="login" data-value="login" className="text-white data-[state=active]:bg-electric-blue">Login</TabsTrigger>
-                  <TabsTrigger value="register" className="text-white data-[state=active]:bg-electric-blue">Create Account</TabsTrigger>
+                  <TabsTrigger
+                    value="login"
+                    data-value="login"
+                    className="text-white data-[state=active]:bg-electric-blue"
+                  >
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="register"
+                    className="text-white data-[state=active]:bg-electric-blue"
+                  >
+                    Create Account
+                  </TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="login" className="space-y-6">
                   <form onSubmit={handleLocalLogin} className="space-y-4">
                     <div>
-                      <Label htmlFor="login-username" className="text-white">Username</Label>
+                      <Label htmlFor="login-username" className="text-white">
+                        Username
+                      </Label>
                       <Input
                         id="login-username"
                         type="text"
                         value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, username: e.target.value })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Enter your username"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="login-password" className="text-white">Password</Label>
+                      <Label htmlFor="login-password" className="text-white">
+                        Password
+                      </Label>
                       <Input
                         id="login-password"
                         type="password"
                         value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Enter your password"
                         required
                       />
                     </div>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isLoading}
                       className="w-full bg-gradient-to-r from-electric-blue to-vibrant-purple text-white py-3 rounded-xl font-bold hover:scale-105 transition-transform"
                     >
-                      {isLoading ? "Logging in..." : "Enter the Academy"}
+                      {isLoading ? 'Logging in...' : 'Enter the Academy'}
                     </Button>
                   </form>
                 </TabsContent>
@@ -304,59 +622,78 @@ export default function Landing() {
                 <TabsContent value="register" className="space-y-6">
                   <form onSubmit={handleRegistration} className="space-y-4">
                     <div>
-                      <Label htmlFor="reg-username" className="text-white">Username</Label>
+                      <Label htmlFor="reg-username" className="text-white">
+                        Username
+                      </Label>
                       <Input
                         id="reg-username"
                         type="text"
                         value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, username: e.target.value })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Choose a username"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="reg-email" className="text-white">Email</Label>
+                      <Label htmlFor="reg-email" className="text-white">
+                        Email
+                      </Label>
                       <Input
                         id="reg-email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Enter your email"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="reg-password" className="text-white">Password</Label>
+                      <Label htmlFor="reg-password" className="text-white">
+                        Password
+                      </Label>
                       <Input
                         id="reg-password"
                         type="password"
                         value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({ ...formData, password: e.target.value })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Choose a password (6+ characters)"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="reg-confirm" className="text-white">Confirm Password</Label>
+                      <Label htmlFor="reg-confirm" className="text-white">
+                        Confirm Password
+                      </Label>
                       <Input
                         id="reg-confirm"
                         type="password"
                         value={formData.confirmPassword}
-                        onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            confirmPassword: e.target.value,
+                          })
+                        }
                         className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                         placeholder="Confirm your password"
                         required
                       />
                     </div>
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={isLoading}
                       className="w-full bg-gradient-to-r from-lime-green to-bright-orange text-white py-3 rounded-xl font-bold hover:scale-105 transition-transform"
                     >
-                      {isLoading ? "Creating Account..." : "Join the Academy"}
+                      {isLoading ? 'Creating Account...' : 'Join the Academy'}
                     </Button>
                   </form>
                 </TabsContent>
@@ -366,8 +703,14 @@ export default function Landing() {
 
           <div className="flex justify-center space-x-8 mt-8">
             <div className="w-16 h-20 bg-gradient-to-t from-lime-green/30 to-lime-green/60 rounded-full relative beaker-bubble animate-float"></div>
-            <div className="w-16 h-20 bg-gradient-to-t from-electric-blue/30 to-electric-blue/60 rounded-full relative beaker-bubble animate-float" style={{animationDelay: "0.5s"}}></div>
-            <div className="w-16 h-20 bg-gradient-to-t from-vibrant-purple/30 to-vibrant-purple/60 rounded-full relative beaker-bubble animate-float" style={{animationDelay: "1s"}}></div>
+            <div
+              className="w-16 h-20 bg-gradient-to-t from-electric-blue/30 to-electric-blue/60 rounded-full relative beaker-bubble animate-float"
+              style={{ animationDelay: '0.5s' }}
+            ></div>
+            <div
+              className="w-16 h-20 bg-gradient-to-t from-vibrant-purple/30 to-vibrant-purple/60 rounded-full relative beaker-bubble animate-float"
+              style={{ animationDelay: '1s' }}
+            ></div>
           </div>
         </div>
       </div>

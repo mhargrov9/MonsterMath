@@ -1,21 +1,31 @@
-import type { Express } from "express";
-import express from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { veoClient } from "./veoApi";
-import { insertQuestionSchema, insertMonsterSchema } from "@shared/schema";
-import { calculateDamage, applyDamage, createBattleSession, processAiTurn, performSwap } from "./battleEngine";
-import passport from "passport";
-import fs from "fs";
-import path from "path";
+import type { Express } from 'express';
+import express from 'express';
+import { createServer, type Server } from 'http';
+import { storage } from './storage';
+import { setupAuth, isAuthenticated } from './replitAuth';
+import { veoClient } from './veoApi';
+import { insertQuestionSchema, insertMonsterSchema } from '@shared/schema';
+import {
+  calculateDamage,
+  applyDamage,
+  createBattleSession,
+  processAiTurn,
+  performSwap,
+} from './battleEngine';
+import passport from 'passport';
+import fs from 'fs';
+import path from 'path';
 
 // Standardized error handler
-const handleError = (error: unknown, res: express.Response, message: string) => {
+const handleError = (
+  error: unknown,
+  res: express.Response,
+  message: string,
+) => {
   console.error(message, error);
   res.status(500).json({
     message,
-    error: error instanceof Error ? error.message : 'Unknown error'
+    error: error instanceof Error ? error.message : 'Unknown error',
   });
 };
 
@@ -23,7 +33,7 @@ const handleError = (error: unknown, res: express.Response, message: string) => 
 const validateMonsterId = (id: any): number => {
   const parsed = parseInt(id);
   if (isNaN(parsed) || parsed < 1) {
-    throw new Error("Invalid monster ID");
+    throw new Error('Invalid monster ID');
   }
   return parsed;
 };
@@ -31,7 +41,7 @@ const validateMonsterId = (id: any): number => {
 const validateLevel = (level: any): number => {
   const parsed = parseInt(level);
   if (isNaN(parsed) || parsed < 1 || parsed > 10) {
-    throw new Error("Invalid level (must be 1-10)");
+    throw new Error('Invalid level (must be 1-10)');
   }
   return parsed;
 };
@@ -39,7 +49,7 @@ const validateLevel = (level: any): number => {
 const validateTPL = (tpl: any): number => {
   const parsed = parseInt(tpl);
   if (isNaN(parsed) || parsed < 1) {
-    throw new Error("Invalid TPL (must be positive number)");
+    throw new Error('Invalid TPL (must be positive number)');
   }
   return parsed;
 };
@@ -61,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Health endpoint for server status verification
   app.get('/api/health', (req, res) => {
-    res.json({ status: "ok" });
+    res.json({ status: 'ok' });
   });
 
   // GET endpoint for monster images (unauthenticated for collage use)
@@ -70,7 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { monster: monsterId, level } = req.query;
 
       if (!monsterId) {
-        return res.status(400).json({ message: "monster parameter is required" });
+        return res
+          .status(400)
+          .json({ message: 'monster parameter is required' });
       }
 
       try {
@@ -78,29 +90,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const levelNum = level ? validateLevel(level) : 1;
 
         // For monsters with custom uploaded images, serve them directly
-        if (monsterIdNum === 6 || monsterIdNum === 7 || (monsterIdNum >= 8 && monsterIdNum <= 12)) {
+        if (
+          monsterIdNum === 6 ||
+          monsterIdNum === 7 ||
+          (monsterIdNum >= 8 && monsterIdNum <= 12)
+        ) {
           // Get all monsters from the database to find the correct name
           const monsters = await storage.getAllMonsters();
-          const monster = monsters.find(m => m.id === monsterIdNum);
+          const monster = monsters.find((m) => m.id === monsterIdNum);
           const monsterName = monster?.name;
 
           // Add a check in case the monster isn't found
           if (!monsterName) {
             console.error(`No monster found with ID: ${monsterIdNum}`);
             const upgradeChoices = level ? { level: levelNum } : {};
-            const imageData = await veoClient.generateMonsterImage(monsterIdNum, upgradeChoices);
+            const imageData = await veoClient.generateMonsterImage(
+              monsterIdNum,
+              upgradeChoices,
+            );
             const buffer = Buffer.from(imageData, 'base64');
-            res.set({ 'Content-Type': 'image/png', 'Content-Length': buffer.length, 'Cache-Control': 'public, max-age=3600' });
+            res.set({
+              'Content-Type': 'image/png',
+              'Content-Length': buffer.length,
+              'Cache-Control': 'public, max-age=3600',
+            });
             return res.send(buffer);
           }
 
           // Try to find the image file using fs.readdir
           try {
             const files = fs.readdirSync('attached_assets');
-            console.log(`Looking for ${monsterName}_Level_${levelNum}_ in:`, files.filter((f: string) => f.includes(monsterName)));
+            console.log(
+              `Looking for ${monsterName}_Level_${levelNum}_ in:`,
+              files.filter((f: string) => f.includes(monsterName)),
+            );
 
-            const imageFile = files.find((file: string) =>
-              file.startsWith(`${monsterName}_Level_${levelNum}_`) && file.endsWith('.png')
+            const imageFile = files.find(
+              (file: string) =>
+                file.startsWith(`${monsterName}_Level_${levelNum}_`) &&
+                file.endsWith('.png'),
             );
 
             if (imageFile) {
@@ -110,36 +138,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               res.set({
                 'Content-Type': 'image/png',
                 'Content-Length': imageBuffer.length,
-                'Cache-Control': 'public, max-age=3600'
+                'Cache-Control': 'public, max-age=3600',
               });
               return res.send(imageBuffer);
             } else {
-              console.log(`No matching file found for ${monsterName}_Level_${levelNum}_`);
+              console.log(
+                `No matching file found for ${monsterName}_Level_${levelNum}_`,
+              );
             }
           } catch (err) {
-            console.error(`Error finding image for ${monsterName} level ${levelNum}:`, err);
+            console.error(
+              `Error finding image for ${monsterName} level ${levelNum}:`,
+              err,
+            );
           }
         }
 
         // Fallback to VEO API for other monsters or if custom image not found
         const upgradeChoices = level ? { level: levelNum } : {};
-        const imageData = await veoClient.generateMonsterImage(monsterIdNum, upgradeChoices);
+        const imageData = await veoClient.generateMonsterImage(
+          monsterIdNum,
+          upgradeChoices,
+        );
 
         // Return actual image data for img tags
         const buffer = Buffer.from(imageData, 'base64');
         res.set({
           'Content-Type': 'image/png',
           'Content-Length': buffer.length,
-          'Cache-Control': 'public, max-age=3600'
+          'Cache-Control': 'public, max-age=3600',
         });
         res.send(buffer);
-
       } catch (validationError) {
-        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid parameters" });
+        return res
+          .status(400)
+          .json({
+            message:
+              validationError instanceof Error
+                ? validationError.message
+                : 'Invalid parameters',
+          });
       }
-
     } catch (error) {
-      handleError(error, res, "Failed to generate monster image");
+      handleError(error, res, 'Failed to generate monster image');
     }
   });
 
@@ -153,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
-      handleError(error, res, "Failed to fetch user");
+      handleError(error, res, 'Failed to fetch user');
     }
   });
 
@@ -164,22 +205,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate input
       if (!username || !email || !password) {
-        return res.status(400).json({ message: "Username, email, and password are required" });
+        return res
+          .status(400)
+          .json({ message: 'Username, email, and password are required' });
       }
 
       if (password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters long" });
+        return res
+          .status(400)
+          .json({ message: 'Password must be at least 6 characters long' });
       }
 
       // Check if user already exists
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ message: 'Username already exists' });
       }
 
       const existingEmail = await storage.getUserByEmail(email);
       if (existingEmail) {
-        return res.status(400).json({ message: "Email already registered" });
+        return res.status(400).json({ message: 'Email already registered' });
       }
 
       // Hash password and create user
@@ -187,10 +232,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const passwordHash = await bcrypt.hash(password, 10);
 
       const user = await storage.createLocalUser(username, email, passwordHash);
-      res.status(201).json({ message: "Account created successfully", userId: user.id });
-
+      res
+        .status(201)
+        .json({ message: 'Account created successfully', userId: user.id });
     } catch (error) {
-      handleError(error, res, "Failed to create account");
+      handleError(error, res, 'Failed to create account');
     }
   });
 
@@ -198,242 +244,327 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/login/local', (req, res, next) => {
     passport.authenticate('local', (err: any, user: any, info: any) => {
       if (err) {
-        return res.status(500).json({ message: "Authentication error" });
+        return res.status(500).json({ message: 'Authentication error' });
       }
 
       if (!user) {
-        return res.status(401).json({ message: info?.message || "Invalid credentials" });
+        return res
+          .status(401)
+          .json({ message: info?.message || 'Invalid credentials' });
       }
 
       req.logIn(user, (err) => {
         if (err) {
-          return res.status(500).json({ message: "Login error" });
+          return res.status(500).json({ message: 'Login error' });
         }
-        res.json({ message: "Login successful", user: { id: user.claims.sub } });
+        res.json({
+          message: 'Login successful',
+          user: { id: user.claims.sub },
+        });
       });
     })(req, res, next);
   });
 
   // Developer Tools - Add Battle Tokens
-  app.post("/api/dev/add-tokens", isAuthenticated, async (req: any, res) => {
+  app.post('/api/dev/add-tokens', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { amount = 5 } = req.body;
 
       const user = await storage.updateUserBattleTokens(userId, amount); // Corrected function call
-      res.json({ 
-        message: `${amount} battle tokens added.`, 
+      res.json({
+        message: `${amount} battle tokens added.`,
         user,
-        battleTokens: user.battleTokens 
+        battleTokens: user.battleTokens,
       });
-
     } catch (error) {
-      handleError(error, res, "Failed to add battle tokens");
+      handleError(error, res, 'Failed to add battle tokens');
     }
   });
 
   // Game routes
-  app.get("/api/monsters", isAuthenticated, async (req, res) => {
+  app.get('/api/monsters', isAuthenticated, async (req, res) => {
     try {
       const monsters = await storage.getAllMonsters();
       res.json(monsters);
     } catch (error) {
-      handleError(error, res, "Failed to fetch monsters");
+      handleError(error, res, 'Failed to fetch monsters');
     }
   });
 
-  app.get("/api/user/monsters", isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/monsters', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const userMonsters = await storage.getUserMonsters(userId);
       res.json(userMonsters);
     } catch (error) {
-      handleError(error, res, "Failed to fetch user monsters");
+      handleError(error, res, 'Failed to fetch user monsters');
     }
   });
 
   // NEW Route: Get User Rank Info
-  app.get("/api/user/rank", isAuthenticated, async (req: any, res) => {
+  app.get('/api/user/rank', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const rankInfo = await storage.getUserRank(userId);
       res.json(rankInfo);
     } catch (error) {
-      handleError(error, res, "Failed to fetch user rank information");
+      handleError(error, res, 'Failed to fetch user rank information');
     }
   });
 
-  app.get("/api/monster-abilities/:monsterId", isAuthenticated, async (req: any, res) => {
-    try {
-      const monsterId = parseInt(req.params.monsterId);
-      if (isNaN(monsterId)) {
-        return res.status(400).json({ message: "Invalid monster ID" });
+  app.get(
+    '/api/monster-abilities/:monsterId',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const monsterId = parseInt(req.params.monsterId);
+        if (isNaN(monsterId)) {
+          return res.status(400).json({ message: 'Invalid monster ID' });
+        }
+
+        const abilities = await storage.getMonsterAbilities(monsterId);
+        res.json(abilities);
+      } catch (error) {
+        handleError(error, res, 'Failed to fetch monster abilities');
       }
+    },
+  );
 
-      const abilities = await storage.getMonsterAbilities(monsterId);
-      res.json(abilities);
-    } catch (error) {
-      handleError(error, res, "Failed to fetch monster abilities");
-    }
-  });
-
-  app.post("/api/monsters/purchase", isAuthenticated, async (req: any, res) => {
+  app.post('/api/monsters/purchase', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { monsterId } = req.body;
 
       try {
         const validatedMonsterId = validateMonsterId(monsterId);
-        const userMonster = await storage.purchaseMonster(userId, validatedMonsterId);
+        const userMonster = await storage.purchaseMonster(
+          userId,
+          validatedMonsterId,
+        );
         res.json(userMonster);
       } catch (validationError) {
-        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid monster ID" });
+        return res
+          .status(400)
+          .json({
+            message:
+              validationError instanceof Error
+                ? validationError.message
+                : 'Invalid monster ID',
+          });
       }
-
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to purchase monster" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to purchase monster',
+        });
     }
   });
 
-  app.post("/api/monsters/upgrade", isAuthenticated, async (req: any, res) => {
+  app.post('/api/monsters/upgrade', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { userMonsterId } = req.body;
 
       if (!userMonsterId) {
-        return res.status(400).json({ message: "User monster ID is required" });
+        return res.status(400).json({ message: 'User monster ID is required' });
       }
 
-      const upgradedMonster = await storage.upgradeMonster(userId, userMonsterId);
-      res.json(upgradedMonster);
-
-    } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to upgrade monster" });
-    }
-  });
-
-  app.post("/api/monsters/apply-upgrade", isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const {
-        userMonsterId,
-        upgradeKey,
-        upgradeValue,
-        statBoosts,
-        goldCost,
-        diamondCost
-      } = req.body;
-
-      if (!userMonsterId || !upgradeKey || !upgradeValue) {
-        return res.status(400).json({ message: "Missing required upgrade parameters" });
-      }
-
-      const upgradedMonster = await storage.applyMonsterUpgrade(
+      const upgradedMonster = await storage.upgradeMonster(
         userId,
         userMonsterId,
-        upgradeKey,
-        upgradeValue,
-        statBoosts,
-        goldCost,
-        diamondCost
       );
-
       res.json(upgradedMonster);
-
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to apply upgrade" });
+      res
+        .status(400)
+        .json({
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Failed to upgrade monster',
+        });
     }
   });
 
+  app.post(
+    '/api/monsters/apply-upgrade',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.claims.sub;
+        const {
+          userMonsterId,
+          upgradeKey,
+          upgradeValue,
+          statBoosts,
+          goldCost,
+          diamondCost,
+        } = req.body;
+
+        if (!userMonsterId || !upgradeKey || !upgradeValue) {
+          return res
+            .status(400)
+            .json({ message: 'Missing required upgrade parameters' });
+        }
+
+        const upgradedMonster = await storage.applyMonsterUpgrade(
+          userId,
+          userMonsterId,
+          upgradeKey,
+          upgradeValue,
+          statBoosts,
+          goldCost,
+          diamondCost,
+        );
+
+        res.json(upgradedMonster);
+      } catch (error) {
+        res
+          .status(400)
+          .json({
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to apply upgrade',
+          });
+      }
+    },
+  );
+
   // Monster healing endpoint
-  app.post("/api/monsters/heal", isAuthenticated, async (req: any, res) => {
+  app.post('/api/monsters/heal', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { monsterId, healingCost } = req.body;
 
       if (!monsterId || healingCost === undefined) {
-        return res.status(400).json({ message: "Monster ID and healing cost are required" });
+        return res
+          .status(400)
+          .json({ message: 'Monster ID and healing cost are required' });
       }
 
       const monsterToHeal = await storage.repairMonster(userId, monsterId);
       await storage.updateUserCurrency(userId, -healingCost, 0);
 
       res.json({
-        message: "Monster healed successfully",
+        message: 'Monster healed successfully',
         goldSpent: healingCost,
-        newHp: monsterToHeal.maxHp
+        newHp: monsterToHeal.maxHp,
       });
-
     } catch (error) {
-      console.error("Error healing monster:", error);
-      res.status(500).json({ message: "Failed to heal monster" });
+      console.error('Error healing monster:', error);
+      res.status(500).json({ message: 'Failed to heal monster' });
     }
   });
 
   // AI Battle Opponent Generation endpoint
-  app.post('/api/battle/generate-opponent', isAuthenticated, async (req: any, res) => {
-    try {
-      const { tpl } = req.body;
-
+  app.post(
+    '/api/battle/generate-opponent',
+    isAuthenticated,
+    async (req: any, res) => {
       try {
-        const validatedTPL = validateTPL(tpl);
-        const aiOpponent = await storage.generateAiOpponent(validatedTPL);
-        res.json(aiOpponent);
-      } catch (validationError) {
-        return res.status(400).json({ message: validationError instanceof Error ? validationError.message : "Invalid TPL" });
+        const { tpl } = req.body;
+
+        try {
+          const validatedTPL = validateTPL(tpl);
+          const aiOpponent = await storage.generateAiOpponent(validatedTPL);
+          res.json(aiOpponent);
+        } catch (validationError) {
+          return res
+            .status(400)
+            .json({
+              message:
+                validationError instanceof Error
+                  ? validationError.message
+                  : 'Invalid TPL',
+            });
+        }
+      } catch (error) {
+        handleError(error, res, 'Failed to generate opponent');
       }
-
-    } catch (error) {
-      handleError(error, res, "Failed to generate opponent");
-    }
-  });
-
+    },
+  );
 
   // Consolidated battle creation endpoint
   app.post('/api/battle/create', isAuthenticated, async (req: any, res) => {
     try {
       const { playerTeam, opponentTeam, playerLeadMonsterIndex } = req.body;
 
-      if (!playerTeam || !opponentTeam || !Array.isArray(playerTeam) || !Array.isArray(opponentTeam)) {
-        return res.status(400).json({ message: 'Missing or invalid team data (playerTeam, opponentTeam must be arrays)' });
+      if (
+        !playerTeam ||
+        !opponentTeam ||
+        !Array.isArray(playerTeam) ||
+        !Array.isArray(opponentTeam)
+      ) {
+        return res
+          .status(400)
+          .json({
+            message:
+              'Missing or invalid team data (playerTeam, opponentTeam must be arrays)',
+          });
       }
 
-      if (playerLeadMonsterIndex === undefined || typeof playerLeadMonsterIndex !== 'number') {
-        return res.status(400).json({ message: 'Missing or invalid playerLeadMonsterIndex' });
+      if (
+        playerLeadMonsterIndex === undefined ||
+        typeof playerLeadMonsterIndex !== 'number'
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'Missing or invalid playerLeadMonsterIndex' });
       }
 
       if (playerTeam.length === 0 || opponentTeam.length === 0) {
         return res.status(400).json({ message: 'Teams cannot be empty' });
       }
 
-      if (playerLeadMonsterIndex < 0 || playerLeadMonsterIndex >= playerTeam.length) {
-        return res.status(400).json({ message: 'Invalid playerLeadMonsterIndex' });
+      if (
+        playerLeadMonsterIndex < 0 ||
+        playerLeadMonsterIndex >= playerTeam.length
+      ) {
+        return res
+          .status(400)
+          .json({ message: 'Invalid playerLeadMonsterIndex' });
       }
 
-      const battleSession = await createBattleSession(playerTeam, opponentTeam, playerLeadMonsterIndex);
+      const battleSession = await createBattleSession(
+        playerTeam,
+        opponentTeam,
+        playerLeadMonsterIndex,
+      );
       res.json(battleSession);
-
     } catch (error) {
-      handleError(error, res, "Failed to create battle session");
+      handleError(error, res, 'Failed to create battle session');
     }
   });
 
   // Battle action processing endpoint (server-authoritative turn management)
-  app.post('/api/battle/perform-action', isAuthenticated, async (req: any, res) => {
-    try {
-      const { battleId, abilityId, targetId } = req.body;
+  app.post(
+    '/api/battle/perform-action',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { battleId, abilityId, targetId } = req.body;
 
-      if (!battleId || !abilityId) {
-        return res.status(400).json({ message: 'Missing required battle data (battleId, abilityId)' });
+        if (!battleId || !abilityId) {
+          return res
+            .status(400)
+            .json({
+              message: 'Missing required battle data (battleId, abilityId)',
+            });
+        }
+
+        const actionResult = await applyDamage(battleId, abilityId, targetId);
+        res.json(actionResult);
+      } catch (error) {
+        handleError(error, res, 'Failed to perform battle action');
       }
-
-      const actionResult = await applyDamage(battleId, abilityId, targetId);
-      res.json(actionResult);
-
-    } catch (error) {
-      handleError(error, res, "Failed to perform battle action");
-    }
-  });
+    },
+  );
 
   // AI turn processing endpoint
   app.post('/api/battle/ai-turn', isAuthenticated, async (req: any, res) => {
@@ -446,13 +577,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const aiTurnResult = await processAiTurn(battleId);
       res.json(aiTurnResult);
-
     } catch (error) {
-      handleError(error, res, "Failed to process AI turn");
+      handleError(error, res, 'Failed to process AI turn');
     }
   });
-
-
 
   // Monster swapping endpoint
   app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {
@@ -460,41 +588,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { battleId, newMonsterIndex } = req.body;
 
       if (battleId === undefined || newMonsterIndex === undefined) {
-        return res.status(400).json({ message: 'Missing battleId or newMonsterIndex' });
+        return res
+          .status(400)
+          .json({ message: 'Missing battleId or newMonsterIndex' });
       }
 
       const battleState = performSwap(battleId, newMonsterIndex);
       res.json(battleState);
-
     } catch (error) {
-      handleError(error, res, "Failed to perform monster swap");
+      handleError(error, res, 'Failed to perform monster swap');
     }
   });
 
   // Battle token spending endpoint
-  app.post('/api/battle/spend-token', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.spendBattleToken(userId);
+  app.post(
+    '/api/battle/spend-token',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.claims.sub;
+        const user = await storage.spendBattleToken(userId);
 
-      res.json({
-        message: 'Battle token spent',
-        user,
-        battleTokens: user.battleTokens
-      });
-
-    } catch (error) {
-      console.error('Error spending battle token:', error);
-      if (error instanceof Error && error.message.includes('NO_BATTLE_TOKENS')) {
-        res.status(400).json({ message: 'NO_BATTLE_TOKENS' });
-      } else {
-        res.status(500).json({
-          message: 'Failed to spend battle token',
-          error: error instanceof Error ? error.message : 'Unknown error'
+        res.json({
+          message: 'Battle token spent',
+          user,
+          battleTokens: user.battleTokens,
         });
+      } catch (error) {
+        console.error('Error spending battle token:', error);
+        if (
+          error instanceof Error &&
+          error.message.includes('NO_BATTLE_TOKENS')
+        ) {
+          res.status(400).json({ message: 'NO_BATTLE_TOKENS' });
+        } else {
+          res.status(500).json({
+            message: 'Failed to spend battle token',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
       }
-    }
-  });
+    },
+  );
 
   // Questions endpoint
   app.get('/api/questions', isAuthenticated, async (req: any, res) => {
@@ -502,23 +637,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { subject = 'mixed', difficulty = 2 } = req.query;
 
-      const question = await storage.getRandomQuestion(subject as string, parseInt(difficulty as string), userId);
+      const question = await storage.getRandomQuestion(
+        subject as string,
+        parseInt(difficulty as string),
+        userId,
+      );
 
       if (!question) {
         return res.status(404).json({ message: 'No questions available' });
       }
 
       res.json(question);
-
     } catch (error) {
-      handleError(error, res, "Failed to fetch question");
+      handleError(error, res, 'Failed to fetch question');
     }
   });
 
   app.post('/api/questions/answer', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { questionId, answer, isCorrect, usedHint, subject, difficulty } = req.body;
+      const { questionId, answer, isCorrect, usedHint, subject, difficulty } =
+        req.body;
 
       if (isCorrect) {
         // Award gold for correct answer
@@ -527,22 +666,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.markQuestionAnswered(userId, questionId);
 
         // Get next question
-        const nextQuestion = await storage.getRandomQuestion(subject, difficulty, userId);
+        const nextQuestion = await storage.getRandomQuestion(
+          subject,
+          difficulty,
+          userId,
+        );
 
         res.json({
           isCorrect: true,
           goldEarned,
-          nextQuestion
+          nextQuestion,
         });
       } else {
         res.json({
           isCorrect: false,
-          goldEarned: 0
+          goldEarned: 0,
         });
       }
-
     } catch (error) {
-      handleError(error, res, "Failed to process answer");
+      handleError(error, res, 'Failed to process answer');
     }
   });
 
@@ -552,22 +694,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { monsterId, upgradeChoices } = req.body;
 
       if (!monsterId) {
-        return res.status(400).json({ message: "monsterId is required" });
+        return res.status(400).json({ message: 'monsterId is required' });
       }
 
-      const imageData = await veoClient.generateMonsterImage(monsterId, upgradeChoices || {});
+      const imageData = await veoClient.generateMonsterImage(
+        monsterId,
+        upgradeChoices || {},
+      );
 
       res.json({
         success: true,
         imageData: imageData,
-        mimeType: 'image/png'
+        mimeType: 'image/png',
       });
-
     } catch (error) {
-      console.error("Error generating monster image:", error);
+      console.error('Error generating monster image:', error);
       res.status(500).json({
-        message: "Failed to generate monster image",
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to generate monster image',
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
@@ -581,12 +725,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         battleTokens: user.battleTokens,
         lastRefresh: user.battleTokensLastRefresh,
-        user
+        user,
       });
-
     } catch (error) {
-      console.error("Error checking battle tokens:", error);
-      res.status(500).json({ message: "Failed to check battle tokens" });
+      console.error('Error checking battle tokens:', error);
+      res.status(500).json({ message: 'Failed to check battle tokens' });
     }
   });
 
@@ -596,8 +739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const teams = await storage.getAllAiTeams();
       res.json(teams);
     } catch (error) {
-      console.error("Error fetching AI teams:", error);
-      res.status(500).json({ message: "Failed to fetch AI teams" });
+      console.error('Error fetching AI teams:', error);
+      res.status(500).json({ message: 'Failed to fetch AI teams' });
     }
   });
 
@@ -607,8 +750,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const battleSlots = await storage.getUserBattleSlots(userId);
       res.json({ battleSlots });
     } catch (error) {
-      console.error("Error fetching battle slots:", error);
-      res.status(500).json({ message: "Failed to fetch battle slots" });
+      console.error('Error fetching battle slots:', error);
+      res.status(500).json({ message: 'Failed to fetch battle slots' });
     }
   });
 

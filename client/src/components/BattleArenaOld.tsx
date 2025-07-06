@@ -1,16 +1,16 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { GameUser, UserMonster, Battle, Monster } from "@/types/game";
-import VeoMonster from "./VeoMonster";
-import MonsterCard from "./MonsterCard";
-import { BattleTeamSelector } from "./BattleTeamSelector";
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
+import { isUnauthorizedError } from '@/lib/authUtils';
+import { GameUser, UserMonster, Battle, Monster } from '@/types/game';
+import VeoMonster from './VeoMonster';
+import MonsterCard from './MonsterCard';
+import { BattleTeamSelector } from './BattleTeamSelector';
 
 interface AttackOption {
   id: string;
@@ -37,7 +37,12 @@ interface AIMonster {
 }
 
 interface BattleState {
-  playerMonster: UserMonster & { hp: number; maxHp: number; mp: number; maxMp: number };
+  playerMonster: UserMonster & {
+    hp: number;
+    maxHp: number;
+    mp: number;
+    maxMp: number;
+  };
   aiMonster: AIMonster;
   turn: 'player' | 'ai';
   phase: 'select' | 'animate' | 'result' | 'end';
@@ -49,7 +54,9 @@ interface BattleState {
 }
 
 export default function BattleArena() {
-  const [battleMode, setBattleMode] = useState<'selection' | 'combat'>('selection');
+  const [battleMode, setBattleMode] = useState<'selection' | 'combat'>(
+    'selection',
+  );
   const [selectedTeam, setSelectedTeam] = useState<any[]>([]);
   const [aiOpponent, setAiOpponent] = useState<any>(null);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
@@ -62,25 +69,32 @@ export default function BattleArena() {
   }, []);
 
   const { data: user } = useQuery<GameUser>({
-    queryKey: ["/api/auth/user"],
+    queryKey: ['/api/auth/user'],
   });
 
-  const handleBattleStart = (selectedMonsters: any[], generatedOpponent: any) => {
+  const handleBattleStart = (
+    selectedMonsters: any[],
+    generatedOpponent: any,
+  ) => {
     setSelectedTeam(selectedMonsters);
     setAiOpponent(generatedOpponent);
     setBattleMode('combat');
-    
+
     // Initialize battle with first monster from player team vs first AI monster
     const playerMonster = selectedMonsters[0];
     const aiMonster = generatedOpponent.scaledMonsters[0];
-    
+
     setBattleState({
       playerMonster: {
         ...playerMonster,
         hp: playerMonster.hp,
-        maxHp: playerMonster.monster.baseHp + ((playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1)),
+        maxHp:
+          playerMonster.monster.baseHp +
+          (playerMonster.monster.hpPerLevel || 50) * (playerMonster.level - 1),
         mp: playerMonster.mp,
-        maxMp: playerMonster.monster.baseMp + ((playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1))
+        maxMp:
+          playerMonster.monster.baseMp +
+          (playerMonster.monster.mpPerLevel || 20) * (playerMonster.level - 1),
       },
       aiMonster: {
         id: aiMonster.monster.id,
@@ -93,15 +107,17 @@ export default function BattleArena() {
         maxHp: aiMonster.hp,
         mp: aiMonster.mp,
         maxMp: aiMonster.mp,
-        monster: aiMonster.monster
+        monster: aiMonster.monster,
       },
       turn: 'player',
       phase: 'select',
-      battleLog: [`Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`],
+      battleLog: [
+        `Battle begins! ${playerMonster.monster.name} vs ${aiMonster.monster.name}!`,
+      ],
       winner: null,
       currentAnimation: null,
       lastDamage: null,
-      screenShake: false
+      screenShake: false,
     });
   };
 
@@ -114,108 +130,198 @@ export default function BattleArena() {
 
   // AI opponents with their monsters
   const aiOpponents = [
-    { 
-      id: 'ai-1', 
-      name: 'Professor Quibble', 
-      difficulty: 'Easy', 
-      totalPower: 120, 
-      description: 'Your friendly academy instructor', 
+    {
+      id: 'ai-1',
+      name: 'Professor Quibble',
+      difficulty: 'Easy',
+      totalPower: 120,
+      description: 'Your friendly academy instructor',
       color: '#10B981',
-      monster: { id: 1, name: 'Academic Phoenix', type: 'fire', power: 80, speed: 70, defense: 60, upgradeChoices: { wings: 'flame', tail: 'normal' } }
+      monster: {
+        id: 1,
+        name: 'Academic Phoenix',
+        type: 'fire',
+        power: 80,
+        speed: 70,
+        defense: 60,
+        upgradeChoices: { wings: 'flame', tail: 'normal' },
+      },
     },
-    { 
-      id: 'ai-2', 
-      name: 'Scholar Maya', 
-      difficulty: 'Easy', 
-      totalPower: 140, 
-      description: 'A dedicated student from the crystal caves', 
+    {
+      id: 'ai-2',
+      name: 'Scholar Maya',
+      difficulty: 'Easy',
+      totalPower: 140,
+      description: 'A dedicated student from the crystal caves',
       color: '#10B981',
-      monster: { id: 4, name: 'Study Golem', type: 'earth', power: 90, speed: 50, defense: 80, upgradeChoices: { spikes: 'metallic', muscles: 'enhanced' } }
+      monster: {
+        id: 4,
+        name: 'Study Golem',
+        type: 'earth',
+        power: 90,
+        speed: 50,
+        defense: 80,
+        upgradeChoices: { spikes: 'metallic', muscles: 'enhanced' },
+      },
     },
-    { 
-      id: 'ai-3', 
-      name: 'Wizard Finn', 
-      difficulty: 'Medium', 
-      totalPower: 180, 
-      description: 'Master of elemental magic', 
+    {
+      id: 'ai-3',
+      name: 'Wizard Finn',
+      difficulty: 'Medium',
+      totalPower: 180,
+      description: 'Master of elemental magic',
       color: '#F59E0B',
-      monster: { id: 3, name: 'Mystic Dragon', type: 'air', power: 120, speed: 90, defense: 70, upgradeChoices: { wings: 'storm', teeth: 'razor' } }
+      monster: {
+        id: 3,
+        name: 'Mystic Dragon',
+        type: 'air',
+        power: 120,
+        speed: 90,
+        defense: 70,
+        upgradeChoices: { wings: 'storm', teeth: 'razor' },
+      },
     },
-    { 
-      id: 'ai-4', 
-      name: 'Knight Vera', 
-      difficulty: 'Medium', 
-      totalPower: 200, 
-      description: 'Defender of the monster realm', 
+    {
+      id: 'ai-4',
+      name: 'Knight Vera',
+      difficulty: 'Medium',
+      totalPower: 200,
+      description: 'Defender of the monster realm',
       color: '#F59E0B',
-      monster: { id: 4, name: 'Guardian Titan', type: 'earth', power: 110, speed: 60, defense: 130, upgradeChoices: { spikes: 'metallic', wings: 'crystal' } }
+      monster: {
+        id: 4,
+        name: 'Guardian Titan',
+        type: 'earth',
+        power: 110,
+        speed: 60,
+        defense: 130,
+        upgradeChoices: { spikes: 'metallic', wings: 'crystal' },
+      },
     },
-    { 
-      id: 'ai-5', 
-      name: 'Sage Kael', 
-      difficulty: 'Medium', 
-      totalPower: 220, 
-      description: 'Ancient keeper of monster wisdom', 
+    {
+      id: 'ai-5',
+      name: 'Sage Kael',
+      difficulty: 'Medium',
+      totalPower: 220,
+      description: 'Ancient keeper of monster wisdom',
       color: '#F59E0B',
-      monster: { id: 2, name: 'Ancient Leviathan', type: 'water', power: 130, speed: 80, defense: 90, upgradeChoices: { tail: 'spiked', wings: 'water' } }
+      monster: {
+        id: 2,
+        name: 'Ancient Leviathan',
+        type: 'water',
+        power: 130,
+        speed: 80,
+        defense: 90,
+        upgradeChoices: { tail: 'spiked', wings: 'water' },
+      },
     },
-    { 
-      id: 'ai-6', 
-      name: 'Champion Zara', 
-      difficulty: 'Hard', 
-      totalPower: 250, 
-      description: 'Undefeated arena champion', 
+    {
+      id: 'ai-6',
+      name: 'Champion Zara',
+      difficulty: 'Hard',
+      totalPower: 250,
+      description: 'Undefeated arena champion',
       color: '#EF4444',
-      monster: { id: 1, name: 'Champion Phoenix', type: 'fire', power: 150, speed: 120, defense: 80, upgradeChoices: { wings: 'flame', tail: 'flame', teeth: 'razor' } }
+      monster: {
+        id: 1,
+        name: 'Champion Phoenix',
+        type: 'fire',
+        power: 150,
+        speed: 120,
+        defense: 80,
+        upgradeChoices: { wings: 'flame', tail: 'flame', teeth: 'razor' },
+      },
     },
-    { 
-      id: 'ai-7', 
-      name: 'Lord Draven', 
-      difficulty: 'Hard', 
-      totalPower: 280, 
-      description: 'Dark master of shadow monsters', 
+    {
+      id: 'ai-7',
+      name: 'Lord Draven',
+      difficulty: 'Hard',
+      totalPower: 280,
+      description: 'Dark master of shadow monsters',
       color: '#EF4444',
-      monster: { id: 3, name: 'Shadow Dragon', type: 'air', power: 160, speed: 110, defense: 90, upgradeChoices: { wings: 'storm', teeth: 'razor', spikes: 'metallic' } }
+      monster: {
+        id: 3,
+        name: 'Shadow Dragon',
+        type: 'air',
+        power: 160,
+        speed: 110,
+        defense: 90,
+        upgradeChoices: { wings: 'storm', teeth: 'razor', spikes: 'metallic' },
+      },
     },
-    { 
-      id: 'ai-8', 
-      name: 'Empress Luna', 
-      difficulty: 'Hard', 
-      totalPower: 300, 
-      description: 'Ruler of the celestial beasts', 
+    {
+      id: 'ai-8',
+      name: 'Empress Luna',
+      difficulty: 'Hard',
+      totalPower: 300,
+      description: 'Ruler of the celestial beasts',
       color: '#EF4444',
-      monster: { id: 2, name: 'Celestial Leviathan', type: 'water', power: 170, speed: 100, defense: 130, upgradeChoices: { tail: 'spiked', wings: 'water', teeth: 'razor' } }
+      monster: {
+        id: 2,
+        name: 'Celestial Leviathan',
+        type: 'water',
+        power: 170,
+        speed: 100,
+        defense: 130,
+        upgradeChoices: { tail: 'spiked', wings: 'water', teeth: 'razor' },
+      },
     },
-    { 
-      id: 'ai-9', 
-      name: 'Titan Rex', 
-      difficulty: 'Expert', 
-      totalPower: 350, 
-      description: 'Legendary monster tamer', 
+    {
+      id: 'ai-9',
+      name: 'Titan Rex',
+      difficulty: 'Expert',
+      totalPower: 350,
+      description: 'Legendary monster tamer',
       color: '#8B5CF6',
-      monster: { id: 4, name: 'Legendary Titan', type: 'earth', power: 200, speed: 80, defense: 170, upgradeChoices: { spikes: 'metallic', wings: 'crystal', muscles: 'enhanced', tail: 'crystal' } }
+      monster: {
+        id: 4,
+        name: 'Legendary Titan',
+        type: 'earth',
+        power: 200,
+        speed: 80,
+        defense: 170,
+        upgradeChoices: {
+          spikes: 'metallic',
+          wings: 'crystal',
+          muscles: 'enhanced',
+          tail: 'crystal',
+        },
+      },
     },
-    { 
-      id: 'ai-10', 
-      name: 'Supreme Aether', 
-      difficulty: 'Expert', 
-      totalPower: 400, 
-      description: 'The ultimate monster master', 
+    {
+      id: 'ai-10',
+      name: 'Supreme Aether',
+      difficulty: 'Expert',
+      totalPower: 400,
+      description: 'The ultimate monster master',
       color: '#8B5CF6',
-      monster: { id: 3, name: 'Supreme Dragon', type: 'air', power: 220, speed: 150, defense: 130, upgradeChoices: { wings: 'storm', teeth: 'razor', spikes: 'metallic', muscles: 'enhanced' } }
+      monster: {
+        id: 3,
+        name: 'Supreme Dragon',
+        type: 'air',
+        power: 220,
+        speed: 150,
+        defense: 130,
+        upgradeChoices: {
+          wings: 'storm',
+          teeth: 'razor',
+          spikes: 'metallic',
+          muscles: 'enhanced',
+        },
+      },
     },
   ];
 
   const canBattle = user && user.battleTokens > 0;
-  const nextTokenProgress = user ? (user.correctAnswers % 1) : 0;
+  const nextTokenProgress = user ? user.correctAnswers % 1 : 0;
 
   // Animation helper functions
   const getPlayerAnimationClass = () => {
     if (!battleState?.currentAnimation) return 'scale-100';
-    
+
     const anim = battleState.currentAnimation;
     const isPlayerTurn = battleState.turn === 'player';
-    
+
     if (isPlayerTurn) {
       if (anim.includes('windup')) return 'scale-110 -rotate-12';
       if (anim.includes('strike')) return 'scale-125 translate-x-12 rotate-6';
@@ -225,16 +331,16 @@ export default function BattleArena() {
       // Player is being attacked - recoil animation
       if (anim.includes('impact')) return 'scale-95 -translate-x-6 rotate-3';
     }
-    
+
     return 'scale-100';
   };
 
   const getAIAnimationClass = () => {
     if (!battleState?.currentAnimation) return 'scale-100';
-    
+
     const anim = battleState.currentAnimation;
     const isAITurn = battleState.turn === 'ai';
-    
+
     if (isAITurn) {
       if (anim.includes('windup')) return 'scale-110 rotate-12';
       if (anim.includes('strike')) return 'scale-125 -translate-x-12 -rotate-6';
@@ -244,14 +350,16 @@ export default function BattleArena() {
       // AI is being attacked - recoil animation
       if (anim.includes('impact')) return 'scale-95 translate-x-6 -rotate-3';
     }
-    
+
     return 'scale-100';
   };
 
   // Get abilities from monster's database data
-  const getMonsterAbilities = (monster: UserMonster & { monster: Monster }): AttackOption[] => {
+  const getMonsterAbilities = (
+    monster: UserMonster & { monster: Monster },
+  ): AttackOption[] => {
     const abilities: AttackOption[] = [];
-    
+
     if (!monster.monster.abilities) {
       console.log('No abilities found for monster:', monster.monster.name);
       return abilities;
@@ -261,21 +369,26 @@ export default function BattleArena() {
     // Parse abilities from database format (active1, active2, etc.)
     Object.keys(monsterAbilities).forEach((key: string) => {
       const ability = monsterAbilities[key];
-      
+
       // Only process active abilities (not passive)
       if (key.startsWith('active') && ability.name) {
         const manaCost = ability.mp_cost || 0;
-        const damage = ability.type === 'physical' ? 45 : 
-                      ability.type === 'psychic' ? 40 : 
-                      ability.type === 'aoe' ? 35 : 30;
-        
+        const damage =
+          ability.type === 'physical'
+            ? 45
+            : ability.type === 'psychic'
+              ? 40
+              : ability.type === 'aoe'
+                ? 35
+                : 30;
+
         abilities.push({
           id: ability.name.toLowerCase().replace(/\s+/g, '-'),
           name: ability.name,
           description: ability.description,
           damage: damage,
           animation: ability.type || 'attack',
-          manaCost: manaCost
+          manaCost: manaCost,
         });
       }
     });
@@ -283,13 +396,17 @@ export default function BattleArena() {
   };
 
   // Calculate damage
-  const calculateDamage = (attacker: UserMonster & { hp: number; maxHp: number } | AIMonster, defender: UserMonster & { hp: number; maxHp: number } | AIMonster, attackDamage: number): number => {
+  const calculateDamage = (
+    attacker: (UserMonster & { hp: number; maxHp: number }) | AIMonster,
+    defender: (UserMonster & { hp: number; maxHp: number }) | AIMonster,
+    attackDamage: number,
+  ): number => {
     const attackPower = attacker.power;
     const defenderDefense = defender.defense;
-    
-    const baseDamage = attackDamage + (attackPower * 0.5);
-    const reducedDamage = Math.max(1, baseDamage - (defenderDefense * 0.3));
-    
+
+    const baseDamage = attackDamage + attackPower * 0.5;
+    const reducedDamage = Math.max(1, baseDamage - defenderDefense * 0.3);
+
     return Math.floor(reducedDamage + (Math.random() * 10 - 5)); // ±5 random variance
   };
 
@@ -310,30 +427,34 @@ export default function BattleArena() {
         level: 10,
         spikes: 'metallic',
         muscles: 'enhanced',
-        wings: 'crystal'
-      }
+        wings: 'crystal',
+      },
     };
 
     // Use monster's current HP and MP values to persist stats between battles
-    const currentHp = (monster as any).hp !== null && (monster as any).hp !== undefined 
-      ? (monster as any).hp 
-      : ((monster.monster as any)?.baseHp || 500);
-    const maxHp = (monster as any).maxHp !== null && (monster as any).maxHp !== undefined 
-      ? (monster as any).maxHp 
-      : ((monster.monster as any)?.baseHp || 500);
-    const currentMp = (monster as any).mp !== null && (monster as any).mp !== undefined 
-      ? (monster as any).mp 
-      : Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
-    const maxMp = (monster as any).maxMp !== null && (monster as any).maxMp !== undefined 
-      ? (monster as any).maxMp 
-      : ((monster.monster as any)?.baseMp || 120);
-    
+    const currentHp =
+      (monster as any).hp !== null && (monster as any).hp !== undefined
+        ? (monster as any).hp
+        : (monster.monster as any)?.baseHp || 500;
+    const maxHp =
+      (monster as any).maxHp !== null && (monster as any).maxHp !== undefined
+        ? (monster as any).maxHp
+        : (monster.monster as any)?.baseHp || 500;
+    const currentMp =
+      (monster as any).mp !== null && (monster as any).mp !== undefined
+        ? (monster as any).mp
+        : Math.floor(((monster.monster as any)?.baseMp || 120) * 0.8);
+    const maxMp =
+      (monster as any).maxMp !== null && (monster as any).maxMp !== undefined
+        ? (monster as any).maxMp
+        : (monster.monster as any)?.baseMp || 120;
+
     const playerMonster = {
       ...monster,
       hp: currentHp,
       maxHp: maxHp,
       mp: currentMp,
-      maxMp: maxMp
+      maxMp: maxMp,
     };
 
     setBattleState({
@@ -341,11 +462,13 @@ export default function BattleArena() {
       aiMonster,
       turn: playerMonster.speed >= aiMonster.speed ? 'player' : 'ai',
       phase: 'select',
-      battleLog: [`Battle begins! ${monster.monster.name} vs ${aiMonster.name}!`],
+      battleLog: [
+        `Battle begins! ${monster.monster.name} vs ${aiMonster.name}!`,
+      ],
       winner: null,
       currentAnimation: null,
       lastDamage: null,
-      screenShake: false
+      screenShake: false,
     });
   };
 
@@ -353,15 +476,27 @@ export default function BattleArena() {
   // Get attack element from attack name and monster type
   const getAttackElement = (attackName: string, attackerMonsterId: number) => {
     // Check ability descriptions for element keywords
-    if (attackName.toLowerCase().includes('magma') || attackName.toLowerCase().includes('fire')) return 'Fire';
-    if (attackName.toLowerCase().includes('tremor') || attackName.toLowerCase().includes('earth')) return 'Earth';
-    if (attackName.toLowerCase().includes('mind') || attackName.toLowerCase().includes('psy')) return 'Psychic';
+    if (
+      attackName.toLowerCase().includes('magma') ||
+      attackName.toLowerCase().includes('fire')
+    )
+      return 'Fire';
+    if (
+      attackName.toLowerCase().includes('tremor') ||
+      attackName.toLowerCase().includes('earth')
+    )
+      return 'Earth';
+    if (
+      attackName.toLowerCase().includes('mind') ||
+      attackName.toLowerCase().includes('psy')
+    )
+      return 'Psychic';
     if (attackName.toLowerCase().includes('basic')) return 'Physical';
-    
+
     // Default to monster's primary affinity
     if (attackerMonsterId === 6) return 'Earth'; // Gigalith
     if (attackerMonsterId === 7) return 'Psychic'; // Aetherion
-    
+
     return 'Physical'; // Default
   };
 
@@ -378,9 +513,12 @@ export default function BattleArena() {
   };
 
   // Calculate effectiveness multiplier
-  const getEffectivenessMultiplier = (attackElement: string, defenderMonsterId: number) => {
+  const getEffectivenessMultiplier = (
+    attackElement: string,
+    defenderMonsterId: number,
+  ) => {
     const { weakness, resistance } = getMonsterAffinities(defenderMonsterId);
-    
+
     if (attackElement === weakness) return 1.5; // Super effective
     if (attackElement === resistance) return 0.5; // Not very effective
     return 1.0; // Normal effectiveness
@@ -390,76 +528,106 @@ export default function BattleArena() {
   const getEffectivenessMessage = (multiplier: number) => {
     if (multiplier > 1.0) return "It's super effective!";
     if (multiplier < 1.0) return "It's not very effective...";
-    return "";
+    return '';
   };
 
   const executeAttack = (attacker: 'player' | 'ai', attack: AttackOption) => {
     if (!battleState || battleState.phase === 'animate') return; // Prevent duplicate execution
 
-    setBattleState(prev => ({
+    setBattleState((prev) => ({
       ...prev!,
       phase: 'animate',
-      currentAnimation: attack.animation
+      currentAnimation: attack.animation,
     }));
 
-    setAnimationKey(prev => prev + 1);
+    setAnimationKey((prev) => prev + 1);
 
     // Multi-stage animation sequence
     const attackSequence = async () => {
       // Stage 1: Attacker wind-up (500ms)
-      setBattleState(prev => ({ ...prev!, currentAnimation: `${attack.animation}-windup` }));
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setBattleState((prev) => ({
+        ...prev!,
+        currentAnimation: `${attack.animation}-windup`,
+      }));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Stage 2: Attack motion (300ms)
-      setBattleState(prev => ({ ...prev!, currentAnimation: `${attack.animation}-strike` }));
-      await new Promise(resolve => setTimeout(resolve, 300));
+      setBattleState((prev) => ({
+        ...prev!,
+        currentAnimation: `${attack.animation}-strike`,
+      }));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Stage 3: Impact and defender recoil (400ms)
       const isPlayerAttacking = attacker === 'player';
-      const attackerMonster = isPlayerAttacking ? battleState.playerMonster : battleState.aiMonster;
-      const defenderMonster = isPlayerAttacking ? battleState.aiMonster : battleState.playerMonster;
-      
+      const attackerMonster = isPlayerAttacking
+        ? battleState.playerMonster
+        : battleState.aiMonster;
+      const defenderMonster = isPlayerAttacking
+        ? battleState.aiMonster
+        : battleState.playerMonster;
+
       // Get attack element and defender monster ID for affinity calculations
-      const attackerMonsterId = isPlayerAttacking ? battleState.playerMonster.monster.id : battleState.aiMonster.id;
-      const defenderMonsterId = isPlayerAttacking ? battleState.aiMonster.id : battleState.playerMonster.monster.id;
+      const attackerMonsterId = isPlayerAttacking
+        ? battleState.playerMonster.monster.id
+        : battleState.aiMonster.id;
+      const defenderMonsterId = isPlayerAttacking
+        ? battleState.aiMonster.id
+        : battleState.playerMonster.monster.id;
       const attackElement = getAttackElement(attack.name, attackerMonsterId);
-      const effectivenessMultiplier = getEffectivenessMultiplier(attackElement, defenderMonsterId);
-      
+      const effectivenessMultiplier = getEffectivenessMultiplier(
+        attackElement,
+        defenderMonsterId,
+      );
+
       // Calculate base damage then apply effectiveness multiplier
-      const baseDamage = calculateDamage(attackerMonster, defenderMonster, attack.damage);
+      const baseDamage = calculateDamage(
+        attackerMonster,
+        defenderMonster,
+        attack.damage,
+      );
       const damage = Math.floor(baseDamage * effectivenessMultiplier);
-      const effectivenessMessage = getEffectivenessMessage(effectivenessMultiplier);
-      
-      setBattleState(prev => ({ 
-        ...prev!, 
+      const effectivenessMessage = getEffectivenessMessage(
+        effectivenessMultiplier,
+      );
+
+      setBattleState((prev) => ({
+        ...prev!,
         currentAnimation: `${attack.animation}-impact`,
         lastDamage: damage,
-        screenShake: true
+        screenShake: true,
       }));
-      await new Promise(resolve => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 400));
 
       // Stage 4: Return to position (300ms)
-      setBattleState(prev => ({ 
-        ...prev!, 
+      setBattleState((prev) => ({
+        ...prev!,
         currentAnimation: `${attack.animation}-return`,
-        screenShake: false
+        screenShake: false,
       }));
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Update battle state with damage
       const newDefenderHp = Math.max(0, defenderMonster.hp - damage);
-      const attackerName = isPlayerAttacking ? battleState.playerMonster.monster.name : battleState.aiMonster.name;
-      const defenderName = isPlayerAttacking ? battleState.aiMonster.name : battleState.playerMonster.monster.name;
+      const attackerName = isPlayerAttacking
+        ? battleState.playerMonster.monster.name
+        : battleState.aiMonster.name;
+      const defenderName = isPlayerAttacking
+        ? battleState.aiMonster.name
+        : battleState.playerMonster.monster.name;
 
-      setBattleState(prev => {
+      setBattleState((prev) => {
         const newState = { ...prev! };
-        newState.battleLog = [...prev!.battleLog, `${attackerName} uses ${attack.name} for ${damage} damage!`];
-        
+        newState.battleLog = [
+          ...prev!.battleLog,
+          `${attackerName} uses ${attack.name} for ${damage} damage!`,
+        ];
+
         // Add effectiveness message if applicable
         if (effectivenessMessage) {
           newState.battleLog.push(effectivenessMessage);
         }
-        
+
         if (isPlayerAttacking) {
           newState.aiMonster.hp = newDefenderHp;
           // Deduct mana cost for player attacks
@@ -467,7 +635,9 @@ export default function BattleArena() {
             const currentMp = newState.playerMonster.mp;
             const newMp = Math.max(0, currentMp - attack.manaCost);
             newState.playerMonster.mp = newMp;
-            newState.battleLog.push(`${attack.manaCost} MP consumed (${currentMp} → ${newMp})`);
+            newState.battleLog.push(
+              `${attack.manaCost} MP consumed (${currentMp} → ${newMp})`,
+            );
           }
         } else {
           newState.playerMonster.hp = newDefenderHp;
@@ -476,7 +646,9 @@ export default function BattleArena() {
             const currentMp = newState.aiMonster.mp;
             const newMp = Math.max(0, currentMp - attack.manaCost);
             newState.aiMonster.mp = newMp;
-            newState.battleLog.push(`AI ${attack.manaCost} MP consumed (${currentMp} → ${newMp})`);
+            newState.battleLog.push(
+              `AI ${attack.manaCost} MP consumed (${currentMp} → ${newMp})`,
+            );
           }
         }
 
@@ -484,12 +656,14 @@ export default function BattleArena() {
         if (newDefenderHp <= 0) {
           newState.winner = isPlayerAttacking ? 'player' : 'ai';
           newState.phase = 'end';
-          newState.battleLog.push(`${defenderName} is defeated! ${attackerName} wins!`);
+          newState.battleLog.push(
+            `${defenderName} is defeated! ${attackerName} wins!`,
+          );
         } else {
           newState.turn = isPlayerAttacking ? 'ai' : 'player';
           newState.phase = 'select';
         }
-        
+
         newState.currentAnimation = null;
         newState.lastDamage = null;
         return newState;
@@ -501,53 +675,60 @@ export default function BattleArena() {
 
   // AI turn - use monster's actual abilities from database
   useEffect(() => {
-    if (battleState && battleState.turn === 'ai' && battleState.phase === 'select' && !battleState.winner) {
+    if (
+      battleState &&
+      battleState.turn === 'ai' &&
+      battleState.phase === 'select' &&
+      !battleState.winner
+    ) {
       // Create AI attacks based on the opponent monster's abilities
       const aiAttacks: AttackOption[] = [];
-      
+
       // Add Basic Attack (uses same base damage calculation as player)
       aiAttacks.push({
         id: 'basic-attack',
-        name: 'Basic Attack', 
+        name: 'Basic Attack',
         description: 'Standard physical attack',
         damage: Math.floor(battleState.aiMonster.power * 0.6), // Base damage only, full calculation happens in calculateDamage
         animation: 'attack',
-        manaCost: 0
+        manaCost: 0,
       });
-      
+
       // Add monster's special abilities (if Level 10 Gigalith)
-      if (battleState.aiMonster.id === 6) { // Gigalith
+      if (battleState.aiMonster.id === 6) {
+        // Gigalith
         aiAttacks.push({
           id: 'magma-punch',
           name: 'Magma Punch',
           description: 'Physical attack that inflicts Burn status',
           damage: 45,
           animation: 'physical',
-          manaCost: 40
+          manaCost: 40,
         });
         aiAttacks.push({
           id: 'tremor-stomp',
-          name: 'Tremor Stomp', 
+          name: 'Tremor Stomp',
           description: 'AoE damage with speed reduction chance',
           damage: 35,
           animation: 'aoe',
-          manaCost: 50
+          manaCost: 50,
         });
       }
-      
+
       // Ensure equal probability by duplicating Basic Attack to balance special abilities
       // This gives Basic Attack 2/4 = 50% chance, each special ability 1/4 = 25% chance
       aiAttacks.push({
         id: 'basic-attack-2',
-        name: 'Basic Attack', 
+        name: 'Basic Attack',
         description: 'Standard physical attack',
         damage: Math.floor(battleState.aiMonster.power * 0.6),
         animation: 'attack',
-        manaCost: 0
+        manaCost: 0,
       });
-      
-      const randomAttack = aiAttacks[Math.floor(Math.random() * aiAttacks.length)];
-      
+
+      const randomAttack =
+        aiAttacks[Math.floor(Math.random() * aiAttacks.length)];
+
       setTimeout(() => {
         executeAttack('ai', randomAttack);
       }, 1500);
@@ -555,47 +736,55 @@ export default function BattleArena() {
   }, [battleState?.turn, battleState?.phase]);
 
   const saveMonsterStatsMutation = useMutation({
-    mutationFn: async ({ monsterId, hp, mp }: {
+    mutationFn: async ({
+      monsterId,
+      hp,
+      mp,
+    }: {
       monsterId: number;
       hp: number;
       mp: number;
     }): Promise<any> => {
-      return await apiRequest("POST", "/api/battles/complete", { 
-        monsterId, 
-        hp, 
-        mp 
+      return await apiRequest('POST', '/api/battles/complete', {
+        monsterId,
+        hp,
+        mp,
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user/monsters"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/monsters'] });
     },
     onError: (error: Error) => {
-      console.error("Failed to save monster stats:", error);
+      console.error('Failed to save monster stats:', error);
     },
   });
 
   const challengeMutation = useMutation({
-    mutationFn: async ({ opponentId, monsterId }: {
+    mutationFn: async ({
+      opponentId,
+      monsterId,
+    }: {
       opponentId: string;
       monsterId: number;
     }): Promise<any> => {
-      const response = await apiRequest("POST", "/api/battles/challenge-ai", { 
-        opponentId, 
+      const response = await apiRequest('POST', '/api/battles/challenge-ai', {
+        opponentId,
         monsterId,
-        goldFee: 10
+        goldFee: 10,
       });
       return response;
     },
     onSuccess: (data) => {
       toast({
-        title: data.result === "victory" ? "YOU WIN!" : "Battle Complete!",
-        description: data.result === "victory" 
-          ? "You earned 10 Diamonds!"
-          : "You lost, but gained valuable experience!",
-        variant: data.result === "victory" ? "default" : "destructive",
+        title: data.result === 'victory' ? 'YOU WIN!' : 'Battle Complete!',
+        description:
+          data.result === 'victory'
+            ? 'You earned 10 Diamonds!'
+            : 'You lost, but gained valuable experience!',
+        variant: data.result === 'victory' ? 'default' : 'destructive',
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/battle/history"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/battle/history'] });
       setBattleState(null);
       setSelectedOpponent(null);
       setSelectedMonster(null);
@@ -603,19 +792,19 @@ export default function BattleArena() {
     onError: (error: Error) => {
       if (isUnauthorizedError(error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
+          title: 'Unauthorized',
+          description: 'You are logged out. Logging in again...',
+          variant: 'destructive',
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = '/api/login';
         }, 500);
         return;
       }
       toast({
-        title: "Battle Failed",
+        title: 'Battle Failed',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     },
   });
@@ -623,21 +812,21 @@ export default function BattleArena() {
   // Retreat from battle
   const retreatFromBattle = () => {
     if (!battleState || !selectedMonster) return;
-    
+
     // Save current monster stats and exit battle
     saveMonsterStatsMutation.mutate({
       monsterId: selectedMonster.id,
       hp: battleState.playerMonster.hp,
-      mp: battleState.playerMonster.mp
+      mp: battleState.playerMonster.mp,
     });
-    
+
     // Exit battle without completing
     toast({
-      title: "Retreat Successful",
+      title: 'Retreat Successful',
       description: "Your monster's current HP and MP have been saved.",
-      variant: "default",
+      variant: 'default',
     });
-    
+
     setBattleState(null);
     setSelectedOpponent(null);
     setSelectedMonster(null);
@@ -646,58 +835,70 @@ export default function BattleArena() {
   // Complete battle
   const completeBattle = () => {
     if (!battleState || !selectedOpponent || !selectedMonster) return;
-    
+
     // Save monster stats first
     saveMonsterStatsMutation.mutate({
       monsterId: selectedMonster.id,
       hp: battleState.playerMonster.hp,
-      mp: battleState.playerMonster.mp
+      mp: battleState.playerMonster.mp,
     });
-    
+
     challengeMutation.mutate({
       opponentId: selectedOpponent.id,
-      monsterId: selectedMonster.id
+      monsterId: selectedMonster.id,
     });
   };
 
   if (battleState) {
     const playerAttacks = getMonsterAbilities(battleState.playerMonster);
-    
+
     return (
       <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 lg:p-6">
         <Card>
           <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-center text-xl sm:text-2xl text-white">Battle Arena</CardTitle>
+            <CardTitle className="text-center text-xl sm:text-2xl text-white">
+              Battle Arena
+            </CardTitle>
             <div className="text-center text-sm sm:text-base text-white/70">
-              {battleState.playerMonster.monster.name} vs {battleState.aiMonster.name}
+              {battleState.playerMonster.monster.name} vs{' '}
+              {battleState.aiMonster.name}
             </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-4 lg:p-6">
             {/* Battle Field */}
-            <div className={`flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8 mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-3 sm:p-4 lg:p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
-              battleState.screenShake ? 'animate-pulse transform translate-x-1' : ''
-            }`}>
+            <div
+              className={`flex flex-col lg:flex-row items-center justify-between gap-4 lg:gap-8 mb-4 sm:mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-3 sm:p-4 lg:p-6 rounded-lg relative overflow-hidden transition-all duration-100 ${
+                battleState.screenShake
+                  ? 'animate-pulse transform translate-x-1'
+                  : ''
+              }`}
+            >
               {/* Player Monster Card */}
-              <div className={`transform transition-all duration-300 ease-out ${
-                (() => {
+              <div
+                className={`transform transition-all duration-300 ease-out ${(() => {
                   if (!battleState?.currentAnimation) return 'scale-100';
-                  
+
                   const anim = battleState.currentAnimation;
                   const isPlayerTurn = battleState.turn === 'player';
-                  
+
                   if (isPlayerTurn) {
                     if (anim.includes('windup')) return 'scale-105 -rotate-2';
-                    if (anim.includes('strike')) return 'scale-110 translate-x-4 rotate-1';
-                    if (anim.includes('impact')) return 'scale-108 translate-x-2';
-                    if (anim.includes('return')) return 'scale-102 translate-x-1';
+                    if (anim.includes('strike'))
+                      return 'scale-110 translate-x-4 rotate-1';
+                    if (anim.includes('impact'))
+                      return 'scale-108 translate-x-2';
+                    if (anim.includes('return'))
+                      return 'scale-102 translate-x-1';
                   } else {
                     // Player is being attacked - recoil animation
-                    if (anim.includes('impact')) return 'scale-95 -translate-x-2 rotate-1';
+                    if (anim.includes('impact'))
+                      return 'scale-95 -translate-x-2 rotate-1';
                   }
-                  
+
                   return 'scale-100';
-                })()
-              }`} key={`player-${animationKey}`}>
+                })()}`}
+                key={`player-${animationKey}`}
+              >
                 <MonsterCard
                   monster={battleState.playerMonster.monster}
                   userMonster={{
@@ -705,13 +906,21 @@ export default function BattleArena() {
                     hp: battleState.playerMonster.hp,
                     maxHp: battleState.playerMonster.maxHp,
                     mp: battleState.playerMonster.mp,
-                    maxMp: battleState.playerMonster.maxMp
+                    maxMp: battleState.playerMonster.maxMp,
                   }}
                   size="small"
                   battleMode={true}
-                  isPlayerTurn={battleState.turn === 'player' && battleState.phase === 'select'}
+                  isPlayerTurn={
+                    battleState.turn === 'player' &&
+                    battleState.phase === 'select'
+                  }
                   battleMp={battleState.playerMonster.mp}
-                  onAbilityClick={(abilityName, manaCost, damage, description) => {
+                  onAbilityClick={(
+                    abilityName,
+                    manaCost,
+                    damage,
+                    description,
+                  ) => {
                     // Convert to AttackOption format and execute
                     const attack = {
                       id: abilityName.toLowerCase().replace(/\s+/g, '-'),
@@ -719,7 +928,7 @@ export default function BattleArena() {
                       description: description,
                       damage: damage,
                       animation: 'attack',
-                      manaCost: manaCost
+                      manaCost: manaCost,
                     };
                     executeAttack('player', attack);
                   }}
@@ -731,10 +940,15 @@ export default function BattleArena() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <div className="text-6xl animate-ping">💥</div>
                   <div className="absolute text-2xl font-bold text-red-500 animate-bounce">
-                    {battleState.currentAnimation.includes('punch') ? 'SMASH!' :
-                     battleState.currentAnimation.includes('claw') ? 'SLASH!' :
-                     battleState.currentAnimation.includes('bite') ? 'CHOMP!' :
-                     battleState.currentAnimation.includes('peck') ? 'STRIKE!' : 'HIT!'}
+                    {battleState.currentAnimation.includes('punch')
+                      ? 'SMASH!'
+                      : battleState.currentAnimation.includes('claw')
+                        ? 'SLASH!'
+                        : battleState.currentAnimation.includes('bite')
+                          ? 'CHOMP!'
+                          : battleState.currentAnimation.includes('peck')
+                            ? 'STRIKE!'
+                            : 'HIT!'}
                   </div>
                   {/* Floating Damage Number */}
                   {battleState.lastDamage && (
@@ -746,36 +960,53 @@ export default function BattleArena() {
               )}
 
               {/* VS */}
-              <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
-                battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
-              } lg:block hidden`}>VS</div>
-              
+              <div
+                className={`text-2xl sm:text-3xl lg:text-4xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
+                  battleState.currentAnimation?.includes('impact')
+                    ? 'scale-150 animate-pulse'
+                    : 'scale-100'
+                } lg:block hidden`}
+              >
+                VS
+              </div>
+
               {/* Mobile VS - shows between stacked cards */}
-              <div className={`text-2xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
-                battleState.currentAnimation?.includes('impact') ? 'scale-150 animate-pulse' : 'scale-100'
-              } lg:hidden block`}>VS</div>
+              <div
+                className={`text-2xl font-bold text-purple-600 dark:text-purple-400 transition-all duration-300 ${
+                  battleState.currentAnimation?.includes('impact')
+                    ? 'scale-150 animate-pulse'
+                    : 'scale-100'
+                } lg:hidden block`}
+              >
+                VS
+              </div>
 
               {/* AI Monster Card */}
-              <div className={`transform transition-all duration-300 ease-out ${
-                (() => {
+              <div
+                className={`transform transition-all duration-300 ease-out ${(() => {
                   if (!battleState?.currentAnimation) return 'scale-100';
-                  
+
                   const anim = battleState.currentAnimation;
                   const isAITurn = battleState.turn === 'ai';
-                  
+
                   if (isAITurn) {
                     if (anim.includes('windup')) return 'scale-105 rotate-2';
-                    if (anim.includes('strike')) return 'scale-110 -translate-x-4 -rotate-1';
-                    if (anim.includes('impact')) return 'scale-108 -translate-x-2';
-                    if (anim.includes('return')) return 'scale-102 -translate-x-1';
+                    if (anim.includes('strike'))
+                      return 'scale-110 -translate-x-4 -rotate-1';
+                    if (anim.includes('impact'))
+                      return 'scale-108 -translate-x-2';
+                    if (anim.includes('return'))
+                      return 'scale-102 -translate-x-1';
                   } else {
                     // AI is being attacked - recoil animation
-                    if (anim.includes('impact')) return 'scale-95 translate-x-2 -rotate-1';
+                    if (anim.includes('impact'))
+                      return 'scale-95 translate-x-2 -rotate-1';
                   }
-                  
+
                   return 'scale-100';
-                })()
-              }`} key={`ai-${animationKey}`}>
+                })()}`}
+                key={`ai-${animationKey}`}
+              >
                 <MonsterCard
                   monster={{
                     id: 6,
@@ -785,7 +1016,7 @@ export default function BattleArena() {
                     baseSpeed: 42,
                     baseDefense: 347,
                     baseHp: 950,
-                    baseMp: 200
+                    baseMp: 200,
                   }}
                   userMonster={{
                     id: 9999, // Temporary AI monster ID
@@ -799,7 +1030,7 @@ export default function BattleArena() {
                     hp: battleState.aiMonster.hp,
                     maxHp: battleState.aiMonster.maxHp,
                     mp: battleState.aiMonster.mp,
-                    maxMp: battleState.aiMonster.maxMp
+                    maxMp: battleState.aiMonster.maxMp,
                   }}
                   battleMode={true}
                   battleMp={battleState.aiMonster.mp}
@@ -810,26 +1041,39 @@ export default function BattleArena() {
 
             {/* Turn Indicator */}
             <div className="text-center mb-3 sm:mb-4">
-              <Badge variant={battleState.turn === 'player' ? 'default' : 'secondary'} className="text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-2">
-                {battleState.phase === 'animate' ? 'Attacking...' : 
-                 battleState.phase === 'end' ? 'Battle Complete!' :
-                 battleState.turn === 'player' ? 'Your Turn' : 'Opponent Turn'}
+              <Badge
+                variant={
+                  battleState.turn === 'player' ? 'default' : 'secondary'
+                }
+                className="text-sm sm:text-base px-3 sm:px-4 py-1 sm:py-2"
+              >
+                {battleState.phase === 'animate'
+                  ? 'Attacking...'
+                  : battleState.phase === 'end'
+                    ? 'Battle Complete!'
+                    : battleState.turn === 'player'
+                      ? 'Your Turn'
+                      : 'Opponent Turn'}
               </Badge>
             </div>
 
             {/* Retreat Button - only show during player's turn */}
-            {battleState.turn === 'player' && battleState.phase === 'select' && !battleState.winner && (
-              <div className="text-center mb-3 sm:mb-4">
-                <Button 
-                  variant="destructive" 
-                  onClick={() => retreatFromBattle()}
-                  disabled={saveMonsterStatsMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700 touch-manipulation min-h-[44px] px-4 sm:px-6"
-                >
-                  {saveMonsterStatsMutation.isPending ? 'Retreating...' : 'Retreat from Battle'}
-                </Button>
-              </div>
-            )}
+            {battleState.turn === 'player' &&
+              battleState.phase === 'select' &&
+              !battleState.winner && (
+                <div className="text-center mb-3 sm:mb-4">
+                  <Button
+                    variant="destructive"
+                    onClick={() => retreatFromBattle()}
+                    disabled={saveMonsterStatsMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700 touch-manipulation min-h-[44px] px-4 sm:px-6"
+                  >
+                    {saveMonsterStatsMutation.isPending
+                      ? 'Retreating...'
+                      : 'Retreat from Battle'}
+                  </Button>
+                </div>
+              )}
 
             {/* Battle Log */}
             <div className="border rounded p-2 sm:p-3 h-24 sm:h-32 overflow-y-auto bg-muted/50">
@@ -843,8 +1087,13 @@ export default function BattleArena() {
             {/* Battle End */}
             {battleState.winner && (
               <div className="text-center mt-4">
-                <Button onClick={completeBattle} disabled={challengeMutation.isPending}>
-                  {challengeMutation.isPending ? 'Processing...' : 'Complete Battle'}
+                <Button
+                  onClick={completeBattle}
+                  disabled={challengeMutation.isPending}
+                >
+                  {challengeMutation.isPending
+                    ? 'Processing...'
+                    : 'Complete Battle'}
                 </Button>
               </div>
             )}
@@ -861,7 +1110,8 @@ export default function BattleArena() {
           <CardTitle>Battle Arena</CardTitle>
           <div className="flex items-center gap-4">
             <div className="text-sm">
-              Battle Tokens: <span className="font-bold">{user?.battleTokens || 0}</span>
+              Battle Tokens:{' '}
+              <span className="font-bold">{user?.battleTokens || 0}</span>
             </div>
             {!canBattle && (
               <div className="text-sm text-muted-foreground">
@@ -878,18 +1128,30 @@ export default function BattleArena() {
           {selectedMonster && !selectedOpponent && (
             <div>
               <div className="flex items-center gap-4 mb-4">
-                <Button variant="outline" onClick={() => setSelectedMonster(null)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedMonster(null)}
+                >
                   ← Back to Monster Selection
                 </Button>
                 <div className="text-sm">
-                  Selected: <span className="font-semibold">{selectedMonster.monster.name}</span>
+                  Selected:{' '}
+                  <span className="font-semibold">
+                    {selectedMonster.monster.name}
+                  </span>
                 </div>
               </div>
-              
-              <h3 className="text-lg font-semibold mb-3">Choose Your Opponent</h3>
+
+              <h3 className="text-lg font-semibold mb-3">
+                Choose Your Opponent
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {aiOpponents.map((opponent) => (
-                  <Card key={opponent.id} className="cursor-pointer hover:bg-accent" onClick={() => setSelectedOpponent(opponent)}>
+                  <Card
+                    key={opponent.id}
+                    className="cursor-pointer hover:bg-accent"
+                    onClick={() => setSelectedOpponent(opponent)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         <VeoMonster
@@ -900,15 +1162,26 @@ export default function BattleArena() {
                         />
                         <div className="flex-1">
                           <div className="font-semibold">{opponent.name}</div>
-                          <div className="text-sm text-muted-foreground">{opponent.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {opponent.description}
+                          </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" style={{ borderColor: opponent.color, color: opponent.color }}>
+                            <Badge
+                              variant="outline"
+                              style={{
+                                borderColor: opponent.color,
+                                color: opponent.color,
+                              }}
+                            >
                               {opponent.difficulty}
                             </Badge>
-                            <span className="text-xs">Total Power: {opponent.totalPower}</span>
+                            <span className="text-xs">
+                              Total Power: {opponent.totalPower}
+                            </span>
                           </div>
                           <div className="text-xs mt-1">
-                            Monster: {opponent.monster.name} (Lvl {Math.ceil(opponent.totalPower / 50)})
+                            Monster: {opponent.monster.name} (Lvl{' '}
+                            {Math.ceil(opponent.totalPower / 50)})
                           </div>
                         </div>
                       </div>
@@ -923,11 +1196,14 @@ export default function BattleArena() {
           {selectedMonster && selectedOpponent && (
             <div>
               <div className="flex items-center gap-4 mb-4">
-                <Button variant="outline" onClick={() => setSelectedOpponent(null)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedOpponent(null)}
+                >
                   ← Back to Opponent Selection
                 </Button>
               </div>
-              
+
               <div className="text-center">
                 <h3 className="text-lg font-semibold mb-4">Battle Ready!</h3>
                 <div className="flex items-center justify-center gap-8 mb-6">
@@ -937,11 +1213,13 @@ export default function BattleArena() {
                       evolutionStage={selectedMonster.evolutionStage}
                       upgradeChoices={{
                         ...selectedMonster.upgradeChoices,
-                        level: selectedMonster.level
+                        level: selectedMonster.level,
                       }}
                       size="medium"
                     />
-                    <div className="mt-2 font-semibold">{selectedMonster.monster.name}</div>
+                    <div className="mt-2 font-semibold">
+                      {selectedMonster.monster.name}
+                    </div>
                   </div>
                   <div className="text-4xl font-bold text-purple-600">VS</div>
                   <div className="text-center">
@@ -951,11 +1229,13 @@ export default function BattleArena() {
                       upgradeChoices={selectedOpponent.monster.upgradeChoices}
                       size="medium"
                     />
-                    <div className="mt-2 font-semibold">{selectedOpponent.name}</div>
+                    <div className="mt-2 font-semibold">
+                      {selectedOpponent.name}
+                    </div>
                   </div>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={() => startBattle(selectedOpponent, selectedMonster)}
                   disabled={!canBattle}
                   size="lg"
@@ -983,12 +1263,19 @@ export default function BattleArena() {
           ) : (
             <div className="space-y-2">
               {battleHistory.slice(0, 5).map((battle: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 border rounded"
+                >
                   <div className="text-sm">
                     Battle vs {battle.opponentName || 'AI Opponent'}
                   </div>
-                  <Badge variant={battle.winnerId === user?.id ? "default" : "secondary"}>
-                    {battle.winnerId === user?.id ? "Victory" : "Defeat"}
+                  <Badge
+                    variant={
+                      battle.winnerId === user?.id ? 'default' : 'secondary'
+                    }
+                  >
+                    {battle.winnerId === user?.id ? 'Victory' : 'Defeat'}
                   </Badge>
                 </div>
               ))}

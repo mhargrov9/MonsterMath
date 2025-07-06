@@ -1,28 +1,33 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface LabSubscriptionGateProps {
   monsterName: string;
   onClose: () => void;
 }
 
-export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscriptionGateProps) {
+export default function LabSubscriptionGate({
+  monsterName,
+  onClose,
+}: LabSubscriptionGateProps) {
   const [currentStep, setCurrentStep] = useState<'offer' | 'email'>('offer');
-  const [selectedIntent, setSelectedIntent] = useState<'monthly' | 'yearly' | null>(null);
+  const [selectedIntent, setSelectedIntent] = useState<
+    'monthly' | 'yearly' | null
+  >(null);
   const [email, setEmail] = useState('');
   const { toast } = useToast();
 
   const recordIntentMutation = useMutation({
     mutationFn: async (intent: 'monthly' | 'yearly') => {
-      return await apiRequest('POST', '/api/interest/subscription', { 
-        intent, 
-        source: 'monster_lab' 
+      return await apiRequest('POST', '/api/interest/subscription', {
+        intent,
+        source: 'monster_lab',
       });
     },
     onSuccess: (_, intent) => {
@@ -31,7 +36,7 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
     onError: (error) => {
       console.error('Lab subscription intent error:', error);
       toast({
-        title: "Selection Recorded Locally",
+        title: 'Selection Recorded Locally',
         description: "We'll save your preference when you proceed.",
       });
     },
@@ -43,16 +48,16 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
     },
     onSuccess: () => {
       toast({
-        title: "Success!",
+        title: 'Success!',
         description: "We'll notify you when the full game launches!",
       });
       onClose();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to save email. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save email. Please try again.',
+        variant: 'destructive',
       });
     },
   });
@@ -66,9 +71,9 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
   const handleEmailSubmit = () => {
     if (!email.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
       });
       return;
     }
@@ -87,16 +92,20 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                 Get Notified!
               </CardTitle>
               <p className="text-lg text-muted-foreground">
-                {selectedIntent === 'monthly' ? 'Monthly Plan Selected' : 'Yearly Plan Selected'}
+                {selectedIntent === 'monthly'
+                  ? 'Monthly Plan Selected'
+                  : 'Yearly Plan Selected'}
               </p>
             </CardHeader>
-            
+
             <CardContent className="space-y-6">
               <p className="text-center text-muted-foreground">
-                Enter your email address and we'll notify you as soon as Monster Academy launches with your 
-                {selectedIntent === 'monthly' ? ' monthly' : ' yearly'} subscription option!
+                Enter your email address and we'll notify you as soon as Monster
+                Academy launches with your
+                {selectedIntent === 'monthly' ? ' monthly' : ' yearly'}{' '}
+                subscription option!
               </p>
-              
+
               <div className="space-y-4">
                 <Input
                   type="email"
@@ -105,15 +114,17 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                   onChange={(e) => setEmail(e.target.value)}
                   className="text-center text-lg p-4"
                 />
-                
-                <Button 
+
+                <Button
                   onClick={handleEmailSubmit}
                   disabled={recordEmailMutation.isPending}
                   className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
                 >
-                  {recordEmailMutation.isPending ? "Saving..." : "Notify Me When Ready!"}
+                  {recordEmailMutation.isPending
+                    ? 'Saving...'
+                    : 'Notify Me When Ready!'}
                 </Button>
-                
+
                 <Button
                   onClick={onClose}
                   variant="ghost"
@@ -142,18 +153,19 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
               Your {monsterName} has reached Level 3
             </p>
           </CardHeader>
-          
+
           <CardContent className="space-y-6">
             <p className="text-center text-muted-foreground">
-              Free players can upgrade monsters up to Level 3. Unlock the full Monster Academy experience 
-              to continue upgrading your {monsterName} to Level 10!
+              Free players can upgrade monsters up to Level 3. Unlock the full
+              Monster Academy experience to continue upgrading your{' '}
+              {monsterName} to Level 10!
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-4">
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all border-2 ${
-                  selectedIntent === 'monthly' 
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                  selectedIntent === 'monthly'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                     : 'border-gray-200 hover:border-purple-300 dark:border-gray-700'
                 }`}
                 onClick={() => handleIntent('monthly')}
@@ -161,7 +173,9 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                 <CardContent className="p-6 text-center">
                   <Badge className="mb-2 bg-purple-500">Most Popular</Badge>
                   <div className="text-3xl font-bold">$9.99</div>
-                  <div className="text-sm text-muted-foreground mb-4">per month</div>
+                  <div className="text-sm text-muted-foreground mb-4">
+                    per month
+                  </div>
                   <ul className="text-sm space-y-2 text-left">
                     <li>• Unlimited monster upgrades</li>
                     <li>• All story locations</li>
@@ -170,11 +184,11 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                   </ul>
                 </CardContent>
               </Card>
-              
-              <Card 
+
+              <Card
                 className={`cursor-pointer transition-all border-2 ${
-                  selectedIntent === 'yearly' 
-                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                  selectedIntent === 'yearly'
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                     : 'border-gray-200 hover:border-purple-300 dark:border-gray-700'
                 }`}
                 onClick={() => handleIntent('yearly')}
@@ -182,7 +196,9 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                 <CardContent className="p-6 text-center">
                   <Badge className="mb-2 bg-green-500">Best Value</Badge>
                   <div className="text-3xl font-bold">$99.99</div>
-                  <div className="text-sm text-muted-foreground mb-4">per year</div>
+                  <div className="text-sm text-muted-foreground mb-4">
+                    per year
+                  </div>
                   <ul className="text-sm space-y-2 text-left">
                     <li>• Save $20 per year</li>
                     <li>• All monthly features</li>
@@ -192,16 +208,17 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                 </CardContent>
               </Card>
             </div>
-            
+
             <div className="mt-8 text-center space-y-3">
               <Button
                 onClick={() => setCurrentStep('email')}
                 disabled={!selectedIntent}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-12 py-4 text-lg"
               >
-                Continue with {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
+                Continue with{' '}
+                {selectedIntent === 'monthly' ? 'Monthly' : 'Yearly'} Plan
               </Button>
-              
+
               <div>
                 <Button
                   onClick={onClose}
@@ -212,7 +229,7 @@ export default function LabSubscriptionGate({ monsterName, onClose }: LabSubscri
                 </Button>
               </div>
             </div>
-            
+
             <p className="text-xs text-center text-muted-foreground mt-4">
               Choose your preferred subscription to unlock unlimited upgrades!
             </p>
