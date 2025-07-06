@@ -1,0 +1,53 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The core mathematical logic of the calculateDamage function—including critical hits and stat scaling—is not covered by specific, granular tests.
+
+Goal: Add a new suite of advanced unit tests to server/battleEngine.test.ts to validate the specific mechanics of the damage formula, ensuring its long-term stability and correctness.
+
+File Modifications
+1. server/battleEngine.test.ts
+
+Action: Add the following new describe block to the end of the test file. This will add 3 new tests, bringing our total to 45.
+
+Code to Add:
+
+TypeScript
+
+describe('Advanced Damage Calculation', () => {
+  it('should apply a 1.5x damage multiplier for a critical hit', () => {
+    // Mock Math.random to force a critical hit (a value less than 0.05)
+    vi.spyOn(Math, 'random').mockImplementationOnce(() => 0.01);
+
+    const result = calculateDamage(mockPlayerMonster, mockAiMonster, mockAbility);
+    expect(result.isCritical).toBe(true);
+
+    // Now calculate the non-crit damage for comparison
+    vi.spyOn(Math, 'random').mockImplementationOnce(() => 0.99); // Force a non-crit
+    vi.spyOn(Math, 'random').mockImplementationOnce(() => 1.0); // Force max variance for stable comparison
+    const nonCritResult = calculateDamage(mockPlayerMonster, mockAiMonster, mockAbility);
+
+    // The critical damage should be 1.5x the non-critical damage
+    expect(result.damage).toBe(Math.round(nonCritResult.damage * 1.5));
+    vi.spyOn(Math, 'random').mockRestore();
+  });
+
+  it('should deal less damage to a monster with higher defense', () => {
+    const lowDefenseMonster = { ...mockAiMonster, baseDefense: 50 };
+    const highDefenseMonster = { ...mockAiMonster, baseDefense: 200 };
+
+    const damageVsLowDef = calculateDamage(mockPlayerMonster, lowDefenseMonster, mockAbility);
+    const damageVsHighDef = calculateDamage(mockPlayerMonster, highDefenseMonster, mockAbility);
+
+    expect(damageVsHighDef.damage).toBeLessThan(damageVsLowDef.damage);
+  });
+
+  it('should deal more damage from a monster with higher power', () => {
+    const lowPowerMonster = { ...mockPlayerMonster, power: 100 };
+    const highPowerMonster = { ...mockPlayerMonster, power: 200 };
+
+    const damageFromLowPower = calculateDamage(lowPowerMonster, mockAiMonster, mockAbility);
+    const damageFromHighPower = calculateDamage(highPowerMonster, mockAiMonster, mockAbility);
+
+    expect(damageFromHighPower.damage).toBeGreaterThan(damageFromLowPower.damage);
+  });
+});
