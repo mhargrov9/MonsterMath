@@ -15,22 +15,37 @@ import crypto from 'crypto';
 const battleSessions = new Map();
 
 export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
-  const baseStat = 'monster' in monster ? monster[statName] : (monster as any)[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}`];
+  // This check now correctly identifies player vs. AI monsters
+  const isUserMonster = 'userId' in monster;
+  const baseMonster = isUserMonster ? (monster as UserMonster).monster : (monster as any).monster;
 
-  if (!monster.activeEffects || monster.activeEffects.length === 0) {
-    return baseStat;
+  let baseStatValue = 0;
+  if (!baseMonster) { // Safety check for the nested object
+     // Fallback for the old "flat" AI monster structure during transition
+     const monsterAsAny = monster as any;
+     baseStatValue = monsterAsAny[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}`];
+  } else if (statName === 'power') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).power : baseMonster.basePower;
+  } else if (statName === 'defense') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).defense : baseMonster.baseDefense;
+  } else if (statName === 'speed') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).speed : baseMonster.baseSpeed;
   }
 
-  let modifiedStat = baseStat;
+  if (!monster.activeEffects || monster.activeEffects.length === 0) {
+    return baseStatValue;
+  }
 
-  // 1. Apply FLAT modifiers first
+  let modifiedStat = baseStatValue;
+
+  // Apply FLAT modifiers
   monster.activeEffects.forEach(effect => {
     if (effect.stat === statName && effect.type === 'FLAT') {
       modifiedStat += effect.value;
     }
   });
 
-  // 2. Apply PERCENTAGE modifiers second
+  // Apply PERCENTAGE modifiers
   monster.activeEffects.forEach(effect => {
     if (effect.stat === statName && effect.type === 'PERCENTAGE') {
       modifiedStat *= (1 + effect.value / 100);
@@ -762,7 +777,8 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
 
   // Handle AI monster defeat
   if (aiHp <= 0) {
-    const defeatedMonsterName = aiMonster.name;
+    // CORRECTED NAME ACCESS:
+    const defeatedMonsterName = aiMonster.monster.name; 
     battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
 
     // Check if all AI monsters are defeated
@@ -808,7 +824,8 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
       if (healthyAiIndex !== -1) {
         battleState.activeAiIndex = healthyAiIndex;
         const newAiMonster = battleState.aiTeam[healthyAiIndex];
-        battleState.battleLog.push(`Opponent sends out ${newAiMonster.name}!`);
+        // CORRECTED NAME ACCESS:
+        battleState.battleLog.push(`Opponent sends out ${newAiMonster.monster.name}!`);
       }
     }
   }

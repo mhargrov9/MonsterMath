@@ -125,6 +125,22 @@ describe('battleEngine Helpers', () => {
       expect(getModifiedStat(mockAiMonster, 'power')).toBe(120);
       expect(getModifiedStat(mockAiMonster, 'defense')).toBe(110);
     });
+
+    it('should return the correct base stat for an AI monster with a nested structure', () => {
+      const nestedAiMonster = {
+        id: 2,
+        level: 5,
+        monster: {
+          name: 'Nested AiMon',
+          type: 'water',
+          basePower: 120,
+          baseDefense: 110,
+          baseSpeed: 90,
+        }
+      };
+      expect(getModifiedStat(nestedAiMonster as any, 'power')).toBe(120);
+      expect(getModifiedStat(nestedAiMonster as any, 'defense')).toBe(110);
+    });
   });
 
   describe('handleEndOfTurn', () => {

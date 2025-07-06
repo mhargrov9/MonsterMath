@@ -1232,6 +1232,17 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintains consistent data structure between player monsters and AI opponents
   - Fixes MonsterCard component access pattern: baseMonster.abilities now resolves correctly
   - Essential for paralysis UI testing with AI opponents showing their abilities properly
+- July 6, 2025: Battle Engine Core Helper Functions Fix - Nested AI Monster Compatibility
+  - Fixed getModifiedStat function to handle nested AI monster data structure properly
+  - Added robust fallback logic for both UserMonster and nested AI monster structures
+  - Corrected stat access patterns: UserMonster uses direct properties, AI uses monster.baseStat
+  - Fixed handleMonsterDefeatLogic function to access AI monster names via monster.name property
+  - Corrected battle log messages to use aiMonster.monster.name instead of aiMonster.name
+  - Added test case for nested AI monster structure validation in battleEngine.test.ts
+  - Resolves three critical bugs: undefined AI names, NaN damage calculations, and HP reset issues
+  - Maintains server-authoritative architecture with authentic database-driven monster data
+  - Ensures battle engine compatibility with generateAiOpponent data structure changes
+  - Enables proper battle functionality for paralysis UI testing with Spark-Tail Squirrel opponents
 
 ## User Preferences
 
