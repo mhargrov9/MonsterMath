@@ -9,9 +9,14 @@
     "eslint:recommended",
     "plugin:react/recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended"
+    "plugin:prettier/recommended",
+    "plugin:storybook/recommended"
   ],
-  "plugins": ["react", "react-hooks", "@typescript-eslint"],
+  "plugins": [
+    "react",
+    "react-hooks",
+    "@typescript-eslint"
+  ],
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module",

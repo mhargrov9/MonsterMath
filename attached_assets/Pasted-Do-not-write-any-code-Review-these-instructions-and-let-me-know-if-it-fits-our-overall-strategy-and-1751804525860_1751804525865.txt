@@ -1,0 +1,105 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Storybook is installed but has no stories, so it cannot be used for UI development yet.
+
+Goal
+Create the first Storybook story file for the MonsterCard component. This story will render the component in two different states—"Default" and "Fainted"—allowing us to view and test it in isolation.
+
+File Modifications
+Create New File: client/src/components/MonsterCard.stories.tsx
+
+Action: Create a new file with this exact name and path. The .stories.tsx extension is how Storybook automatically finds which files to display.
+
+Content: Populate the new file with the following code. This code imports the MonsterCard and defines two visual test cases.
+
+TypeScript
+
+import type { Meta, StoryObj } from '@storybook/react';
+import MonsterCard from './MonsterCard';
+import { Monster, UserMonster } from '@shared/types';
+
+// Metadata for the story
+const meta: Meta<typeof MonsterCard> = {
+  title: 'Game/MonsterCard',
+  component: MonsterCard,
+  parameters: {
+    layout: 'centered',
+    backgrounds: {
+      default: 'dark',
+    },
+  },
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+// Mock Data for our stories
+const mockBaseMonster: Monster = {
+  id: 6,
+  name: 'Gigalith',
+  type: 'earth',
+  basePower: 120,
+  baseSpeed: 20,
+  baseDefense: 150,
+  baseHp: 118,
+  baseMp: 200,
+  description: 'Born in the planet\'s core, its fists can shatter mountains...',
+  abilities: [
+    { id: 1, name: 'Basic Attack', description: 'A basic attack.', ability_type: 'ACTIVE', mp_cost: 0, affinity: 'Earth' },
+    { id: 11, name: 'Magma Punch', description: 'Inflicts Burn status.', ability_type: 'ACTIVE', mp_cost: 40, affinity: 'Fire' }
+  ],
+  // other required fields...
+  goldCost: 500,
+  diamondCost: 0,
+  iconClass: 'fas fa-mountain',
+  gradient: '',
+};
+
+const mockUserMonster: UserMonster = {
+  id: 23,
+  userId: 'storybook-user',
+  monsterId: 6,
+  level: 5,
+  power: 180,
+  speed: 30,
+  defense: 220,
+  hp: 850,
+  maxHp: 1200,
+  mp: 150,
+  maxMp: 280,
+  // other required fields...
+  experience: 100,
+  evolutionStage: 1,
+  upgradeChoices: {},
+  isShattered: false,
+  monster: mockBaseMonster
+};
+
+// --- STORIES ---
+
+// Story 1: A standard, healthy monster
+export const Default: Story = {
+  args: {
+    monster: mockBaseMonster,
+    userMonster: mockUserMonster,
+    size: 'medium',
+    isPlayerTurn: true,
+    startExpanded: true
+  },
+};
+
+// Story 2: A fainted monster
+export const Fainted: Story = {
+  args: {
+    monster: mockBaseMonster,
+    userMonster: {
+      ...mockUserMonster,
+      hp: 0, // Set HP to 0 for this story
+      isShattered: true
+    },
+    size: 'medium',
+    isPlayerTurn: false,
+    startExpanded: true
+  },
+};
