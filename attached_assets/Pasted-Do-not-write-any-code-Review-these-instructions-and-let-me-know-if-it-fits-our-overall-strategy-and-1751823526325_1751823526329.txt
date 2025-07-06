@@ -1,0 +1,112 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Passive abilities that should trigger when a monster uses an ability of a specific type (e.g., Soot Cloud) do not work.
+
+Goal
+Enhance the executeAbility function to handle ON_ABILITY_USE passive triggers. The new logic must check for this trigger on the attacker and validate any affinity conditions (status_effect_trigger_affinity) before applying the passive's effect.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the executeAbility function.
+
+Position: Add this new logic block at the end of the function, just before the return damageResult; line.
+
+Code to Add:
+
+TypeScript
+
+// --- Check for ON_ABILITY_USE Passives on the Attacker ---
+const attackerAbilities = battleState.abilities_map[attacker.monster?.id || attacker.id] || [];
+for (const passive of attackerAbilities) {
+  if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_ABILITY_USE') {
+    // Check for affinity condition
+    const triggerAffinity = passive.status_effect_trigger_affinity;
+    if (triggerAffinity && ability.affinity !== triggerAffinity) {
+      continue; // Skip if the used ability's affinity doesn't match the trigger's requirement
+    }
+
+    // Check chance and apply the status effect from the passive
+    const chance = parseFloat(passive.override_chance || passive.effectDetails?.default_value || '1.0');
+    if (Math.random() < chance && passive.status_effect_id && passive.effectDetails) {
+      if (!defender.statusEffects) defender.statusEffects = [];
+
+      const newStatusEffect: StatusEffect = {
+        name: passive.effectDetails.name,
+        duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
+        isNew: true,
+        effectDetails: passive.effectDetails,
+        override_value: passive.override_value,
+      };
+      defender.statusEffects.push(newStatusEffect);
+      battleState.battleLog.push(`${attackerName}'s ${passive.name} activated!`);
+    }
+  }
+}
+server/battleEngine.test.ts
+
+Action: Add new unit tests to verify the ON_ABILITY_USE logic.
+
+Code to Add:
+
+TypeScript
+
+// Add these tests inside a new or existing describe block for executeAbility
+it('should trigger an ON_ABILITY_USE passive with a matching affinity', async () => {
+  const attackerWithPassive = {
+    ...mockPlayerMonster,
+    monster: { ...mockPlayerMonster.monster, id: 10 } // Cinder-Tail Salamander ID
+  };
+  const sootCloudPassive = {
+    id: 3,
+    name: 'Soot Cloud',
+    ability_type: 'PASSIVE',
+    activation_trigger: 'ON_ABILITY_USE',
+    status_effect_trigger_affinity: 'Fire',
+    status_effect_id: 3, // Poisoned
+    override_chance: 1.0, // Force 100% chance
+    effectDetails: { name: 'Poisoned' }
+  };
+  const fireAbility = { ...mockAbility, affinity: 'Fire' };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [attackerWithPassive],
+    aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: { [attackerWithPassive.monster.id]: [sootCloudPassive] }
+  };
+
+  await executeAbility(mockState, fireAbility);
+
+  expect(mockState.aiTeam[0].statusEffects).toHaveLength(1);
+  expect(mockState.aiTeam[0].statusEffects[0].name).toBe('Poisoned');
+});
+
+it('should NOT trigger an ON_ABILITY_USE passive with a non-matching affinity', async () => {
+  const attackerWithPassive = {
+    ...mockPlayerMonster,
+    monster: { ...mockPlayerMonster.monster, id: 10 }
+  };
+  const sootCloudPassive = {
+    id: 3,
+    name: 'Soot Cloud',
+    ability_type: 'PASSIVE',
+    activation_trigger: 'ON_ABILITY_USE',
+    status_effect_trigger_affinity: 'Fire', // Only triggers on Fire abilities
+    status_effect_id: 3,
+    override_chance: 1.0
+  };
+  const waterAbility = { ...mockAbility, affinity: 'Water' }; // Using a Water ability
+  const mockState = {
+    turn: 'player',
+    playerTeam: [attackerWithPassive],
+    aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: { [attackerWithPassive.monster.id]: [sootCloudPassive] }
+  };
+
+  await executeAbility(mockState, waterAbility);
+
+  // Expect no status effect because the affinity did not match
+  expect(mockState.aiTeam[0].statusEffects).toHaveLength(0);
+});
