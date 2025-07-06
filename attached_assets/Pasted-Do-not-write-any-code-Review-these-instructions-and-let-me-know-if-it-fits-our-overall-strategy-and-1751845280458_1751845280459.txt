@@ -1,0 +1,85 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: When a player swaps monsters, end-of-turn effects like healing from "Soothing Aura" or damage from "Burned" are not processed correctly.
+
+Goal: Refactor the swap logic so that the server atomically processes the player's swap, their end-of-turn phase, and the AI's entire subsequent turn within a single API call.
+
+File Modifications
+1. server/routes.ts
+
+Action: Locate the /api/battle/swap endpoint. You will replace the entire function with a new async version that chains the swap and AI turn logic together.
+
+New /api/battle/swap Code:
+
+TypeScript
+
+app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {
+  try {
+    const { battleId, newMonsterIndex } = req.body;
+    if (battleId === undefined || newMonsterIndex === undefined) {
+      return res.status(400).json({ message: 'Missing battleId or newMonsterIndex' });
+    }
+
+    // Step 1: Process the player's swap action. This ends the player's turn.
+    performSwap(battleId, newMonsterIndex);
+
+    // Step 2: Immediately process the AI's resulting turn.
+    const aiTurnResult = await processAiTurn(battleId);
+
+    // Step 3: Return the final state after the AI has acted.
+    res.json(aiTurnResult.battleState);
+
+  } catch (error) {
+    handleError(error, res, 'Failed to perform monster swap');
+  }
+});
+2. server/battleEngine.test.ts
+
+Action: Add a new unit test to verify that end-of-turn effects are processed during a swap.
+
+Code to Add:
+
+TypeScript
+
+// Add this to a new or existing describe block
+it('should process end-of-turn effects when a player swaps', () => {
+  const mockState = {
+    turn: 'player',
+    playerTeam: [
+      { ...mockPlayerMonster, id: 1, battleHp: 100 },
+      { // Benched monster with the passive
+        ...mockPlayerMonster, 
+        id: 2, 
+        monster: { ...mockPlayerMonster.monster, id: 102 } 
+      }
+    ],
+    activePlayerIndex: 0,
+    battleLog: [],
+    abilities_map: {
+      102: [{ // Soothing Aura passive
+        name: 'Soothing Aura',
+        ability_type: 'PASSIVE',
+        activation_trigger: 'END_OF_TURN',
+        activation_scope: 'ANY_POSITION',
+        effectDetails: {
+          effect_type: 'HEALING_OVER_TIME',
+          value_type: 'FLAT', // Use flat for simple test
+          default_value: '10' 
+        }
+      }]
+    }
+  };
+
+  const battleId = 'swap-test-id';
+  battleSessions.set(battleId, mockState);
+
+  // Perform the swap. We are testing the side-effects within handleEndOfTurn.
+  performSwap(battleId, 1); 
+
+  const finalState = battleSessions.get(battleId);
+
+  // The monster that was active (id: 1) should have been healed by the passive.
+  expect(finalState.playerTeam[0].battleHp).toBe(110);
+  // The turn should now belong to the AI.
+  expect(finalState.turn).toBe('ai');
+});
