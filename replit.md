@@ -1223,6 +1223,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Uses real database-driven status effect system for proper feature validation
   - Temporary change to support development workflow and feature testing
   - Maintains database-driven architecture with authentic monster data and abilities
+- July 6, 2025: AI Opponent Data Structure Fix - Abilities Nesting Correction
+  - Fixed generateAiOpponent function in server/storage.ts to properly nest abilities within monster object
+  - Moved abilities array from top-level property to nested monster.abilities structure
+  - Corrected data format to match frontend MonsterCard component expectations
+  - Uses object spread syntax (...monster) to preserve all original monster properties
+  - Enables proper abilities display for AI opponents including Spark-Tail Squirrel with Jolt ability
+  - Maintains consistent data structure between player monsters and AI opponents
+  - Fixes MonsterCard component access pattern: baseMonster.abilities now resolves correctly
+  - Essential for paralysis UI testing with AI opponents showing their abilities properly
 
 ## User Preferences
 
