@@ -915,6 +915,12 @@ export const applyDamage = async (
   // Create a deep copy of the state for this turn to ensure isolation
   const battleState = JSON.parse(JSON.stringify(originalState));
 
+  // --- Fainted Monster Check ---
+  const attacker = battleState.playerTeam[battleState.activePlayerIndex];
+  if (attacker.battleHp <= 0) {
+    throw new Error(`${attacker.monster.name} has 0 HP and cannot perform an action.`);
+  }
+
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
   const monsterAbilities =
     battleState.abilities_map[activeMonster.monster.id] || [];
