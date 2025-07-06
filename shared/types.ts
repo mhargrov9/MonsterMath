@@ -30,7 +30,7 @@ export interface UserMonster {
   battleMp?: number;
   battleMaxMp?: number;
   isShattered?: boolean;
-  statusEffects?: StatusEffect[];
+  statusEffects?: Array<{name: string; duration: number}>;
 }
 
 export interface Monster {
@@ -49,35 +49,15 @@ export interface Monster {
   gradient: string;
   abilities?: any[];
   resistances?: string[];
+  statusEffects?: Array<{name: string; duration: number}>;
   battleHp?: number;
   battleMaxHp?: number;
   battleMp?: number;
   battleMaxMp?: number;
   weaknesses?: string[];
-  statusEffects?: StatusEffect[];
   levelUpgrades?: any;
   hp?: number;
   mp?: number;
-}
-
-// Status effect details structure for abilities
-export interface StatusEffectDetails {
-  id?: number;
-  name: string;
-  effect_type: string;
-  value_type: string;
-  default_value: string;
-  default_duration?: number;
-  duration_reduction_position?: string;
-}
-
-// Status effect applied to monsters
-export interface StatusEffect {
-  name: string;
-  duration: number;
-  isNew?: boolean;
-  effectDetails: StatusEffectDetails;
-  override_value?: string;
 }
 
 export interface Ability {
@@ -94,14 +74,6 @@ export interface Ability {
   status_effect_applies?: string;
   status_effect_chance?: number;
   status_effect_duration?: number;
-  // Additional database fields for status effects and passive abilities
-  status_effect_id?: number;
-  effectDetails?: StatusEffectDetails;
-  override_chance?: number;
-  override_duration?: number;
-  override_value?: string;
-  activation_trigger?: string;
-  activation_scope?: string;
 }
 
 export interface GameUser {
