@@ -13,7 +13,7 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint \"{client/src,server,shared}/**/*.{ts,tsx}\" --quiet",
     "format": "prettier \"{client/src,server,shared}/**/*.{ts,tsx}\" --write",
     "db:seed": "tsx server/seed.ts",
-       "storybook": "storybook dev -p 6006 --host 0.0.0.0",
+    "storybook": "storybook dev -p 6006 --ci",
     "build-storybook": "storybook build"
   },
   "dependencies": {
