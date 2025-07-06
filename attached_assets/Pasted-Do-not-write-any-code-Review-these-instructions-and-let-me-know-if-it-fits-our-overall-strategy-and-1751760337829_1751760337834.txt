@@ -1,0 +1,119 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The project currently lacks any automated tests, making it vulnerable to regressions when new code is added.
+
+Problem: The complex logic in server/battleEngine.ts is not verified by a test suite, creating a risk that its behavior could change unexpectedly.
+
+Goal
+Install and configure the Vitest testing framework. Create an initial test file for server/battleEngine.ts and write unit tests for the pure helper functions (getModifiedStat and calculateDamage) to lock in their current, correct behavior.
+
+File Modifications
+package.json
+
+Action: Add vitest as a new dev dependency.
+
+Action: Add a new script to the "scripts" section: "test": "vitest".
+
+Create New File: server/battleEngine.test.ts
+
+Action: Create a new test file at this path.
+
+Content: Populate the new file with the following Vitest code. This will import the necessary functions from the battle engine and set up two test suites: one for getModifiedStat and one for calculateDamage.
+
+TypeScript
+
+import { describe, it, expect } from 'vitest';
+import { getModifiedStat, calculateDamage } from './battleEngine';
+import { UserMonster, Monster, Ability } from '../shared/types';
+
+// Mock Data for Tests
+const mockPlayerMonster: UserMonster = {
+    id: 1,
+    userId: 'test-user',
+    monsterId: 1,
+    level: 5,
+    power: 150,
+    speed: 100,
+    defense: 80,
+    hp: 200,
+    maxHp: 200,
+    mp: 100,
+    maxMp: 100,
+    experience: 0,
+    evolutionStage: 1,
+    upgradeChoices: {},
+    isShattered: false,
+    acquiredAt: new Date(),
+    monster: { id: 1, name: 'Test PlayerMon', type: 'fire', basePower: 100, baseSpeed: 80, baseDefense: 60, baseHp: 150, baseMp: 100, goldCost: 100, iconClass: '', gradient: '', resistances: [], weaknesses: [], levelUpgrades: {}, starterSet: false, monster_tier: 1, hpPerLevel: 10, mpPerLevel: 5 }
+};
+
+const mockAiMonster: Monster = {
+    id: 2,
+    name: 'Test AiMon',
+    type: 'water',
+    basePower: 120,
+    baseSpeed: 90,
+    baseDefense: 110,
+    baseHp: 220,
+    baseMp: 120,
+    goldCost: 100,
+    iconClass: '',
+    gradient: '',
+    resistances: [],
+    weaknesses: ['fire'],
+    levelUpgrades: {},
+    starterSet: false,
+    monster_tier: 1,
+    hpPerLevel: 10,
+    mpPerLevel: 5
+};
+
+const mockAbility: Ability = {
+    id: 1,
+    name: 'Test Attack',
+    ability_type: 'ACTIVE',
+    mp_cost: 10,
+    affinity: 'fire',
+    power_multiplier: '1.20',
+    scaling_stat: 'power',
+    healing_power: 0,
+    target_scope: 'ACTIVE_OPPONENT',
+    max_targets: 1,
+    priority: 0,
+    crit_chance_modifier: '0.00',
+    lifesteal_percent: '0.00',
+    min_hits: 1,
+    max_hits: 1,
+    created_at: new Date()
+};
+
+// Test Suites
+describe('battleEngine Helpers', () => {
+
+  describe('getModifiedStat', () => {
+    it('should return the correct stat for a player monster (UserMonster)', () => {
+      expect(getModifiedStat(mockPlayerMonster, 'power')).toBe(150);
+      expect(getModifiedStat(mockPlayerMonster, 'defense')).toBe(80);
+    });
+
+    it('should return the correct base stat for an AI monster (Monster)', () => {
+      expect(getModifiedStat(mockAiMonster, 'power')).toBe(120);
+      expect(getModifiedStat(mockAiMonster, 'defense')).toBe(110);
+    });
+  });
+
+  describe('calculateDamage', () => {
+    it('should calculate damage correctly and respect type weakness', () => {
+        // This test checks a Fire attack against a Water monster (not very effective = 0.5x)
+        const result = calculateDamage(mockPlayerMonster, mockAiMonster, { ...mockAbility, affinity: 'fire' });
+
+        // Base Damage: (150 * 1.2) * (100 / (100 + 110)) = 180 * 0.476 = ~85.7
+        // Affinity Modifier: 0.5x because Fire is weak against Water
+        // Expected Damage: 85.7 * 0.5 = ~42.8
+        // We expect the final damage to be in the variance range of 42.8
+        expect(result.damage).toBeGreaterThanOrEqual(Math.floor(42.8 * 0.9));
+        expect(result.damage).toBeLessThanOrEqual(Math.ceil(42.8 * 1.1));
+        expect(result.affinityMultiplier).toBe(0.5);
+    });
+  });
+});
