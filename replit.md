@@ -1108,6 +1108,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Created comprehensive unit test validating stat modifier application to target monsters
   - All stat modifiers read from database fields ensuring no hardcoded mechanics
   - Foundation established for stat modification gameplay with server-authoritative processing
+- July 6, 2025: Stat Modifier Consumption Implementation (Task 83)
+  - Enhanced getModifiedStat function to process activeEffects for stat calculations
+  - Implements proper order of operations: FLAT modifiers first, then PERCENTAGE modifiers
+  - Updated UserMonster and Monster stat access to support dynamic base stat detection
+  - Stat modifiers now fully functional in battle affecting damage calculations and speed comparisons
+  - Added comprehensive unit test validating mixed modifier calculations (100 + 20 flat = 120, then 120 × 1.5 percentage = 180)
+  - Math.floor() ensures integer stat values for consistent battle mechanics
+  - Complete stat modifier system: application via executeAbility, consumption via getModifiedStat
+  - All tests passing (11/11) confirming stat modifiers work throughout battle engine
 
 ## User Preferences
 

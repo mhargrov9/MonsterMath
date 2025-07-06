@@ -84,6 +84,21 @@ describe('battleEngine Helpers', () => {
       expect(getModifiedStat(mockAiMonster, 'power')).toBe(120);
       expect(getModifiedStat(mockAiMonster, 'defense')).toBe(110);
     });
+
+    it('should apply active flat and percentage stat modifiers correctly', () => {
+      const monsterWithEffects: UserMonster = {
+        ...mockPlayerMonster,
+        power: 100, // Base power
+        activeEffects: [
+          { id: '1', stat: 'power', type: 'FLAT', value: 20, duration: 2 }, // 100 + 20 = 120
+          { id: '2', stat: 'power', type: 'PERCENTAGE', value: 50, duration: 2 }, // 120 * 1.5 = 180
+          { id: '3', stat: 'defense', type: 'PERCENTAGE', value: 50, duration: 1 } // Should be ignored
+        ]
+      };
+
+      // The final calculated power should be 180
+      expect(getModifiedStat(monsterWithEffects, 'power')).toBe(180);
+    });
   });
 
   describe('calculateDamage', () => {

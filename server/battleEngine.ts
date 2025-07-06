@@ -14,23 +14,30 @@ import crypto from 'crypto';
 // In-memory store for active battle sessions
 const battleSessions = new Map();
 
-// Helper function to get modified stats (can be expanded with activeEffects later)
-export const getModifiedStat = (
-  monster: UserMonster | Monster,
-  statName: 'power' | 'defense' | 'speed',
-): number => {
-  // This function can be expanded with activeEffects later
-  if ('monster' in monster) {
-    // It's a UserMonster
-    return monster[statName];
+export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
+  const baseStat = 'monster' in monster ? monster[statName] : (monster as any)[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}`];
+
+  if (!monster.activeEffects || monster.activeEffects.length === 0) {
+    return baseStat;
   }
-  // It's a base Monster for the AI
-  const baseStatMap = {
-    power: 'basePower',
-    defense: 'baseDefense',
-    speed: 'baseSpeed',
-  } as const;
-  return (monster as any)[baseStatMap[statName]] || 0;
+
+  let modifiedStat = baseStat;
+
+  // 1. Apply FLAT modifiers first
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'FLAT') {
+      modifiedStat += effect.value;
+    }
+  });
+
+  // 2. Apply PERCENTAGE modifiers second
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'PERCENTAGE') {
+      modifiedStat *= (1 + effect.value / 100);
+    }
+  });
+
+  return Math.floor(modifiedStat);
 };
 
 // Helper function to calculate type effectiveness
