@@ -1,0 +1,104 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Abilities with a target_scope of 'ALL_OPPONENTS' only damage the opponent's active monster instead of the entire team.
+
+Goal: Refactor the executeAbility function to correctly identify and process AoE abilities, applying damage and effects to all valid targets on the defending team.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action: Refactor the executeAbility function to loop through multiple targets if the ability is AoE.
+
+Logic: Before the main damage loop, you will determine the list of targets. If the ability's target_scope is 'ALL_OPPONENTS', the list will be the entire defending team. Otherwise, it will just be the single active defender. The rest of the function will then loop over this list.
+
+New executeAbility Code (Replace the entire function):
+
+TypeScript
+
+export const executeAbility = async (
+  battleState: any,
+  ability: Ability,
+): Promise<DamageResult> => {
+  const isPlayerTurn = battleState.turn === 'player';
+  const attackingTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
+  const defendingTeam = isPlayerTurn ? battleState.aiTeam : battleState.playerTeam;
+  const attackerIndex = isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex;
+  const defenderIndex = isPlayerTurn ? battleState.activeAiIndex : battleState.activePlayerIndex;
+
+  const attacker = attackingTeam[attackerIndex];
+  const attackerName = attacker.monster?.name || attacker.name;
+
+  // Apply MP cost once
+  const mpCost = ability.mp_cost || 0;
+  attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
+
+  // --- Determine Target(s) ---
+  let targets = [];
+  if (ability.target_scope === 'ALL_OPPONENTS') {
+    targets = defendingTeam.filter((m: any) => (m.battleHp ?? m.hp) > 0); // Target all healthy opponents
+  } else {
+    targets.push(defendingTeam[defenderIndex]); // Target only the active opponent
+  }
+
+  let totalDamage = 0;
+
+  // --- Loop through all targets ---
+  for (const target of targets) {
+    const defenderName = target.monster?.name || target.name;
+
+    // This ability's logic (damage, status, etc.) is applied to each target
+    const damageResult = calculateDamage(attacker, target, ability);
+    totalDamage += damageResult.damage;
+
+    // Apply damage to the target
+    target.battleHp = Math.max(0, (target.battleHp ?? target.hp) - damageResult.damage);
+
+    battleState.battleLog.push(`${attackerName} used ${ability.name} on ${defenderName}, dealing ${damageResult.damage} damage!`);
+
+    // Apply status effects to the target
+    if (ability.status_effect_id && ability.effectDetails) {
+        // (existing status effect logic can be placed here, applied to 'target')
+    }
+
+    // Apply stat modifiers to the target
+    if (ability.stat_modifiers && Array.isArray(ability.stat_modifiers)) {
+        // (existing stat modifier logic can be placed here, applied to 'target')
+    }
+  }
+
+  await handleMonsterDefeatLogic(battleState);
+  handleHpThresholds(battleState);
+  // (ON_ABILITY_USE logic for attacker remains here, outside the loop)
+
+  return { damage: totalDamage, isCritical: false, affinityMultiplier: 1.0 }; // Return accumulated damage
+};
+2. server/battleEngine.test.ts
+
+Action: Add a new unit test to verify that AoE abilities damage all opponents.
+
+Code to Add:
+
+TypeScript
+
+it('should deal damage to all opponents when using an AoE ability', async () => {
+  const aoeAbility = { ...mockAbility, target_scope: 'ALL_OPPONENTS' };
+  const defender1 = { ...mockAiMonster, id: 101, battleHp: 200 };
+  const defender2 = { ...mockAiMonster, id: 102, battleHp: 200 }; // Benched monster
+
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [defender1, defender2],
+    activePlayerIndex: 0,
+    activeAiIndex: 0,
+    battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, aoeAbility);
+
+  // Verify both AI monsters took damage
+  expect(mockState.aiTeam[0].battleHp).toBeLessThan(200);
+  expect(mockState.aiTeam[1].battleHp).toBeLessThan(200);
+  expect(mockState.battleLog.filter(log => log.includes('dealing')).length).toBe(2);
+});
