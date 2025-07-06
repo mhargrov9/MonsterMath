@@ -913,5 +913,28 @@ describe('battleEngine Helpers', () => {
         throw new Error('Expected fainted monster check to trigger but it did not');
       }
     });
+
+    it('should deal damage to all opponents when using an AoE ability', async () => {
+      const aoeAbility = { ...mockAbility, target_scope: 'ALL_OPPONENTS' };
+      const defender1 = { ...mockAiMonster, id: 101, battleHp: 200 };
+      const defender2 = { ...mockAiMonster, id: 102, battleHp: 200 }; // Benched monster
+
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [defender1, defender2],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, aoeAbility);
+
+      // Verify both AI monsters took damage
+      expect(mockState.aiTeam[0].battleHp).toBeLessThan(200);
+      expect(mockState.aiTeam[1].battleHp).toBeLessThan(200);
+      expect(mockState.battleLog.filter(log => log.includes('dealing')).length).toBe(2);
+    });
   });
 });

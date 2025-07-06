@@ -1302,6 +1302,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Power test validates proportional damage scaling with doubled power stats (100 vs 200)
   - Provides robust regression protection for damage calculation mathematical accuracy
   - Ensures battle engine mathematical foundation remains stable through future changes
+- July 6, 2025: Area of Effect (AoE) Abilities Implementation
+  - Completely refactored executeAbility function to support database-driven AoE targeting using target_scope field
+  - Added conditional targeting logic: 'ALL_OPPONENTS' targets all healthy defending team members, others target active opponent only
+  - Preserved all existing functionality: multi-hit abilities, status effects, passive triggers, evasion mechanics
+  - Enhanced battle logging with target-specific damage messages for AoE abilities showing individual target impact
+  - MP cost deducted once per ability use regardless of number of targets hit (authentic resource management)
+  - Added comprehensive unit test validating AoE abilities damage all opponents correctly
+  - Fixed monster name access issues in handleMonsterDefeatLogic using safe optional chaining pattern
+  - All 46 battle engine tests passing including new AoE functionality validation
+  - Enables strategic AoE gameplay while maintaining complete server-authoritative architecture with database-driven mechanics
 
 ## User Preferences
 
