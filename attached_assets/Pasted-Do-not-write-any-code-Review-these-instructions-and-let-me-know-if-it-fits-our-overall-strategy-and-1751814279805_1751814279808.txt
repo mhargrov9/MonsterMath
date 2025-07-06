@@ -1,0 +1,97 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Abilities with stat_modifiers currently have no effect in the game because the engine does not process them.
+
+Goal
+Implement the first part of the stat modifier system. This involves updating the game's type definitions and the executeAbility function to read an ability's stat_modifiers data and apply the resulting effect to the target monster's new activeEffects array.
+
+File Modifications
+shared/types.ts
+
+Action: Define the ActiveEffect interface and add the activeEffects array to both the UserMonster and Monster interfaces.
+
+Code to Add:
+
+TypeScript
+
+// Add this new interface
+export interface ActiveEffect {
+  id: string; // A unique ID for this specific application of the effect
+  stat: 'power' | 'defense' | 'speed';
+  type: 'FLAT' | 'PERCENTAGE';
+  value: number;
+  duration: number;
+}
+
+// Add activeEffects to UserMonster interface
+export interface UserMonster {
+  // ... existing fields
+  activeEffects?: ActiveEffect[];
+}
+
+// Add activeEffects to Monster interface
+export interface Monster {
+  // ... existing fields
+  activeEffects?: ActiveEffect[];
+}
+server/battleEngine.ts
+
+Action 1: Initialize activeEffects array.
+
+In the createBattleSession function, find the loops that initialize the playerTeamCopy and aiTeamCopy. Inside each loop, add the line monster.activeEffects = [];.
+
+Action 2: Update executeAbility to apply stat modifiers.
+
+Find the executeAbility function.
+
+Position: Add this new logic block at the end of the function, just before the return damageResult; line.
+
+TypeScript
+
+// --- Apply Stat Modifiers ---
+if (ability.stat_modifiers && Array.isArray(ability.stat_modifiers)) {
+  for (const modifier of ability.stat_modifiers) {
+    if (!defender.activeEffects) {
+      defender.activeEffects = [];
+    }
+    const newEffect: ActiveEffect = {
+      id: crypto.randomUUID(),
+      stat: modifier.stat,
+      type: modifier.type,
+      value: modifier.value,
+      duration: modifier.duration,
+    };
+    defender.activeEffects.push(newEffect);
+    battleState.battleLog.push(`${defenderName}'s ${modifier.stat} was lowered!`);
+  }
+}
+server/battleEngine.test.ts
+
+Action 3: Add a new unit test.
+
+Create a new test case to verify that executeAbility correctly adds an effect to the target's activeEffects array.
+
+TypeScript
+
+// Add this inside a new or existing describe block
+it('should apply a stat modifier to the target monster', async () => {
+  const mockAbilityWithDebuff = {
+    ...mockAbility,
+    stat_modifiers: [{ stat: 'speed', type: 'PERCENTAGE', value: -10, duration: 3 }]
+  };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [{ ...mockAiMonster, activeEffects: [] }],
+    activePlayerIndex: 0,
+    activeAiIndex: 0,
+    battleLog: [],
+  };
+
+  await executeAbility(mockState, mockAbilityWithDebuff);
+
+  expect(mockState.aiTeam[0].activeEffects).toHaveLength(1);
+  const effect = mockState.aiTeam[0].activeEffects[0];
+  expect(effect.stat).toBe('speed');
+  expect(effect.value).toBe(-10);
+});
