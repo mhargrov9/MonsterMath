@@ -548,6 +548,15 @@ export const executeAbility = async (
   for (let hitIndex = 0; hitIndex < numHits; hitIndex++) {
     // Calculate damage for this hit
     const damageResult = calculateDamage(attacker, defender, ability);
+    
+    // --- Check for Evasion Status Effects on Defender ---
+    if (defender.statusEffects?.some(e => e.effectDetails?.effect_type === 'EVASION')) {
+      if (ability.affinity === 'Physical') {
+        damageResult.damage = 0; // Negate the damage
+        battleState.battleLog.push(`${defender.monster?.name || defender.name} evaded the physical attack!`);
+      }
+    }
+    
     totalDamage += damageResult.damage;
 
     // Update accumulated damage result (preserve critical/affinity from any hit)

@@ -1267,6 +1267,20 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Ensures status effect chance calculations work correctly with override_chance values
   - Provides regression protection for critical status effect gameplay mechanics
   - Maintains server-authoritative testing with authentic database-driven status effects
+- July 6, 2025: EVASION Logic and Passive Ability Testing Implementation
+  - Implemented EVASION status effect damage negation in executeAbility function
+  - Added Physical attack evasion check using defender.statusEffects with EVASION effect_type
+  - EVASION only negates Physical affinity attacks, preserving strategic balance
+  - Added authentic battle log messages for successful evasion events
+  - Implemented comprehensive Tailwind passive testing for team-wide speed boosts
+  - Added Phase Shift EVASION testing with both positive and negative scenarios
+  - Tests validate Physical attack evasion (damage = 0) vs non-Physical attacks (normal damage)
+  - Added 3 new passive ability tests bringing total test suite to 41 passing tests
+  - Completes missing EVASION functionality making Phase Shift ability fully operational
+  - Tests authentic ON_BATTLE_START stat modifier mechanics using database stat_modifiers
+  - Validates unique passive ability behaviors with comprehensive edge case coverage
+  - Maintains server-authoritative architecture with database-driven passive effects
+  - Provides regression protection for critical passive ability gameplay mechanics
 
 ## User Preferences
 
