@@ -1204,6 +1204,17 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - API call now properly formatted to match server endpoint expectations
   - Note: Endpoint requires authentication, so test page needs logged-in session for full functionality
   - Technical fix complete - request format now complies with server API contract
+- July 6, 2025: Paralysis UI Enhancement Implementation
+  - Enhanced MonsterCard component to detect turn-skipping status effects (PARALYZED)
+  - Added conditional UI rendering when player monster has effectDetails.effect_type === 'TURN_SKIP'
+  - Displays clear warning message: "Your monster is paralyzed and cannot use abilities!"
+  - Shows two actionable buttons: "Forfeit Turn" and "Swap Team" instead of disabled abilities
+  - Uses authentic statusEffects data from server battle state for detection
+  - Only triggers during player's turn with onAbilityClick handler present
+  - Eliminates player confusion about available actions during paralysis
+  - Maintains server-authoritative architecture by reading from existing battle data
+  - Provides clear visual feedback with red border and explanatory text
+  - Button placeholders ready for future forfeit/swap functionality implementation
 
 ## User Preferences
 

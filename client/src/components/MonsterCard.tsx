@@ -235,12 +235,54 @@ export default function MonsterCard({
               <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">
                 Abilities
               </h4>
-              {abilities.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">
-                  No abilities to display.
-                </p>
-              ) : (
-                abilities.map((ability) => {
+              {/* Check for turn-skipping status effects */}
+              {(() => {
+                const hasTurnSkipEffect = userMonster?.statusEffects?.some(
+                  (effect) => effect.effectDetails?.effect_type === 'TURN_SKIP'
+                );
+                
+                if (hasTurnSkipEffect && isPlayerTurn && onAbilityClick) {
+                  return (
+                    <div className="space-y-2">
+                      <div className="bg-red-900/50 p-2 rounded border border-red-600">
+                        <p className="text-xs text-red-300 italic text-center mb-2">
+                          Your monster is paralyzed and cannot use abilities!
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs py-1 px-2 rounded transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Placeholder - will implement actual forfeit logic later
+                            }}
+                          >
+                            Forfeit Turn
+                          </button>
+                          <button
+                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1 px-2 rounded transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Placeholder - will implement actual swap logic later
+                            }}
+                          >
+                            Swap Team
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Normal abilities display
+                if (abilities.length === 0) {
+                  return (
+                    <p className="text-xs text-gray-400 italic">
+                      No abilities to display.
+                    </p>
+                  );
+                }
+                
+                return abilities.map((ability) => {
                   const canAfford = displayMp >= (ability.mp_cost || 0);
                   const isClickable =
                     onAbilityClick &&
@@ -276,8 +318,8 @@ export default function MonsterCard({
                       </p>
                     </div>
                   );
-                })
-              )}
+                });
+              })()}
             </div>
           </div>
         )}
