@@ -1,0 +1,62 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Temporary stat modifiers applied during battle do not expire and last forever.
+
+Goal
+Complete the stat modifier system by implementing duration management. The handleEndOfTurn function will be updated to decrement the duration of all active stat effects and remove them when they expire.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the handleEndOfTurn function. At the end of the currentTeam.forEach(...) loop (after the block that processes statusEffects), add a new block of code to process the activeEffects array.
+
+Code to Add:
+
+TypeScript
+
+// --- Process Active Stat Effects (Buffs/Debuffs) ---
+if (monster.activeEffects && monster.activeEffects.length > 0) {
+  const newActiveEffects = monster.activeEffects.filter(effect => {
+    effect.duration -= 1;
+    if (effect.duration <= 0) {
+      battleState.battleLog.push(`The ${effect.stat} modifier on ${currentTeamName} ${monsterName} wore off.`);
+      return false; // Remove effect
+    }
+    return true; // Keep effect
+  });
+  monster.activeEffects = newActiveEffects;
+}
+server/battleEngine.test.ts
+
+Action: Add a new unit test to the describe('handleEndOfTurn', ...) block to verify the new duration logic.
+
+Code to Add:
+
+TypeScript
+
+it('should decrement the duration of active stat effects and remove them when expired', () => {
+  const mockState = {
+    turn: 'player',
+    playerTeam: [{
+      id: 1,
+      battleHp: 500,
+      monster: { name: 'BuffedMon' },
+      activeEffects: [
+        { id: '1', stat: 'power', type: 'FLAT', value: 20, duration: 2 },
+        { id: '2', stat: 'speed', type: 'PERCENTAGE', value: -10, duration: 1 }
+      ]
+    }],
+    aiTeam: [],
+    activePlayerIndex: 0,
+    battleLog: [],
+    abilities_map: {}
+  };
+
+  handleEndOfTurn(mockState);
+
+  // Expect one effect to be removed and the other's duration to be decremented
+  expect(mockState.playerTeam[0].activeEffects).toHaveLength(1);
+  expect(mockState.playerTeam[0].activeEffects[0].duration).toBe(1);
+  expect(mockState.playerTeam[0].activeEffects[0].stat).toBe('power');
+  expect(mockState.battleLog).toContain("The speed modifier on Your BuffedMon wore off.");
+});
