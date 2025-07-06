@@ -1,0 +1,99 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The application logic for key status effects like CONFUSED (self-damage) and PARALYZED (turn skip), as well as the chance-based application of these effects, are not explicitly covered by unit tests.
+
+Goal: Add new unit tests to server/battleEngine.test.ts to verify the core mechanics of our primary status effects, including their application chance and gameplay effects.
+
+File Modifications
+1. server/battleEngine.test.ts
+
+Action: Add the following new test cases to the appropriate describe blocks. You will need to import vi from vitest to mock Math.random.
+
+Code to Add:
+
+1. At the top of the file, add vi to the import from vitest:
+
+TypeScript
+
+import { describe, it, expect, vi } from 'vitest';
+2. Inside the describe('handleStartOfTurn', ...) block, add these two new tests for CONFUSED and PARALYZED:
+
+TypeScript
+
+it('should make a CONFUSED monster damage itself', () => {
+  const confusedMonster = {
+    ...mockPlayerMonster,
+    battleHp: 500,
+    power: 100,
+    statusEffects: [{
+      name: 'Confused',
+      duration: 1,
+      effectDetails: {
+        effect_type: 'DISRUPTION',
+        default_value: '1.0', // 100% chance
+        secondary_value: '0.40' // 40% power for self-damage
+      }
+    }]
+  };
+  const mockState = { playerTeam: [confusedMonster], activePlayerIndex: 0, battleLog: [] };
+  handleStartOfTurn(mockState, true);
+  // Expect 40% of 100 power = 40 damage. 500 - 40 = 460.
+  expect(mockState.playerTeam[0].battleHp).toBe(460);
+});
+
+it('should skip the turn for a PARALYZED monster', () => {
+  const paralyzedMonster = {
+    ...mockPlayerMonster,
+    statusEffects: [{
+      name: 'Paralyzed',
+      duration: 1,
+      effectDetails: { effect_type: 'TURN_SKIP' }
+    }]
+  };
+  const mockState = { playerTeam: [paralyzedMonster], activePlayerIndex: 0, battleLog: [] };
+  const result = handleStartOfTurn(mockState, true);
+  expect(result.turnSkipped).toBe(true);
+});
+3. Inside the describe('executeAbility', ...) block, add these two new tests for chance-based effects:
+
+TypeScript
+
+it('should apply a status effect when the chance roll succeeds', async () => {
+  // Force Math.random() to return 0.1 (which is < 0.40, so it should succeed)
+  vi.spyOn(Math, 'random').mockImplementation(() => 0.1);
+
+  const psyBeamAbility = { ...mockAbility, status_effect_id: 4, override_chance: 0.40, effectDetails: { name: 'Confused' } };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, psyBeamAbility);
+  expect(mockState.aiTeam[0].statusEffects).toHaveLength(1);
+  expect(mockState.aiTeam[0].statusEffects[0].name).toBe('Confused');
+
+  // Clean up the mock
+  vi.spyOn(Math, 'random').mockRestore();
+});
+
+it('should NOT apply a status effect when the chance roll fails', async () => {
+  // Force Math.random() to return 0.9 (which is > 0.40, so it should fail)
+  vi.spyOn(Math, 'random').mockImplementation(() => 0.9);
+
+  const psyBeamAbility = { ...mockAbility, status_effect_id: 4, override_chance: 0.40, effectDetails: { name: 'Confused' } };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, psyBeamAbility);
+  expect(mockState.aiTeam[0].statusEffects).toHaveLength(0);
+
+  vi.spyOn(Math, 'random').mockRestore();
+});
