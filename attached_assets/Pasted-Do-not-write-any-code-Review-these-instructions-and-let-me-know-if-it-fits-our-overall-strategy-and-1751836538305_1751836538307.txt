@@ -1,0 +1,53 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Our test suite lacks comprehensive coverage for type-effectiveness calculations, creating a "blind spot" where changes to monster weaknesses or resistances could go unnoticed.
+
+Goal: Add a full suite of parameterized unit tests to battleEngine.test.ts that verifies the getAffinityMultiplier function for every significant elemental matchup in the game.
+
+File Modifications
+1. server/battleEngine.test.ts
+
+Action 1: Import the getAffinityMultiplier function, as it is not currently imported for testing.
+
+Action 2: Add a new describe block for the getAffinityMultiplier function. Inside this block, you will add a single, powerful it.each test that runs through a comprehensive list of type matchups.
+
+Code to Add:
+
+TypeScript
+
+// Add this describe block after the existing 'getModifiedStat' block
+
+describe('getAffinityMultiplier', () => {
+  const gigalith = { name: 'Gigalith', type: 'earth', weaknesses: ['water'], resistances: ['fire'] };
+  const aetherion = { name: 'Aetherion', type: 'psychic', weaknesses: ['physical'], resistances: ['psychic'] };
+  const axolotl = { name: 'Axolotl', type: 'water', weaknesses: ['poison'], resistances: ['water'] };
+  const salamander = { name: 'Salamander', type: 'fire', weaknesses: ['water'], resistances: ['fire'] };
+  const squirrel = { name: 'Squirrel', type: 'electric', weaknesses: ['earth'], resistances: ['air'] };
+
+  it.each([
+    // Super Effective (2x damage)
+    { attack: 'water', defender: gigalith, expected: 2.0, case: 'Water vs Earth' },
+    { attack: 'earth', defender: squirrel, expected: 2.0, case: 'Earth vs Electric' },
+    { attack: 'physical', defender: aetherion, expected: 2.0, case: 'Physical vs Psychic' },
+
+    // Not Very Effective (0.5x damage)
+    { attack: 'fire', defender: gigalith, expected: 0.5, case: 'Fire vs Earth' },
+    { attack: 'fire', defender: salamander, expected: 0.5, case: 'Fire vs Fire' },
+    { attack: 'water', defender: axolotl, expected: 0.5, case: 'Water vs Water' },
+    { attack: 'air', defender: squirrel, expected: 0.5, case: 'Air vs Electric (Resist)' },
+
+    // Neutral (1x damage)
+    { attack: 'psychic', defender: gigalith, expected: 1.0, case: 'Psychic vs Earth' },
+    { attack: 'electric', defender: aetherion, expected: 1.0, case: 'Electric vs Psychic' },
+    { attack: 'physical', defender: axolotl, expected: 1.0, case: 'Physical vs Water' },
+    { attack: 'fire', defender: aetherion, expected: 1.0, case: 'Fire vs Psychic' },
+
+    // No Affinity
+    { attack: null, defender: gigalith, expected: 1.0, case: 'No-affinity attack' },
+    { attack: undefined, defender: gigalith, expected: 1.0, case: 'Undefined affinity' },
+  ])('should return $expected for $case', ({ attack, defender, expected }) => {
+    // We cast the test data to 'any' to satisfy the type checker for our mock objects
+    expect(getAffinityMultiplier(attack as string, defender as any)).toBe(expected);
+  });
+});
+Action 3: At the top of the file, add getAffinityMultiplier to the import line from ./battleEngine.
