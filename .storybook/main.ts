@@ -20,10 +20,14 @@ const config: StorybookConfig = {
   async viteFinal(config) {
     return mergeConfig(config, {
       server: {
+        host: '0.0.0.0',
         cors: true,
         headers: {
           'Access-Control-Allow-Origin': '*',
         },
+        hmr: {
+          clientPort: 443,
+        }
       },
       resolve: {
         alias: {
