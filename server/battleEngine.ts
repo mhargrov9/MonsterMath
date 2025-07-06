@@ -640,6 +640,35 @@ export const executeAbility = async (
   // Check for HP threshold passive triggers after damage is dealt
   handleHpThresholds(battleState);
 
+  // --- Check for ON_ABILITY_USE Passives on the Attacker ---
+  const attackerAbilities = battleState.abilities_map[attacker.monster?.id || attacker.id] || [];
+  for (const passive of attackerAbilities) {
+    if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_ABILITY_USE') {
+      // Check for affinity condition
+      const triggerAffinity = passive.status_effect_trigger_affinity;
+      if (triggerAffinity && ability.affinity !== triggerAffinity) {
+        continue; // Skip if the used ability's affinity doesn't match the trigger's requirement
+      }
+
+      // Check chance and apply the status effect from the passive
+      const chance = parseFloat(passive.override_chance || passive.effectDetails?.default_value || '1.0');
+      if (Math.random() < chance && passive.status_effect_id && passive.effectDetails) {
+        if (!defender.statusEffects) defender.statusEffects = [];
+
+        const newStatusEffect = {
+          name: passive.effectDetails.name,
+          duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
+          isNew: true,
+          effectDetails: passive.effectDetails,
+          override_value: passive.override_value,
+        };
+        defender.statusEffects.push(newStatusEffect);
+        const attackerName = attacker.monster?.name || attacker.name;
+        battleState.battleLog.push(`${attackerName}'s ${passive.name} activated!`);
+      }
+    }
+  }
+
   return damageResult;
 };
 

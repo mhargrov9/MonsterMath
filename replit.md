@@ -1146,6 +1146,17 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - All tests passing (14/14) confirming HP threshold passive system works correctly
   - Crystalize passive now functional: doubles defense when HP drops below 50% with speed penalty
   - Foundation established for tactical "berserker" and "last stand" style monster abilities
+- July 6, 2025: ON_ABILITY_USE Passive Abilities Implementation (Affinity-Based Offensive Triggers)
+  - Enhanced executeAbility function to process offensive passive abilities triggered when using specific ability types
+  - Added ON_ABILITY_USE activation trigger support for ability-type-conditional monster passives
+  - Implemented status_effect_trigger_affinity validation for conditional passive triggering
+  - Affinity filtering ensures passives only activate when using abilities of matching elemental types
+  - Uses database abilities_map for authentic passive ability data and affinity requirements
+  - Applies status effects to defender when affinity conditions are met with proper battle logging
+  - Created comprehensive unit tests validating both positive and negative affinity matching scenarios
+  - All tests passing (16/16) confirming affinity-based passive abilities work correctly
+  - Soot Cloud passive now functional: Fire abilities trigger Poisoned status effect on opponents
+  - Foundation established for tactical offensive gameplay with elemental synergy passive abilities
 
 ## User Preferences
 

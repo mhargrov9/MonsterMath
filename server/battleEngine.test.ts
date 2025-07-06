@@ -451,5 +451,67 @@ describe('battleEngine Helpers', () => {
       expect(effects.some(e => e.stat === 'speed' && e.value === -50)).toBe(true);
       expect(mockState.battleLog).toContain("Test AiMon's Crystalize activated!");
     });
+
+    it('should trigger an ON_ABILITY_USE passive with a matching affinity', async () => {
+      const attackerWithPassive = {
+        ...mockPlayerMonster,
+        monster: { ...mockPlayerMonster.monster, id: 10 } // Cinder-Tail Salamander ID
+      };
+      const sootCloudPassive = {
+        id: 3,
+        name: 'Soot Cloud',
+        ability_type: 'PASSIVE',
+        activation_trigger: 'ON_ABILITY_USE',
+        status_effect_trigger_affinity: 'Fire',
+        status_effect_id: 3, // Poisoned
+        override_chance: 1.0, // Force 100% chance
+        effectDetails: { name: 'Poisoned' }
+      };
+      const fireAbility = { ...mockAbility, affinity: 'Fire' };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [attackerWithPassive],
+        aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: { [attackerWithPassive.monster.id]: [sootCloudPassive] }
+      };
+
+      await executeAbility(mockState, fireAbility);
+
+      expect(mockState.aiTeam[0].statusEffects).toHaveLength(1);
+      expect(mockState.aiTeam[0].statusEffects[0].name).toBe('Poisoned');
+      expect(mockState.battleLog).toContain("Test PlayerMon's Soot Cloud activated!");
+    });
+
+    it('should NOT trigger an ON_ABILITY_USE passive with a non-matching affinity', async () => {
+      const attackerWithPassive = {
+        ...mockPlayerMonster,
+        monster: { ...mockPlayerMonster.monster, id: 10 }
+      };
+      const sootCloudPassive = {
+        id: 3,
+        name: 'Soot Cloud',
+        ability_type: 'PASSIVE',
+        activation_trigger: 'ON_ABILITY_USE',
+        status_effect_trigger_affinity: 'Fire', // Only triggers on Fire abilities
+        status_effect_id: 3,
+        override_chance: 1.0,
+        effectDetails: { name: 'Poisoned' }
+      };
+      const waterAbility = { ...mockAbility, affinity: 'Water' }; // Using a Water ability
+      const mockState = {
+        turn: 'player',
+        playerTeam: [attackerWithPassive],
+        aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: { [attackerWithPassive.monster.id]: [sootCloudPassive] }
+      };
+
+      await executeAbility(mockState, waterAbility);
+
+      // Expect no status effect because the affinity did not match
+      expect(mockState.aiTeam[0].statusEffects).toHaveLength(0);
+      expect(mockState.battleLog).not.toContain("Test PlayerMon's Soot Cloud activated!");
+    });
   });
 });
