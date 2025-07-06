@@ -1,0 +1,118 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Damage-over-Time (DoT) status effects are only being processed for the active monster, ignoring benched monsters who should also be affected.
+
+Goal: Refactor the handleStartOfTurn function to process DoT effects for every monster on the current team, ensuring effects like "Burned" work correctly for benched monsters.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action: Replace the entire handleStartOfTurn function with the new version below. This version separates the logic: it first processes team-wide DoT and then handles turn-skipping effects for only the active monster.
+
+New handleStartOfTurn Code:
+
+TypeScript
+
+export const handleStartOfTurn = (
+  battleState: any,
+  isPlayerTurn: boolean,
+): { turnSkipped: boolean } => {
+  const currentTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
+  const teamName = isPlayerTurn ? 'Your' : "Opponent's";
+
+  // --- Process DoT for ALL monsters on the team ---
+  for (const monster of currentTeam) {
+    if (monster.statusEffects?.length > 0) {
+      for (const effect of monster.statusEffects) {
+        if (effect.effectDetails?.effect_type === 'DAMAGE_OVER_TIME') {
+          const monsterName = monster.monster?.name || monster.name;
+          const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+          if (effectValue === 0) continue;
+
+          let damageAmount = 0;
+          if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+            damageAmount = Math.floor((monster.battleMaxHp || 0) * (effectValue / 100));
+          } else {
+            damageAmount = effectValue;
+          }
+
+          if (damageAmount > 0) {
+            monster.battleHp = Math.max(0, (monster.battleHp || 0) - damageAmount);
+            battleState.battleLog.push(`${teamName} ${monsterName} takes ${damageAmount} damage from ${effect.name}!`);
+          }
+        }
+      }
+    }
+  }
+
+  // --- Process Turn-Skipping effects for ACTIVE monster ONLY ---
+  const activeMonster = currentTeam[isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex];
+  if (activeMonster.statusEffects?.length > 0) {
+    for (const effect of activeMonster.statusEffects) {
+      if (!effect.effectDetails) continue;
+      switch (effect.effectDetails.effect_type) {
+        case 'TURN_SKIP':
+          battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`);
+          return { turnSkipped: true };
+        case 'DISRUPTION':
+          // (Existing Confusion logic here...)
+          const confusionChance = parseFloat(effect.effectDetails.default_value || '0.5');
+          if (Math.random() < confusionChance) {
+            const monsterName = activeMonster.monster?.name || activeMonster.name;
+            const selfDamageModifier = parseFloat(effect.effectDetails.secondary_value || '0.4');
+            const selfDamage = Math.floor(getModifiedStat(activeMonster, 'power') * selfDamageModifier);
+            if (selfDamage > 0) {
+              activeMonster.battleHp = Math.max(0, activeMonster.battleHp - selfDamage);
+              battleState.battleLog.push(`${teamName} ${monsterName} is confused and hurt itself for ${selfDamage} damage!`);
+            }
+            return { turnSkipped: true };
+          }
+          break;
+      }
+    }
+  }
+
+  battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`);
+  return { turnSkipped: false };
+};
+2. server/battleEngine.test.ts
+
+Action: Add a new unit test to verify that DoT is applied to benched monsters.
+
+Code to Add:
+
+TypeScript
+
+// Add this test to the describe('handleStartOfTurn', ...) block
+it('should apply DoT damage to benched monsters', () => {
+    const activeMonster = { ...mockPlayerMonster, battleHp: 500 };
+    const benchedMonster = {
+      ...mockPlayerMonster,
+      id: 99, // a different ID
+      battleHp: 300,
+      battleMaxHp: 400,
+      statusEffects: [{
+        name: 'Test Burn',
+        duration: 2,
+        effectDetails: {
+          effect_type: 'DAMAGE_OVER_TIME',
+          value_type: 'PERCENT_MAX_HP',
+          default_value: '10.00' // 10% damage
+        }
+      }]
+    };
+
+    const mockState = {
+      turn: 'player',
+      playerTeam: [activeMonster, benchedMonster],
+      activePlayerIndex: 0,
+      battleLog: []
+    };
+
+    handleStartOfTurn(mockState, true);
+
+    // Expect benched monster's HP to decrease by 10% of 400 (40 HP)
+    expect(mockState.playerTeam[1].battleHp).toBe(260);
+    // Expect active monster's HP to be unchanged
+    expect(mockState.playerTeam[0].battleHp).toBe(500);
+});
