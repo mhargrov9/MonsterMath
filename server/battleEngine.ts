@@ -121,7 +121,7 @@ const handleActionPhase = async (battleState: any, ability: any, targetId?: numb
 };
 
 // PHASE 3: End of Turn - Handle passive abilities, status effects, duration management, and turn switching
-const handleEndOfTurn = (battleState: any): void => {
+export const handleEndOfTurn = (battleState: any): void => {
   // Identify the team whose turn just ended
   const isPlayerTurnEnding = battleState.turn === 'player';
   const currentTeam = isPlayerTurnEnding ? battleState.playerTeam : battleState.aiTeam;

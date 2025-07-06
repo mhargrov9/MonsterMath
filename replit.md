@@ -1009,6 +1009,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Verified damage calculation accuracy, type effectiveness, and stat access patterns
   - Tests protect against regressions in core battle mechanics with exit code 0
   - Framework fully operational and ready for expanded test coverage
+- July 6, 2025: handleEndOfTurn Test Coverage Implementation (Task 71)
+  - Exported handleEndOfTurn function from battleEngine.ts for testing access
+  - Added comprehensive test suite with 4 new tests covering complex end-of-turn logic
+  - **Percentage-based healing from passive abilities**: Tests benched monster Soothing Aura healing active monsters
+  - **Flat damage from status effects**: Tests DAMAGE_OVER_TIME with FLAT value_type and duration management
+  - **Percentage-based damage from status effects**: Tests DAMAGE_OVER_TIME with PERCENT_MAX_HP value_type
+  - **Activation scope validation**: Tests that ACTIVE-only abilities don't activate for benched monsters
+  - All 8 total tests pass with exit code 0, providing comprehensive protection for battle engine functions
+  - Mock data includes authentic database field structures (duration_reduction_position, effectDetails)
+  - Test coverage now protects against regressions in status effects, passive abilities, and turn lifecycle logic
 
 ## User Preferences
 
