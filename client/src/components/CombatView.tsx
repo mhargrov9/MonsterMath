@@ -17,6 +17,7 @@ interface CombatViewProps {
   logRef: React.RefObject<HTMLDivElement>;
   onAbilityClick: (ability: Ability) => void;
   onSwapMonster: (monsterId: number) => void;
+  onForfeitTurn?: () => void;
   onRetreat: () => void;
   onPlayAgain: () => void;
   floatingTexts: FloatingText[];
@@ -104,6 +105,7 @@ export const CombatView: React.FC<CombatViewProps> = ({
   logRef,
   onAbilityClick,
   onSwapMonster,
+  onForfeitTurn,
   onRetreat,
   onPlayAgain,
   floatingTexts,
@@ -153,6 +155,7 @@ export const CombatView: React.FC<CombatViewProps> = ({
                 monster={playerMonster.monster}
                 userMonster={playerMonster}
                 onAbilityClick={onAbilityClick}
+                onForfeitTurn={onForfeitTurn}
                 isPlayerTurn={isPlayerTurn}
                 size="large"
                 startExpanded={true}

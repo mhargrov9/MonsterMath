@@ -1196,3 +1196,14 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   // Return the entire battleState object
   return battleState;
 };
+
+export const processForfeit = (battleId: string) => {
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) throw new Error(`Battle session ${battleId} not found`);
+
+  // Forfeiting simply moves to the end-of-turn phase.
+  handleEndOfTurn(battleState);
+
+  battleSessions.set(battleId, battleState);
+  return battleState;
+};

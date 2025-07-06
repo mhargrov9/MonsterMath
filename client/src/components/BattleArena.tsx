@@ -351,6 +351,35 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   };
 
+  const handleForfeitTurn = async () => {
+    if (turn !== 'player' || battleEnded || !battleId) return;
+
+    try {
+      const response = await fetch('/api/battle/forfeit-turn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Ensure session cookie is sent
+        body: JSON.stringify({ battleId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Server responded with an error during forfeit.');
+      }
+
+      const battleState = await response.json();
+
+      // Update all client state from the server's authoritative response
+      setPlayerTeam(battleState.playerTeam);
+      setAiTeam(battleState.aiTeam);
+      setTurn(battleState.turn);
+      setBattleEnded(battleState.battleEnded);
+      setWinner(battleState.winner);
+      setBattleLog(battleState.battleLog);
+    } catch (error) {
+      console.error('Error forfeiting turn:', error);
+    }
+  };
+
   useEffect(() => {
     if (turn === 'ai' && !battleEnded) {
       const timer = setTimeout(handleAiAbility, 1500);
@@ -505,6 +534,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
           logRef={battleLogRef}
           onAbilityClick={handlePlayerAbility}
           onSwapMonster={handleSwapMonster}
+          onForfeitTurn={handleForfeitTurn}
           onRetreat={onRetreat}
           onPlayAgain={() => setBattleMode('team-select')}
           floatingTexts={floatingTexts}

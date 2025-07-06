@@ -37,6 +37,7 @@ interface MonsterCardProps {
   size?: 'tiny' | 'small' | 'medium' | 'large';
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
+  onForfeitTurn?: () => void;
   startExpanded?: boolean;
   isToggleable?: boolean;
   onCardClick?: () => void; // <-- ADDED: A dedicated prop for parent-controlled clicks
@@ -74,6 +75,7 @@ export default function MonsterCard({
   size = 'medium',
   isPlayerTurn = false,
   onAbilityClick,
+  onForfeitTurn,
   startExpanded = false,
   isToggleable = true,
   onCardClick, // <-- ADDED
@@ -253,7 +255,7 @@ export default function MonsterCard({
                             className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs py-1 px-2 rounded transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Placeholder - will implement actual forfeit logic later
+                              if (onForfeitTurn) onForfeitTurn();
                             }}
                           >
                             Forfeit Turn

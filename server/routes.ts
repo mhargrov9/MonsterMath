@@ -11,6 +11,7 @@ import {
   createBattleSession,
   processAiTurn,
   performSwap,
+  processForfeit,
 } from './battleEngine';
 import passport from 'passport';
 import fs from 'fs';
@@ -600,6 +601,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(battleState);
     } catch (error) {
       handleError(error, res, 'Failed to perform monster swap');
+    }
+  });
+
+  // Forfeit turn endpoint
+  app.post('/api/battle/forfeit-turn', isAuthenticated, async (req: any, res) => {
+    try {
+      const { battleId } = req.body;
+      if (!battleId) {
+        return res.status(400).json({ message: 'Missing battleId' });
+      }
+      const battleState = processForfeit(battleId);
+      res.json(battleState);
+    } catch (error) {
+      handleError(error, res, 'Failed to process forfeit turn');
     }
   });
 
