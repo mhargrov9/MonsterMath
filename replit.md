@@ -1243,6 +1243,17 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintains server-authoritative architecture with authentic database-driven monster data
   - Ensures battle engine compatibility with generateAiOpponent data structure changes
   - Enables proper battle functionality for paralysis UI testing with Spark-Tail Squirrel opponents
+- July 6, 2025: Comprehensive Type-Effectiveness Test Coverage Implementation
+  - Exported getAffinityMultiplier function from battleEngine.ts for testing access
+  - Added comprehensive parameterized test suite using it.each for all elemental matchups
+  - Tests cover super-effective (2x), not-very-effective (0.5x), and neutral (1x) damage scenarios
+  - Includes edge case testing for null/undefined affinity attacks
+  - Uses authentic monster data with real weakness/resistance patterns from game database
+  - Added 14 new type-effectiveness tests bringing total test suite to 34 passing tests
+  - Provides regression protection for changes to monster weaknesses or resistances
+  - Validates core battle calculation accuracy with database-driven type effectiveness
+  - Strengthens server-authoritative battle engine with comprehensive coverage
+  - Eliminates "blind spot" in test coverage for elemental affinity calculations
 
 ## User Preferences
 

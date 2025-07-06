@@ -5,6 +5,7 @@ import {
   handleEndOfTurn,
   handleStartOfTurn,
   executeAbility,
+  getAffinityMultiplier,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -140,6 +141,40 @@ describe('battleEngine Helpers', () => {
       };
       expect(getModifiedStat(nestedAiMonster as any, 'power')).toBe(120);
       expect(getModifiedStat(nestedAiMonster as any, 'defense')).toBe(110);
+    });
+  });
+
+  describe('getAffinityMultiplier', () => {
+    const gigalith = { name: 'Gigalith', type: 'earth', weaknesses: ['water'], resistances: ['fire'] };
+    const aetherion = { name: 'Aetherion', type: 'psychic', weaknesses: ['physical'], resistances: ['psychic'] };
+    const axolotl = { name: 'Axolotl', type: 'water', weaknesses: ['poison'], resistances: ['water'] };
+    const salamander = { name: 'Salamander', type: 'fire', weaknesses: ['water'], resistances: ['fire'] };
+    const squirrel = { name: 'Squirrel', type: 'electric', weaknesses: ['earth'], resistances: ['air'] };
+
+    it.each([
+      // Super Effective (2x damage)
+      { attack: 'water', defender: gigalith, expected: 2.0, case: 'Water vs Earth' },
+      { attack: 'earth', defender: squirrel, expected: 2.0, case: 'Earth vs Electric' },
+      { attack: 'physical', defender: aetherion, expected: 2.0, case: 'Physical vs Psychic' },
+
+      // Not Very Effective (0.5x damage)
+      { attack: 'fire', defender: gigalith, expected: 0.5, case: 'Fire vs Earth' },
+      { attack: 'fire', defender: salamander, expected: 0.5, case: 'Fire vs Fire' },
+      { attack: 'water', defender: axolotl, expected: 0.5, case: 'Water vs Water' },
+      { attack: 'air', defender: squirrel, expected: 0.5, case: 'Air vs Electric (Resist)' },
+
+      // Neutral (1x damage)
+      { attack: 'psychic', defender: gigalith, expected: 1.0, case: 'Psychic vs Earth' },
+      { attack: 'electric', defender: aetherion, expected: 1.0, case: 'Electric vs Psychic' },
+      { attack: 'physical', defender: axolotl, expected: 1.0, case: 'Physical vs Water' },
+      { attack: 'fire', defender: aetherion, expected: 1.0, case: 'Fire vs Psychic' },
+
+      // No Affinity
+      { attack: null, defender: gigalith, expected: 1.0, case: 'No-affinity attack' },
+      { attack: undefined, defender: gigalith, expected: 1.0, case: 'Undefined affinity' },
+    ])('should return $expected for $case', ({ attack, defender, expected }) => {
+      // We cast the test data to 'any' to satisfy the type checker for our mock objects
+      expect(getAffinityMultiplier(attack as string, defender as any)).toBe(expected);
     });
   });
 

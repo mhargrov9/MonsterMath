@@ -56,7 +56,7 @@ export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power
 };
 
 // Helper function to calculate type effectiveness
-const getAffinityMultiplier = (
+export const getAffinityMultiplier = (
   attackAffinity: string | null | undefined,
   defender: Monster,
 ): number => {
