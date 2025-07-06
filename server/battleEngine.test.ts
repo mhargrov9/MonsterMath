@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   getModifiedStat,
   calculateDamage,
@@ -404,6 +404,41 @@ describe('battleEngine Helpers', () => {
       // Expect a log message to be added
       expect(mockBattleState.battleLog).toContain("Your BurnedMon takes 100 damage from Test Burn!");
     });
+
+    it('should make a CONFUSED monster damage itself', () => {
+      const confusedMonster = {
+        ...mockPlayerMonster,
+        battleHp: 500,
+        power: 100,
+        statusEffects: [{
+          name: 'Confused',
+          duration: 1,
+          effectDetails: {
+            effect_type: 'DISRUPTION',
+            default_value: '1.0', // 100% chance
+            secondary_value: '0.40' // 40% power for self-damage
+          }
+        }]
+      };
+      const mockState = { playerTeam: [confusedMonster], activePlayerIndex: 0, battleLog: [] };
+      handleStartOfTurn(mockState, true);
+      // Expect 40% of 100 power = 40 damage. 500 - 40 = 460.
+      expect(mockState.playerTeam[0].battleHp).toBe(460);
+    });
+
+    it('should skip the turn for a PARALYZED monster', () => {
+      const paralyzedMonster = {
+        ...mockPlayerMonster,
+        statusEffects: [{
+          name: 'Paralyzed',
+          duration: 1,
+          effectDetails: { effect_type: 'TURN_SKIP' }
+        }]
+      };
+      const mockState = { playerTeam: [paralyzedMonster], activePlayerIndex: 0, battleLog: [] };
+      const result = handleStartOfTurn(mockState, true);
+      expect(result.turnSkipped).toBe(true);
+    });
   });
 
   describe('executeAbility', () => {
@@ -563,6 +598,46 @@ describe('battleEngine Helpers', () => {
       // Expect no status effect because the affinity did not match
       expect(mockState.aiTeam[0].statusEffects).toHaveLength(0);
       expect(mockState.battleLog).not.toContain("Test PlayerMon's Soot Cloud activated!");
+    });
+
+    it('should apply a status effect when the chance roll succeeds', async () => {
+      // Force Math.random() to return 0.1 (which is < 0.40, so it should succeed)
+      vi.spyOn(Math, 'random').mockImplementation(() => 0.1);
+
+      const psyBeamAbility = { ...mockAbility, status_effect_id: 4, override_chance: 0.40, effectDetails: { name: 'Confused' } };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, psyBeamAbility);
+      expect(mockState.aiTeam[0].statusEffects).toHaveLength(1);
+      expect(mockState.aiTeam[0].statusEffects[0].name).toBe('Confused');
+
+      // Clean up the mock
+      vi.spyOn(Math, 'random').mockRestore();
+    });
+
+    it('should NOT apply a status effect when the chance roll fails', async () => {
+      // Force Math.random() to return 0.9 (which is > 0.40, so it should fail)
+      vi.spyOn(Math, 'random').mockImplementation(() => 0.9);
+
+      const psyBeamAbility = { ...mockAbility, status_effect_id: 4, override_chance: 0.40, effectDetails: { name: 'Confused' } };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [{ ...mockAiMonster, statusEffects: [] }],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, psyBeamAbility);
+      expect(mockState.aiTeam[0].statusEffects).toHaveLength(0);
+
+      vi.spyOn(Math, 'random').mockRestore();
     });
   });
 

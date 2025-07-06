@@ -1254,6 +1254,19 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Validates core battle calculation accuracy with database-driven type effectiveness
   - Strengthens server-authoritative battle engine with comprehensive coverage
   - Eliminates "blind spot" in test coverage for elemental affinity calculations
+- July 6, 2025: Comprehensive Status Effect Testing Implementation
+  - Added vi import to battleEngine.test.ts for Math.random mocking capabilities
+  - Implemented CONFUSED monster self-damage testing with authentic power stat calculations
+  - Added PARALYZED monster turn-skipping validation using database effect_type detection
+  - Created chance-based status effect application tests with controlled probability scenarios
+  - Uses vi.spyOn for deterministic Math.random mocking with proper cleanup
+  - Tests both successful (0.1 < 0.40) and failed (0.9 > 0.40) status effect application
+  - Added 4 new status effect tests bringing total test suite to 38 passing tests
+  - Validates core CONFUSED mechanics: 40% self-damage using secondary_value from database
+  - Confirms PARALYZED mechanics: guaranteed turn-skip using TURN_SKIP effect_type
+  - Ensures status effect chance calculations work correctly with override_chance values
+  - Provides regression protection for critical status effect gameplay mechanics
+  - Maintains server-authoritative testing with authentic database-driven status effects
 
 ## User Preferences
 
