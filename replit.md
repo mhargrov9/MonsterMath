@@ -1080,6 +1080,24 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed blank component rendering issue caused by module resolution failures
   - Storybook can now properly locate and compile MonsterCard component and its dependencies
   - Complete Storybook functionality restored: component isolation, visual testing, and development workflow
+- July 6, 2025: React Context Providers Integration (Task 80)
+  - Added comprehensive React Context Provider setup to Storybook preview configuration
+  - Configured QueryClientProvider with optimized settings for component testing environment
+  - Added TooltipProvider for shadcn/ui tooltip components used throughout the application
+  - Included Toaster component for toast notifications in isolated story environment
+  - Imported application CSS styles to ensure proper component styling in Storybook
+  - Created story decorator wrapping components with all necessary React contexts
+  - Fixed React runtime errors by providing required providers that components expect
+  - Storybook now mirrors main application context setup for authentic component rendering
+- July 6, 2025: DoT Effects Timing Refactor (Task 81)
+  - Moved Damage-over-Time (DoT) effects processing from handleEndOfTurn to handleStartOfTurn
+  - Removed DAMAGE_OVER_TIME case block from handleEndOfTurn function
+  - Added DAMAGE_OVER_TIME case to handleStartOfTurn function with identical calculation logic
+  - DoT effects now properly apply at the start of turns as per game design document
+  - Added unit test for handleStartOfTurn DoT functionality with percentage-based damage validation
+  - Updated existing handleEndOfTurn tests to reflect that DoT no longer processes at turn end
+  - Exported handleStartOfTurn function for proper test coverage
+  - Maintains database-driven approach using effect.effectDetails values and override_value system
 
 ## User Preferences
 

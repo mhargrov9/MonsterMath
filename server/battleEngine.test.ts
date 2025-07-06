@@ -3,6 +3,7 @@ import {
   getModifiedStat,
   calculateDamage,
   handleEndOfTurn,
+  handleStartOfTurn,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -187,8 +188,8 @@ describe('battleEngine Helpers', () => {
       };
 
       handleEndOfTurn(mockBattleState);
-      // Expect HP to decrease by 20
-      expect(mockBattleState.aiTeam[0].battleHp).toBe(80);
+      // DoT no longer applies at end of turn - HP should remain unchanged
+      expect(mockBattleState.aiTeam[0].battleHp).toBe(100);
       // Expect the duration to tick down by 1
       expect(mockBattleState.aiTeam[0].statusEffects[0].duration).toBe(1);
     });
@@ -224,8 +225,8 @@ describe('battleEngine Helpers', () => {
       };
 
       handleEndOfTurn(mockBattleState);
-      // Expect HP to decrease by 10% of 1000 (100 HP)
-      expect(mockBattleState.playerTeam[0].battleHp).toBe(700);
+      // DoT no longer applies at end of turn - HP should remain unchanged
+      expect(mockBattleState.playerTeam[0].battleHp).toBe(800);
       // Expect the duration to tick down by 1
       expect(mockBattleState.playerTeam[0].statusEffects[0].duration).toBe(2);
     });
@@ -272,6 +273,42 @@ describe('battleEngine Helpers', () => {
       handleEndOfTurn(mockBattleState);
       // Expect NO healing because scope doesn't match
       expect(mockBattleState.playerTeam[0].battleHp).toBe(500);
+    });
+  });
+
+  describe('handleStartOfTurn', () => {
+    it('should apply percentage-based damage from a status effect', () => {
+      // Setup: Player's turn starts. They have a status effect that deals 10% max HP damage.
+      const mockBattleState = {
+        turn: 'player',
+        playerTeam: [
+          {
+            id: 1,
+            battleHp: 800,
+            battleMaxHp: 1000,
+            monster: { id: 101, name: 'BurnedMon' },
+            statusEffects: [{
+              name: 'Test Burn',
+              duration: 2,
+              effectDetails: {
+                effect_type: 'DAMAGE_OVER_TIME',
+                value_type: 'PERCENT_MAX_HP',
+                default_value: '10.00' // 10% damage
+              }
+            }]
+          }
+        ],
+        aiTeam: [],
+        activePlayerIndex: 0,
+        battleLog: []
+      };
+
+      handleStartOfTurn(mockBattleState, true);
+
+      // Expect HP to decrease by 10% of 1000 (100 HP)
+      expect(mockBattleState.playerTeam[0].battleHp).toBe(700);
+      // Expect a log message to be added
+      expect(mockBattleState.battleLog).toContain("Your BurnedMon takes 100 damage from Test Burn!");
     });
   });
 });

@@ -51,7 +51,7 @@ const getAffinityMultiplier = (
 };
 
 // PHASE 1: Start of Turn - Handle status effects, DoT, and turn-skipping
-const handleStartOfTurn = (
+export const handleStartOfTurn = (
   battleState: any,
   isPlayerTurn: boolean,
 ): { turnSkipped: boolean } => {
@@ -112,6 +112,25 @@ const handleStartOfTurn = (
             return { turnSkipped: true };
           }
           break; // If confusion check fails, do nothing and proceed.
+        }
+
+        case 'DAMAGE_OVER_TIME': {
+          const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+          if (effectValue === 0) break;
+
+          let damageAmount = 0;
+          if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+            const maxHp = activeMonster.battleMaxHp || 0;
+            damageAmount = Math.floor(maxHp * (effectValue / 100));
+          } else {
+            damageAmount = effectValue;
+          }
+
+          if (damageAmount > 0) {
+            activeMonster.battleHp = Math.max(0, (activeMonster.battleHp || 0) - damageAmount);
+            battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name} takes ${damageAmount} damage from ${effect.name}!`);
+          }
+          break;
         }
       }
     }
@@ -317,32 +336,7 @@ export const handleEndOfTurn = (battleState: any): void => {
         if (effect.effectDetails) {
           // Process status effect based on effect_type
           switch (effect.effectDetails.effect_type) {
-            case 'DAMAGE_OVER_TIME':
-              // Calculate damage based on database values
-              let damageAmount;
-              const effectValue =
-                effect.override_value ||
-                effect.effectDetails.default_value ||
-                0;
 
-              if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-                const maxHp = monster.battleMaxHp || 0;
-                damageAmount = Math.floor(maxHp * (effectValue / 100));
-              } else {
-                // Default to FLAT damage
-                damageAmount = effectValue;
-              }
-
-              // Apply damage
-              const currentHp = monster.battleHp || 0;
-              const newHp = Math.max(currentHp - damageAmount, 0);
-              monster.battleHp = newHp;
-
-              // Add battle log message
-              battleState.battleLog.push(
-                `${currentTeamName} ${monsterName} takes ${damageAmount} damage from ${effect.effectDetails.name}!`,
-              );
-              break;
 
             case 'HEALING_OVER_TIME': {
               const healValue = parseFloat(
