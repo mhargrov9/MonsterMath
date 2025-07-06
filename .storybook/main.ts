@@ -29,9 +29,6 @@ const config: StorybookConfig = {
         alias: {
           '@': path.resolve(__dirname, '../client/src'),
           '@shared': path.resolve(__dirname, '../shared'),
-          '@/components': path.resolve(__dirname, '../client/src/components'),
-          '@/hooks': path.resolve(__dirname, '../client/src/hooks'),
-          '@/lib': path.resolve(__dirname, '../client/src/lib'),
         },
       },
     });

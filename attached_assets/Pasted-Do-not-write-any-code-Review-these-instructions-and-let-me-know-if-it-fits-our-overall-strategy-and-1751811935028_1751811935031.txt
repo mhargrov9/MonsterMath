@@ -1,0 +1,85 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Damage-over-Time (DoT) effects like Burned are incorrectly processed at the end of a turn instead of at the start, as required by the game's design document.
+
+Goal
+Refactor the battle engine to process DoT effects in the handleStartOfTurn function. Remove the old logic from handleEndOfTurn and add a new unit test to verify the correct behavior.
+
+File Modifications
+server/battleEngine.ts
+
+Action 1: Remove DoT logic from handleEndOfTurn
+
+Find the handleEndOfTurn function.
+
+Inside the switch (effect.effectDetails.effect_type) block, find and delete the entire case 'DAMAGE_OVER_TIME': { ... } block.
+
+Action 2: Add DoT logic to handleStartOfTurn
+
+Find the handleStartOfTurn function.
+
+Inside the switch (effect.effectDetails.effect_type) block, add the following new case.
+
+TypeScript
+
+case 'DAMAGE_OVER_TIME': {
+  const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+  if (effectValue === 0) break;
+
+  let damageAmount = 0;
+  if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+    const maxHp = activeMonster.battleMaxHp || 0;
+    damageAmount = Math.floor(maxHp * (effectValue / 100));
+  } else {
+    damageAmount = effectValue;
+  }
+
+  if (damageAmount > 0) {
+    activeMonster.battleHp = Math.max(0, (activeMonster.battleHp || 0) - damageAmount);
+    battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name} takes ${damageAmount} damage from ${effect.name}!`);
+  }
+  break;
+}
+server/battleEngine.test.ts
+
+Action 3: Add a Unit Test for the new DoT logic
+
+At the end of the file, add a new describe block for handleStartOfTurn and include a test for DoT.
+
+TypeScript
+
+describe('handleStartOfTurn', () => {
+  it('should apply percentage-based damage from a status effect', () => {
+    // Setup: Player's turn starts. They have a status effect that deals 10% max HP damage.
+    const mockBattleState = {
+      turn: 'player',
+      playerTeam: [
+        {
+          id: 1,
+          battleHp: 800,
+          battleMaxHp: 1000,
+          monster: { id: 101, name: 'BurnedMon' },
+          statusEffects: [{
+            name: 'Test Burn',
+            duration: 2,
+            effectDetails: {
+              effect_type: 'DAMAGE_OVER_TIME',
+              value_type: 'PERCENT_MAX_HP',
+              default_value: '10.00' // 10% damage
+            }
+          }]
+        }
+      ],
+      aiTeam: [],
+      activePlayerIndex: 0,
+      battleLog: []
+    };
+
+    handleStartOfTurn(mockBattleState, true);
+
+    // Expect HP to decrease by 10% of 1000 (100 HP)
+    expect(mockBattleState.playerTeam[0].battleHp).toBe(700);
+    // Expect a log message to be added
+    expect(mockBattleState.battleLog).toContain("Your BurnedMon takes 100 damage from Test Burn!");
+  });
+});
