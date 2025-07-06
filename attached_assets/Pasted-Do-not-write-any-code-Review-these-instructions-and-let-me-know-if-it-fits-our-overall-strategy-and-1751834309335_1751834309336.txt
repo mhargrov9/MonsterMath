@@ -1,0 +1,131 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: After a recent data structure change, the battle engine is now experiencing multiple bugs: AI monster names appear as "undefined" in the battle log, damage calculations are failing, and player HP is resetting.
+
+Goal: Fix the battle engine's core helper functions to be fully compatible with the new nested AI monster data structure. This single set of fixes should resolve the undefined names, NaN damage, and HP reset bugs simultaneously.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action 1: Fix the getModifiedStat function. Replace the entire existing function with this new, robust version that correctly handles the nested structure of AI monsters.
+
+New getModifiedStat Code:
+
+TypeScript
+
+export const getModifiedStat = (monster: UserMonster | Monster, statName: 'power' | 'defense' | 'speed'): number => {
+  // This check now correctly identifies player vs. AI monsters
+  const isUserMonster = 'userId' in monster;
+  const baseMonster = isUserMonster ? (monster as UserMonster).monster : (monster as any).monster;
+
+  let baseStatValue = 0;
+  if (!baseMonster) { // Safety check for the nested object
+     // Fallback for the old "flat" AI monster structure during transition
+     const monsterAsAny = monster as any;
+     baseStatValue = monsterAsAny[`base${statName.charAt(0).toUpperCase() + statName.slice(1)}`];
+  } else if (statName === 'power') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).power : baseMonster.basePower;
+  } else if (statName === 'defense') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).defense : baseMonster.baseDefense;
+  } else if (statName === 'speed') {
+    baseStatValue = isUserMonster ? (monster as UserMonster).speed : baseMonster.baseSpeed;
+  }
+
+  if (!monster.activeEffects || monster.activeEffects.length === 0) {
+    return baseStatValue;
+  }
+
+  let modifiedStat = baseStatValue;
+
+  // Apply FLAT modifiers
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'FLAT') {
+      modifiedStat += effect.value;
+    }
+  });
+
+  // Apply PERCENTAGE modifiers
+  monster.activeEffects.forEach(effect => {
+    if (effect.stat === statName && effect.type === 'PERCENTAGE') {
+      modifiedStat *= (1 + effect.value / 100);
+    }
+  });
+
+  return Math.floor(modifiedStat);
+};
+Action 2: Fix the Monster Naming Logic. Replace the entire handleMonsterDefeatLogic function. The new version correctly accesses the AI monster's name from the nested monster property.
+
+New handleMonsterDefeatLogic Code:
+
+TypeScript
+
+const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
+  const playerMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
+
+  const playerHp = playerMonster.battleHp ?? playerMonster.hp ?? 0;
+  const aiHp = aiMonster.battleHp ?? aiMonster.hp ?? 0;
+
+  // Handle player monster defeat
+  if (playerHp <= 0) {
+    const defeatedMonsterName = playerMonster.monster.name;
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    const playerTeamDefeated = battleState.playerTeam.every((m: any) => (m.battleHp ?? m.hp) <= 0);
+    if (playerTeamDefeated) {
+      battleState.battleEnded = true;
+      battleState.winner = 'ai';
+      await storage.saveFinalBattleState(battleState.playerTeam as any);
+    } else {
+      battleState.turn = 'player-must-swap';
+    }
+  }
+
+  // Handle AI monster defeat
+  if (aiHp <= 0) {
+    // CORRECTED NAME ACCESS:
+    const defeatedMonsterName = aiMonster.monster.name; 
+    battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
+    const aiTeamDefeated = battleState.aiTeam.every((m: any) => (m.battleHp ?? m.hp) <= 0);
+    if (aiTeamDefeated) {
+      battleState.battleEnded = true;
+      battleState.winner = 'player';
+      const playerTeam = battleState.playerTeam as UserMonster[];
+      if (playerTeam.length > 0 && playerTeam[0].userId) {
+        await storage.concludeBattle(playerTeam[0].userId, 50);
+        battleState.battleLog.push(`Victory! Awarded 50 XP!`);
+      }
+      await storage.saveFinalBattleState(battleState.playerTeam as any);
+    } else {
+      const healthyAiIndex = battleState.aiTeam.findIndex((m: any) => (m.battleHp ?? m.hp) > 0);
+      if (healthyAiIndex !== -1) {
+        battleState.activeAiIndex = healthyAiIndex;
+        const newAiMonster = battleState.aiTeam[healthyAiIndex];
+        // CORRECTED NAME ACCESS:
+        battleState.battleLog.push(`Opponent sends out ${newAiMonster.monster.name}!`);
+      }
+    }
+  }
+};
+2. server/battleEngine.test.ts
+
+Action 3: Update the tests. Add a new test case to the getModifiedStat suite to specifically verify that it works for the nested AI monster structure. This will prevent this bug from ever happening again.
+
+Code to Add to the getModifiedStat describe block:
+
+TypeScript
+
+it('should return the correct base stat for an AI monster with a nested structure', () => {
+  const nestedAiMonster = {
+    id: 2,
+    level: 5,
+    monster: {
+      name: 'Nested AiMon',
+      type: 'water',
+      basePower: 120,
+      baseDefense: 110,
+      baseSpeed: 90,
+    }
+  };
+  expect(getModifiedStat(nestedAiMonster as any, 'power')).toBe(120);
+  expect(getModifiedStat(nestedAiMonster as any, 'defense')).toBe(110);
+});
