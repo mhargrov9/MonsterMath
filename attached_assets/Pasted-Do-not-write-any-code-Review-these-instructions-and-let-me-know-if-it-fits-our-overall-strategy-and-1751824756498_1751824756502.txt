@@ -1,0 +1,56 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Abilities that should hit multiple times (e.g., Peck Flurry) only hit once because the engine doesn't process the min_hits and max_hits properties.
+
+Goal
+Enhance the executeAbility function to handle multi-hit attacks. The new logic will read the min_hits and max_hits properties from an ability and loop the damage calculation for each hit.
+
+File Modifications
+server/battleEngine.ts
+
+Action: Locate the executeAbility function. You will wrap the existing damage calculation and application logic in a new for loop.
+
+Logic to Add:
+
+Determine the number of hits for the ability, defaulting to 1.
+
+Create a for loop that runs for the determined number of hits.
+
+Move the existing calculateDamage call, the HP update logic, and the battle log messages inside this loop.
+
+Keep the MP cost deduction outside and before the loop, so it is only paid once.
+
+The total damage for the damageResult should be accumulated across all hits.
+
+server/battleEngine.test.ts
+
+Action: Add a new unit test to verify the multi-hit logic.
+
+Code to Add:
+
+TypeScript
+
+it('should handle multi-hit abilities correctly', async () => {
+  const multiHitAbility = {
+    ...mockAbility,
+    min_hits: 3,
+    max_hits: 3,
+    power_multiplier: '0.5', // Each hit is weaker
+  };
+  const defender = { ...mockAiMonster, battleHp: 1000, activeEffects: [] };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [defender],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, multiHitAbility);
+
+  // Check that the battle log contains 3 separate damage messages
+  const damageMessages = mockState.battleLog.filter(msg => msg.includes('dealing'));
+  expect(damageMessages).toHaveLength(3);
+  // Check that the defender's final HP is less than its starting HP
+  expect(mockState.aiTeam[0].battleHp).toBeLessThan(1000);
+});
