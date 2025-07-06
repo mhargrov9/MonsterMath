@@ -1,0 +1,101 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: Passive abilities that should trigger when a monster's health drops below a certain point (e.g., Crystalize) are not functional.
+
+Goal
+Implement the ON_HP_THRESHOLD passive trigger. This will involve creating a new helper function that checks the HP of monsters after damage is dealt and applies the effects of any relevant passives, like Crystalize.
+
+File Modifications
+server/battleEngine.ts
+
+Action 1: Create a new handleHpThresholds helper function.
+
+This new function will not be exported. It will loop through all monsters on the battlefield, check if their HP is below 50% of their max HP, and if they have an ON_HP_THRESHOLD passive that hasn't already been triggered. If the conditions are met, it applies the stat_modifiers from the passive to the monster's activeEffects array.
+
+Position: Add this new function definition after the handleMonsterDefeatLogic function.
+
+TypeScript
+
+const handleHpThresholds = (battleState: any): void => {
+  const allMonsters = [...battleState.playerTeam, ...battleState.aiTeam];
+  allMonsters.forEach(monster => {
+    const hpPercentage = (monster.battleHp / monster.battleMaxHp) * 100;
+    if (hpPercentage > 50) return; // Only trigger below 50%
+
+    const monsterAbilities = battleState.abilities_map[monster.monster?.id || monster.id] || [];
+    const thresholdAbilities = monsterAbilities.filter((a: any) => a.activation_trigger === 'ON_HP_THRESHOLD');
+
+    for (const passive of thresholdAbilities) {
+      // Check if this effect has already been applied to prevent re-triggering
+      const alreadyApplied = monster.activeEffects?.some((eff: any) => eff.sourceAbilityId === passive.id);
+      if (alreadyApplied) continue;
+
+      if (passive.stat_modifiers && Array.isArray(passive.stat_modifiers)) {
+        battleState.battleLog.push(`${monster.monster?.name || monster.name}'s ${passive.name} activated!`);
+        for (const modifier of passive.stat_modifiers) {
+          const newEffect = {
+            id: crypto.randomUUID(),
+            sourceAbilityId: passive.id, // Track the source to prevent re-application
+            stat: modifier.stat,
+            type: modifier.type,
+            value: modifier.value,
+            duration: modifier.duration || 99, // Assume it lasts the whole battle unless specified
+          };
+          if (!monster.activeEffects) monster.activeEffects = [];
+          monster.activeEffects.push(newEffect);
+        }
+      }
+    }
+  });
+};
+Action 2: Call the new function from executeAbility.
+
+Position: Find the executeAbility function. Add a call to handleHpThresholds(battleState) at the very end, just before the return damageResult; line.
+
+server/battleEngine.test.ts
+
+Action 3: Add a new unit test for Crystalize.
+
+TypeScript
+
+// Add this test to a new or existing describe block
+it('should trigger an ON_HP_THRESHOLD passive when HP drops below 50%', async () => {
+  const geodeTortoise = {
+    ...mockAiMonster,
+    id: 8, // Geode Tortoise ID
+    battleHp: 100,
+    battleMaxHp: 100,
+    activeEffects: [],
+  };
+  const crystalizeAbility = {
+    id: 7, // Crystalize Ability ID
+    name: 'Crystalize',
+    ability_type: 'PASSIVE',
+    activation_trigger: 'ON_HP_THRESHOLD',
+    stat_modifiers: [
+      { stat: 'defense', type: 'PERCENTAGE', value: 100, duration: 99 },
+      { stat: 'speed', type: 'PERCENTAGE', value: -50, duration: 99 }
+    ]
+  };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [geodeTortoise],
+    activePlayerIndex: 0,
+    activeAiIndex: 0,
+    battleLog: [],
+    abilities_map: { [geodeTortoise.id]: [crystalizeAbility] }
+  };
+
+  // This attack will do damage, but not enough to faint the tortoise
+  const attackAbility = { ...mockAbility, power_multiplier: '0.1' };
+
+  await executeAbility(mockState, attackAbility);
+
+  // The tortoise's HP will drop, triggering the check. Now we verify the effects.
+  const effects = mockState.aiTeam[0].activeEffects;
+  expect(effects).toHaveLength(2);
+  expect(effects.some(e => e.stat === 'defense' && e.value === 100)).toBe(true);
+  expect(effects.some(e => e.stat === 'speed' && e.value === -50)).toBe(true);
+  expect(mockState.battleLog).toContain("Test AiMon's Crystalize activated!");
+});
