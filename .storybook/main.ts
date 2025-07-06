@@ -1,12 +1,13 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
+import path from 'path';
 
 const config: StorybookConfig = {
   stories: ['../client/src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
   addons: [
     '@chromatic-com/storybook',
-    '@storybook/addon-docs',
     '@storybook/addon-a11y',
+    '@storybook/addon-docs',
     '@storybook/addon-vitest',
   ],
   framework: {
@@ -22,6 +23,12 @@ const config: StorybookConfig = {
         cors: true,
         headers: {
           'Access-Control-Allow-Origin': '*',
+        },
+      },
+      resolve: {
+        alias: {
+          '@': path.resolve(__dirname, '../client/src'),
+          '@shared': path.resolve(__dirname, '../shared'),
         },
       },
     });
