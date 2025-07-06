@@ -290,6 +290,33 @@ describe('battleEngine Helpers', () => {
       // Expect NO healing because scope doesn't match
       expect(mockBattleState.playerTeam[0].battleHp).toBe(500);
     });
+
+    it('should decrement the duration of active stat effects and remove them when expired', () => {
+      const mockState = {
+        turn: 'player',
+        playerTeam: [{
+          id: 1,
+          battleHp: 500,
+          monster: { name: 'BuffedMon' },
+          activeEffects: [
+            { id: '1', stat: 'power', type: 'FLAT', value: 20, duration: 2 },
+            { id: '2', stat: 'speed', type: 'PERCENTAGE', value: -10, duration: 1 }
+          ]
+        }],
+        aiTeam: [],
+        activePlayerIndex: 0,
+        battleLog: [],
+        abilities_map: {}
+      };
+
+      handleEndOfTurn(mockState);
+
+      // Expect one effect to be removed and the other's duration to be decremented
+      expect(mockState.playerTeam[0].activeEffects).toHaveLength(1);
+      expect(mockState.playerTeam[0].activeEffects[0].duration).toBe(1);
+      expect(mockState.playerTeam[0].activeEffects[0].stat).toBe('power');
+      expect(mockState.battleLog).toContain("The speed modifier on Your BuffedMon wore off.");
+    });
   });
 
   describe('handleStartOfTurn', () => {

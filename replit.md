@@ -1117,6 +1117,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Math.floor() ensures integer stat values for consistent battle mechanics
   - Complete stat modifier system: application via executeAbility, consumption via getModifiedStat
   - All tests passing (11/11) confirming stat modifiers work throughout battle engine
+- July 6, 2025: Stat Modifier Duration Management Implementation (Task 84)
+  - Enhanced handleEndOfTurn function to process activeEffects duration countdown
+  - Implemented automatic effect expiration when duration reaches zero
+  - Added battle log messages for effect removal with authentic monster names
+  - Duration decrements by 1 each turn with filter-based array cleanup for expired effects
+  - Created comprehensive unit test validating duration management and effect removal
+  - Complete stat modifier lifecycle: application → consumption → expiration
+  - All tests passing (12/12) confirming full stat modifier system functionality
+  - Temporary stat changes now properly expire preventing permanent modifications
 
 ## User Preferences
 

@@ -411,6 +411,19 @@ export const handleEndOfTurn = (battleState: any): void => {
       // Replace the monster's statusEffects array with the new one
       monster.statusEffects = newStatusEffects;
     }
+
+    // --- Process Active Stat Effects (Buffs/Debuffs) ---
+    if (monster.activeEffects && monster.activeEffects.length > 0) {
+      const newActiveEffects = monster.activeEffects.filter(effect => {
+        effect.duration -= 1;
+        if (effect.duration <= 0) {
+          battleState.battleLog.push(`The ${effect.stat} modifier on ${currentTeamName} ${monsterName} wore off.`);
+          return false; // Remove effect
+        }
+        return true; // Keep effect
+      });
+      monster.activeEffects = newActiveEffects;
+    }
   });
 
   // After processing all monsters, switch the turn to the other player
