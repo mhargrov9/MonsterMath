@@ -637,6 +637,9 @@ export const executeAbility = async (
     }
   }
 
+  // Check for HP threshold passive triggers after damage is dealt
+  handleHpThresholds(battleState);
+
   return damageResult;
 };
 
@@ -733,6 +736,39 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
       }
     }
   }
+};
+
+const handleHpThresholds = (battleState: any): void => {
+  const allMonsters = [...battleState.playerTeam, ...battleState.aiTeam];
+  allMonsters.forEach(monster => {
+    const hpPercentage = (monster.battleHp / monster.battleMaxHp) * 100;
+    if (hpPercentage > 50) return; // Only trigger below 50%
+
+    const monsterAbilities = battleState.abilities_map[monster.monster?.id || monster.id] || [];
+    const thresholdAbilities = monsterAbilities.filter((a: any) => a.activation_trigger === 'ON_HP_THRESHOLD');
+
+    for (const passive of thresholdAbilities) {
+      // Check if this effect has already been applied to prevent re-triggering
+      const alreadyApplied = monster.activeEffects?.some((eff: any) => eff.sourceAbilityId === passive.id);
+      if (alreadyApplied) continue;
+
+      if (passive.stat_modifiers && Array.isArray(passive.stat_modifiers)) {
+        battleState.battleLog.push(`${monster.monster?.name || monster.name}'s ${passive.name} activated!`);
+        for (const modifier of passive.stat_modifiers) {
+          const newEffect = {
+            id: crypto.randomUUID(),
+            sourceAbilityId: passive.id, // Track the source to prevent re-application
+            stat: modifier.stat,
+            type: modifier.type,
+            value: modifier.value,
+            duration: modifier.duration || 99, // Assume it lasts the whole battle unless specified
+          };
+          if (!monster.activeEffects) monster.activeEffects = [];
+          monster.activeEffects.push(newEffect);
+        }
+      }
+    }
+  });
 };
 
 // Main damage calculation function

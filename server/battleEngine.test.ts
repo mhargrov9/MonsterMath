@@ -410,5 +410,46 @@ describe('battleEngine Helpers', () => {
       expect(defenderWithPassive.statusEffects[0].name).toBe('Phasing');
       expect(mockState.battleLog).toContain("Test AiMon's Test Phase Shift activated!");
     });
+
+    it('should trigger an ON_HP_THRESHOLD passive when HP drops below 50%', async () => {
+      const geodeTortoise = {
+        ...mockAiMonster,
+        id: 8, // Geode Tortoise ID
+        battleHp: 100,
+        battleMaxHp: 100,
+        activeEffects: [],
+      };
+      const crystalizeAbility = {
+        id: 7, // Crystalize Ability ID
+        name: 'Crystalize',
+        ability_type: 'PASSIVE',
+        activation_trigger: 'ON_HP_THRESHOLD',
+        stat_modifiers: [
+          { stat: 'defense', type: 'PERCENTAGE', value: 100, duration: 99 },
+          { stat: 'speed', type: 'PERCENTAGE', value: -50, duration: 99 }
+        ]
+      };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [geodeTortoise],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: { [geodeTortoise.id]: [crystalizeAbility] }
+      };
+
+      // This attack will do significant damage to drop HP below 50%
+      const attackAbility = { ...mockAbility, power_multiplier: '2.0' }; // Ensure HP drops below 50%
+
+      await executeAbility(mockState, attackAbility);
+
+      // The tortoise's HP will drop below 50%, triggering the Crystalize passive. Now we verify the effects.
+      const effects = mockState.aiTeam[0].activeEffects;
+      expect(effects).toHaveLength(2);
+      expect(effects.some(e => e.stat === 'defense' && e.value === 100)).toBe(true);
+      expect(effects.some(e => e.stat === 'speed' && e.value === -50)).toBe(true);
+      expect(mockState.battleLog).toContain("Test AiMon's Crystalize activated!");
+    });
   });
 });

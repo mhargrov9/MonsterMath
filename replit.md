@@ -1136,6 +1136,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Created comprehensive unit test validating Phase Shift passive with 100% trigger chance
   - All tests passing (13/13) confirming defensive passive abilities work correctly
   - Foundation established for tactical defensive gameplay with reactive monster abilities
+- July 6, 2025: ON_HP_THRESHOLD Passive Abilities Implementation (HP Crisis Triggers)
+  - Created handleHpThresholds helper function for critical HP passive ability processing
+  - Added HP percentage calculation system triggering passives when monsters drop below 50% health
+  - Implemented source ability tracking with sourceAbilityId to prevent passive re-triggering
+  - Enhanced executeAbility function to call handleHpThresholds after damage calculation
+  - Uses authentic database stat_modifiers array for Crystalize-style defensive transformations
+  - Added comprehensive unit test validating Geode Tortoise Crystalize passive (+100% defense, -50% speed)
+  - All tests passing (14/14) confirming HP threshold passive system works correctly
+  - Crystalize passive now functional: doubles defense when HP drops below 50% with speed penalty
+  - Foundation established for tactical "berserker" and "last stand" style monster abilities
 
 ## User Preferences
 
