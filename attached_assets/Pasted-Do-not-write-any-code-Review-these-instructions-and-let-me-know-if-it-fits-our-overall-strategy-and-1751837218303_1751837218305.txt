@@ -1,0 +1,117 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The core logic for unique passives like Tailwind (team-wide stat boost) and Phase Shift (damage evasion) is not covered by specific tests. Additionally, Phase Shift doesn't actually cause an evasion; it only applies a status effect.
+
+Goal: First, implement the damage-negating logic for EVASION type status effects in the battle engine. Second, add specific unit tests for the Tailwind and Phase Shift passives to lock in their unique behaviors.
+
+File Modifications
+1. server/battleEngine.ts
+
+Action: Modify the executeAbility function. After the damage calculation but before the damage is applied, we need to add a new check to see if the defender evades the attack.
+
+Position: Find the line const damageResult = calculateDamage(...). Add the new code block immediately after it.
+
+Code to Add:
+
+TypeScript
+
+// --- Check for Evasion Status Effects on Defender ---
+if (defender.statusEffects?.some(e => e.effectDetails?.effect_type === 'EVASION')) {
+  if (ability.affinity === 'Physical') {
+    damageResult.damage = 0; // Negate the damage
+    battleState.battleLog.push(`${defender.monster.name} evaded the physical attack!`);
+  }
+}
+2. server/battleEngine.test.ts
+
+Action: Add the following new tests to the file. They can be in a new describe block for "Passive Ability Logic".
+
+Code to Add:
+
+TypeScript
+
+it('Tailwind passive should boost the speed of all team members at battle start', () => {
+  // Setup a monster with Tailwind on the bench
+  const griffin = { ...mockPlayerMonster, monster: { ...mockPlayerMonster.monster, id: 9 }};
+  const salamander = { ...mockPlayerMonster, id: 2, speed: 100, monster: { ...mockPlayerMonster.monster, id: 10, baseSpeed: 100 }};
+  const tailwindPassive = {
+    id: 9, name: 'Tailwind', ability_type: 'PASSIVE', activation_trigger: 'ON_BATTLE_START',
+    stat_modifiers: [{ stat: 'speed', type: 'PERCENTAGE', value: 5 }]
+  };
+  const mockState = {
+    playerTeam: [salamander, griffin], // Griffin with Tailwind is on the bench
+    abilities_map: { 9: [tailwindPassive] }
+  };
+
+  // This is a simplified test focusing on the effect, not the whole session creation
+  // In a real scenario, this logic is inside createBattleSession
+  const team = mockState.playerTeam;
+  for (const monster of team) {
+    const monsterAbilities = mockState.abilities_map[monster.monster.id] || [];
+    for (const ability of monsterAbilities) {
+      if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'ON_BATTLE_START') {
+        for (const teamMate of team) {
+          teamMate.speed = Math.floor(teamMate.speed * (1 + ability.stat_modifiers[0].value / 100));
+        }
+      }
+    }
+  }
+
+  // Both monsters should have their speed increased by 5%
+  expect(salamander.speed).toBe(105);
+  expect(griffin.speed).toBe(105); // Initial speed was 100, now 105
+});
+
+it('Phase Shift passive should allow dodging a Physical attack', async () => {
+  // Setup a defender that has the "Phasing" status effect active
+  const defenderWithEvasion = {
+    ...mockAiMonster,
+    battleHp: 500,
+    statusEffects: [{
+      name: 'Phasing',
+      duration: 1,
+      effectDetails: { effect_type: 'EVASION' }
+    }]
+  };
+  const physicalAbility = { ...mockAbility, affinity: 'Physical' };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [defenderWithEvasion],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, physicalAbility);
+
+  // Expect the defender's HP to be unchanged because the attack was evaded
+  expect(mockState.aiTeam[0].battleHp).toBe(500);
+  expect(mockState.battleLog).toContain("Test AiMon evaded the physical attack!");
+});
+
+it('Phase Shift passive should NOT dodge a non-Physical attack', async () => {
+  const defenderWithEvasion = {
+    ...mockAiMonster,
+    battleHp: 500,
+    statusEffects: [{
+      name: 'Phasing',
+      duration: 1,
+      effectDetails: { effect_type: 'EVASION' }
+    }]
+  };
+  // Use the default Fire ability
+  const fireAbility = { ...mockAbility, affinity: 'Fire' };
+  const mockState = {
+    turn: 'player',
+    playerTeam: [mockPlayerMonster],
+    aiTeam: [defenderWithEvasion],
+    activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+    abilities_map: {}
+  };
+
+  await executeAbility(mockState, fireAbility);
+
+  // Expect HP to decrease because the attack was not Physical and was not evaded
+  expect(mockState.aiTeam[0].battleHp).toBeLessThan(500);
+  expect(mockState.battleLog).not.toContain("evaded the physical attack!");
+});
