@@ -508,38 +508,7 @@ export const executeAbility = async (
   const attacker = attackingTeam[attackerIndex];
   const defender = defendingTeam[defenderIndex];
 
-  // Calculate damage using existing logic
-  const damageResult = calculateDamage(attacker, defender, ability);
-
-  // --- Check for ON_BEING_HIT Passives on the Defender ---
-  const defenderAbilities = battleState.abilities_map[defender.monster?.id || defender.id] || [];
-  for (const passive of defenderAbilities) {
-    if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_BEING_HIT' && passive.effectDetails) {
-
-      const chance = parseFloat(passive.override_chance || passive.effectDetails.default_value || '1.0');
-
-      if (Math.random() < chance) {
-        // For now, we'll focus on passives that apply a status effect to the defender
-        if (passive.status_effect_id) {
-          if (!defender.statusEffects) {
-            defender.statusEffects = [];
-          }
-          const newStatusEffect = {
-            name: passive.effectDetails.name,
-            duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
-            isNew: true,
-            effectDetails: passive.effectDetails,
-            override_value: passive.override_value,
-          };
-          defender.statusEffects.push(newStatusEffect);
-          const defenderName = defender.monster?.name || defender.name;
-          battleState.battleLog.push(`${defenderName}'s ${passive.name} activated!`);
-        }
-      }
-    }
-  }
-
-  // Apply MP cost to attacker
+  // Apply MP cost to attacker (only once, before the loop)
   const mpCost = ability.mp_cost || 0;
   if ('battleMp' in attacker) {
     attacker.battleMp = (attacker.battleMp || attacker.mp || 0) - mpCost;
@@ -547,40 +516,117 @@ export const executeAbility = async (
     attacker.mp = (attacker.mp || 0) - mpCost;
   }
 
-  // IMMUTABLE UPDATE: Find the defender in the correct team array and update it.
-  const defenderTeamToUpdate = isPlayerTurn
-    ? battleState.aiTeam
-    : battleState.playerTeam;
-  const defenderUpdateIndex = defenderTeamToUpdate.findIndex(
-    (m: UserMonster) => m.id === defender.id,
-  );
-  if (defenderUpdateIndex !== -1) {
-    const updatedDefender = { ...defenderTeamToUpdate[defenderUpdateIndex] };
-    const currentHp = updatedDefender.battleHp || 0;
-    updatedDefender.battleHp = Math.max(0, currentHp - damageResult.damage);
-    defenderTeamToUpdate[defenderUpdateIndex] = updatedDefender;
+  // Determine number of hits for multi-hit abilities
+  const minHits = ability.min_hits || 1;
+  const maxHits = ability.max_hits || 1;
+  const numHits = Math.floor(Math.random() * (maxHits - minHits + 1)) + minHits;
+
+  // Initialize total damage accumulator
+  let totalDamage = 0;
+  let totalDamageResult: DamageResult = {
+    damage: 0,
+    isCritical: false,
+    affinityMultiplier: 1.0,
+  };
+
+  // Execute the ability for each hit
+  for (let hitIndex = 0; hitIndex < numHits; hitIndex++) {
+    // Calculate damage for this hit
+    const damageResult = calculateDamage(attacker, defender, ability);
+    totalDamage += damageResult.damage;
+
+    // Update accumulated damage result (preserve critical/affinity from any hit)
+    totalDamageResult.damage += damageResult.damage;
+    if (damageResult.isCritical) {
+      totalDamageResult.isCritical = true;
+    }
+    if (damageResult.affinityMultiplier !== 1.0) {
+      totalDamageResult.affinityMultiplier = damageResult.affinityMultiplier;
+    }
+
+    // --- Check for ON_BEING_HIT Passives on the Defender (per hit) ---
+    const defenderAbilities = battleState.abilities_map[defender.monster?.id || defender.id] || [];
+    for (const passive of defenderAbilities) {
+      if (passive.ability_type === 'PASSIVE' && passive.activation_trigger === 'ON_BEING_HIT' && passive.effectDetails) {
+
+        const chance = parseFloat(passive.override_chance || passive.effectDetails.default_value || '1.0');
+
+        if (Math.random() < chance) {
+          // For now, we'll focus on passives that apply a status effect to the defender
+          if (passive.status_effect_id) {
+            if (!defender.statusEffects) {
+              defender.statusEffects = [];
+            }
+            const newStatusEffect = {
+              name: passive.effectDetails.name,
+              duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
+              isNew: true,
+              effectDetails: passive.effectDetails,
+              override_value: passive.override_value,
+            };
+            defender.statusEffects.push(newStatusEffect);
+            const defenderName = defender.monster?.name || defender.name;
+            battleState.battleLog.push(`${defenderName}'s ${passive.name} activated!`);
+          }
+        }
+      }
+    }
+
+    // IMMUTABLE UPDATE: Find the defender in the correct team array and update it for this hit.
+    const defenderTeamToUpdate = isPlayerTurn
+      ? battleState.aiTeam
+      : battleState.playerTeam;
+    const defenderUpdateIndex = defenderTeamToUpdate.findIndex(
+      (m: UserMonster) => m.id === defender.id,
+    );
+    if (defenderUpdateIndex !== -1) {
+      const updatedDefender = { ...defenderTeamToUpdate[defenderUpdateIndex] };
+      const currentHp = updatedDefender.battleHp || 0;
+      updatedDefender.battleHp = Math.max(0, currentHp - damageResult.damage);
+      defenderTeamToUpdate[defenderUpdateIndex] = updatedDefender;
+    }
+
+    // Add hit-specific damage message to battle log
+    const attackerName = attacker.monster?.name || attacker.name;
+    const defenderName = defender.monster?.name || defender.name;
+    const abilityName = ability.name || 'an ability';
+    
+    if (numHits > 1) {
+      battleState.battleLog.push(
+        `${isPlayerTurn ? 'Your' : "Opponent's"} ${attackerName} hit ${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName} with ${abilityName} (hit ${hitIndex + 1}/${numHits}), dealing ${damageResult.damage} damage!`,
+      );
+    } else {
+      battleState.battleLog.push(
+        `${isPlayerTurn ? 'Your' : "Opponent's"} ${attackerName} used ${abilityName} on ${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName}, dealing ${damageResult.damage} damage!`,
+      );
+    }
+
+    // Add detailed combat result messages based on damageResult for this hit
+    if (damageResult.affinityMultiplier > 1.0) {
+      battleState.battleLog.push("It's super effective!");
+    }
+
+    if (damageResult.affinityMultiplier < 1.0) {
+      battleState.battleLog.push("It's not very effective...");
+    }
+
+    if (damageResult.isCritical) {
+      battleState.battleLog.push('A critical hit!');
+    }
   }
 
-  // Add action to battle log with detailed damage information
-  const attackerName = attacker.monster?.name || attacker.name;
-  const defenderName = defender.monster?.name || defender.name;
-  const abilityName = ability.name || 'an ability';
-  battleState.battleLog.push(
-    `${isPlayerTurn ? 'Your' : "Opponent's"} ${attackerName} used ${abilityName} on ${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName}, dealing ${damageResult.damage} damage!`,
-  );
-
-  // Add detailed combat result messages based on damageResult
-  if (damageResult.affinityMultiplier > 1.0) {
-    battleState.battleLog.push("It's super effective!");
+  // Add total damage summary for multi-hit abilities
+  if (numHits > 1) {
+    const attackerName = attacker.monster?.name || attacker.name;
+    const defenderName = defender.monster?.name || defender.name;
+    const abilityName = ability.name || 'an ability';
+    battleState.battleLog.push(
+      `${abilityName} hit ${numHits} times for a total of ${totalDamage} damage!`,
+    );
   }
 
-  if (damageResult.affinityMultiplier < 1.0) {
-    battleState.battleLog.push("It's not very effective...");
-  }
-
-  if (damageResult.isCritical) {
-    battleState.battleLog.push('A critical hit!');
-  }
+  // Use the accumulated damage result for the rest of the function
+  const damageResult = totalDamageResult;
 
   // Check if ability applies a status effect using the new normalized structure
   if (ability.status_effect_id && ability.effectDetails) {
@@ -621,6 +667,7 @@ export const executeAbility = async (
 
   // --- Apply Stat Modifiers ---
   if (ability.stat_modifiers && Array.isArray(ability.stat_modifiers)) {
+    const defenderName = defender.monster?.name || defender.name;
     for (const modifier of ability.stat_modifiers) {
       if (!defender.activeEffects) {
         defender.activeEffects = [];

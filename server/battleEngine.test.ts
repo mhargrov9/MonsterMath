@@ -514,4 +514,109 @@ describe('battleEngine Helpers', () => {
       expect(mockState.battleLog).not.toContain("Test PlayerMon's Soot Cloud activated!");
     });
   });
+
+  describe('Multi-Hit Abilities', () => {
+    it('should handle multi-hit abilities correctly', async () => {
+      const multiHitAbility = {
+        ...mockAbility,
+        min_hits: 3,
+        max_hits: 3,
+        power_multiplier: '0.5', // Each hit is weaker
+      };
+      const defender = { ...mockAiMonster, battleHp: 1000, activeEffects: [] };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [defender],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, multiHitAbility);
+
+      // Check that the battle log contains 3 separate damage messages
+      const damageMessages = mockState.battleLog.filter(msg => msg.includes('dealing'));
+      expect(damageMessages).toHaveLength(3);
+      // Check that the defender's final HP is less than its starting HP
+      expect(mockState.aiTeam[0].battleHp).toBeLessThan(1000);
+    });
+
+    it('should handle variable hit counts for multi-hit abilities', async () => {
+      const variableHitAbility = {
+        ...mockAbility,
+        min_hits: 2,
+        max_hits: 5,
+        power_multiplier: '0.4', // Each hit is weaker to compensate for multiple hits
+      };
+      const defender = { ...mockAiMonster, battleHp: 1000, activeEffects: [] };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [defender],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, variableHitAbility);
+
+      // Check that the battle log contains at least 2 and at most 5 damage messages
+      const damageMessages = mockState.battleLog.filter(msg => msg.includes('dealing'));
+      expect(damageMessages.length).toBeGreaterThanOrEqual(2);
+      expect(damageMessages.length).toBeLessThanOrEqual(5);
+      // Check that the defender's final HP is less than its starting HP
+      expect(mockState.aiTeam[0].battleHp).toBeLessThan(1000);
+    });
+
+    it('should only deduct MP cost once for multi-hit abilities', async () => {
+      const multiHitAbility = {
+        ...mockAbility,
+        min_hits: 4,
+        max_hits: 4,
+        mp_cost: 50,
+        power_multiplier: '0.3',
+      };
+      const attacker = { ...mockPlayerMonster, battleMp: 100 };
+      const defender = { ...mockAiMonster, battleHp: 1000, activeEffects: [] };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [attacker],
+        aiTeam: [defender],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, multiHitAbility);
+
+      // Check that MP was only deducted once (100 - 50 = 50)
+      expect(mockState.playerTeam[0].battleMp).toBe(50);
+      // Check that all 4 hits were executed
+      const damageMessages = mockState.battleLog.filter(msg => msg.includes('dealing'));
+      expect(damageMessages).toHaveLength(4);
+    });
+
+    it('should accumulate total damage across all hits', async () => {
+      const multiHitAbility = {
+        ...mockAbility,
+        min_hits: 3,
+        max_hits: 3,
+        power_multiplier: '0.5',
+      };
+      const defender = { ...mockAiMonster, battleHp: 1000, activeEffects: [] };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [defender],
+        activePlayerIndex: 0, activeAiIndex: 0, battleLog: [],
+        abilities_map: {}
+      };
+
+      await executeAbility(mockState, multiHitAbility);
+
+      // Check that total damage summary is present for multi-hit
+      const totalDamageMessage = mockState.battleLog.find(msg => msg.includes('hit 3 times for a total of'));
+      expect(totalDamageMessage).toBeTruthy();
+      // Check that defender took cumulative damage
+      expect(mockState.aiTeam[0].battleHp).toBeLessThan(1000);
+    });
+  });
 });

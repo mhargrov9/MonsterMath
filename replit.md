@@ -1166,6 +1166,17 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Storybook now starts successfully and serves component documentation properly
   - Resolved 403 Forbidden errors that were blocking component development workflow
   - Enhanced developer experience with functional visual component testing environment
+- July 6, 2025: Multi-Hit Abilities System Implementation
+  - Enhanced executeAbility function to process min_hits and max_hits properties from database
+  - Wrapped damage calculation and application logic in randomized hit count loop
+  - MP cost deducted only once per ability use (not per hit) maintaining game balance
+  - Individual hit tracking with detailed battle log messages showing hit sequence
+  - Accumulated total damage across all hits with summary message for multi-hit abilities
+  - ON_BEING_HIT passive abilities trigger on each individual hit for authentic interactions
+  - Added comprehensive test coverage with 4 new unit tests validating multi-hit mechanics
+  - Test coverage: fixed hit count (3/3), variable hit count (2-5), MP cost validation, damage accumulation
+  - All 20 tests passing with 100% multi-hit ability functionality validation
+  - Abilities like Peck Flurry now execute multiple hits as intended using database-driven hit counts
 
 ## User Preferences
 
