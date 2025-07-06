@@ -6,6 +6,7 @@ import {
   Ability,
   Turn,
   StatusEffect,
+  ActiveEffect,
 } from '../shared/types.js';
 import { storage } from './storage.js';
 import crypto from 'crypto';
@@ -466,7 +467,7 @@ const executeHealingAbility = async (
 };
 
 // Helper function to execute ability (extracted from existing applyDamage logic)
-const executeAbility = async (
+export const executeAbility = async (
   battleState: any,
   ability: Ability,
 ): Promise<DamageResult> => {
@@ -567,6 +568,24 @@ const executeAbility = async (
       battleState.battleLog.push(
         `${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName} was ${effectName}!`,
       );
+    }
+  }
+
+  // --- Apply Stat Modifiers ---
+  if (ability.stat_modifiers && Array.isArray(ability.stat_modifiers)) {
+    for (const modifier of ability.stat_modifiers) {
+      if (!defender.activeEffects) {
+        defender.activeEffects = [];
+      }
+      const newEffect: ActiveEffect = {
+        id: crypto.randomUUID(),
+        stat: modifier.stat,
+        type: modifier.type,
+        value: modifier.value,
+        duration: modifier.duration,
+      };
+      defender.activeEffects.push(newEffect);
+      battleState.battleLog.push(`${defenderName}'s ${modifier.stat} was lowered!`);
     }
   }
 
@@ -781,6 +800,7 @@ export const createBattleSession = async (
     monster.battleMp = monster.mp;
     monster.battleMaxMp = monster.maxMp;
     monster.statusEffects = [];
+    monster.activeEffects = [];
   }
 
   // Add battleHp and battleMaxHp to every monster in aiTeam
@@ -790,6 +810,7 @@ export const createBattleSession = async (
     monster.battleMp = monster.mp || 0;
     monster.battleMaxMp = monster.mp || 0; // AI monsters use mp as max
     monster.statusEffects = [];
+    monster.activeEffects = [];
   }
 
   const battleState = {

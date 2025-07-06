@@ -1098,6 +1098,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Updated existing handleEndOfTurn tests to reflect that DoT no longer processes at turn end
   - Exported handleStartOfTurn function for proper test coverage
   - Maintains database-driven approach using effect.effectDetails values and override_value system
+- July 6, 2025: Stat Modifiers System Implementation (Task 82)
+  - Added ActiveEffect interface to shared/types.ts for stat modification tracking
+  - Extended UserMonster and Monster interfaces with activeEffects array field
+  - Enhanced createBattleSession to initialize activeEffects arrays for all monsters
+  - Updated executeAbility function to process ability.stat_modifiers from database
+  - Implements stat debuffs/buffs with FLAT or PERCENTAGE types for power/defense/speed
+  - Added unique UUID tracking for each stat modifier application with duration system
+  - Created comprehensive unit test validating stat modifier application to target monsters
+  - All stat modifiers read from database fields ensuring no hardcoded mechanics
+  - Foundation established for stat modification gameplay with server-authoritative processing
 
 ## User Preferences
 

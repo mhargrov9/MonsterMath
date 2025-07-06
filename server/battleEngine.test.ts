@@ -4,6 +4,7 @@ import {
   calculateDamage,
   handleEndOfTurn,
   handleStartOfTurn,
+  executeAbility,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -309,6 +310,30 @@ describe('battleEngine Helpers', () => {
       expect(mockBattleState.playerTeam[0].battleHp).toBe(700);
       // Expect a log message to be added
       expect(mockBattleState.battleLog).toContain("Your BurnedMon takes 100 damage from Test Burn!");
+    });
+  });
+
+  describe('executeAbility', () => {
+    it('should apply a stat modifier to the target monster', async () => {
+      const mockAbilityWithDebuff = {
+        ...mockAbility,
+        stat_modifiers: [{ stat: 'speed', type: 'PERCENTAGE', value: -10, duration: 3 }]
+      };
+      const mockState = {
+        turn: 'player',
+        playerTeam: [mockPlayerMonster],
+        aiTeam: [{ ...mockAiMonster, activeEffects: [] }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+      };
+
+      await executeAbility(mockState, mockAbilityWithDebuff);
+
+      expect(mockState.aiTeam[0].activeEffects).toHaveLength(1);
+      const effect = mockState.aiTeam[0].activeEffects[0];
+      expect(effect.stat).toBe('speed');
+      expect(effect.value).toBe(-10);
     });
   });
 });

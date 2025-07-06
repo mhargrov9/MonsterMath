@@ -11,6 +11,14 @@ export interface StatusEffect {
   [key: string]: any;
 }
 
+export interface ActiveEffect {
+  id: string; // A unique ID for this specific application of the effect
+  stat: 'power' | 'defense' | 'speed';
+  type: 'FLAT' | 'PERCENTAGE';
+  value: number;
+  duration: number;
+}
+
 export interface DamageResult {
   damage: number;
   isCritical: boolean;
@@ -40,6 +48,7 @@ export interface UserMonster {
   battleMaxMp?: number;
   isShattered?: boolean;
   statusEffects?: StatusEffect[];
+  activeEffects?: ActiveEffect[];
 }
 
 export interface Monster {
@@ -67,6 +76,7 @@ export interface Monster {
   levelUpgrades?: any;
   hp?: number;
   mp?: number;
+  activeEffects?: ActiveEffect[];
 }
 
 export interface Ability {
