@@ -439,6 +439,39 @@ describe('battleEngine Helpers', () => {
       const result = handleStartOfTurn(mockState, true);
       expect(result.turnSkipped).toBe(true);
     });
+
+    it('should apply DoT damage to benched monsters', () => {
+      const activeMonster = { ...mockPlayerMonster, battleHp: 500 };
+      const benchedMonster = {
+        ...mockPlayerMonster,
+        id: 99, // a different ID
+        battleHp: 300,
+        battleMaxHp: 400,
+        statusEffects: [{
+          name: 'Test Burn',
+          duration: 2,
+          effectDetails: {
+            effect_type: 'DAMAGE_OVER_TIME',
+            value_type: 'PERCENT_MAX_HP',
+            default_value: '10.00' // 10% damage
+          }
+        }]
+      };
+
+      const mockState = {
+        turn: 'player',
+        playerTeam: [activeMonster, benchedMonster],
+        activePlayerIndex: 0,
+        battleLog: []
+      };
+
+      handleStartOfTurn(mockState, true);
+
+      // Expect benched monster's HP to decrease by 10% of 400 (40 HP)
+      expect(mockState.playerTeam[1].battleHp).toBe(260);
+      // Expect active monster's HP to be unchanged
+      expect(mockState.playerTeam[0].battleHp).toBe(500);
+    });
   });
 
   describe('executeAbility', () => {

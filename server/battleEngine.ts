@@ -78,90 +78,62 @@ export const handleStartOfTurn = (
   battleState: any,
   isPlayerTurn: boolean,
 ): { turnSkipped: boolean } => {
-  const currentTeam = isPlayerTurn
-    ? battleState.playerTeam
-    : battleState.aiTeam;
-  const activeIndex = isPlayerTurn
-    ? battleState.activePlayerIndex
-    : battleState.activeAiIndex;
-  const activeMonster = currentTeam[activeIndex];
+  const currentTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
   const teamName = isPlayerTurn ? 'Your' : "Opponent's";
 
-  if (activeMonster.statusEffects && activeMonster.statusEffects.length > 0) {
-    for (const effect of activeMonster.statusEffects) {
-      if (!effect.effectDetails) continue;
-
-      switch (effect.effectDetails.effect_type) {
-        case 'TURN_SKIP': {
-          // For PARALYZED
-          battleState.battleLog.push(
-            `${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`,
-          );
-          return { turnSkipped: true };
-        }
-
-        case 'DISRUPTION': {
-          // For CONFUSED
-          const confusionChance = parseFloat(
-            effect.effectDetails.default_value || '0.5',
-          );
-
-          // Read chance from the database (default_value), with a fallback.
-
-          if (Math.random() < confusionChance) {
-            const monsterName =
-              activeMonster.monster?.name || activeMonster.name;
-            // Read self-damage modifier from the database (secondary_value), with a fallback.
-            const selfDamageModifier = parseFloat(
-              effect.effectDetails.secondary_value || '0.4',
-            );
-
-            // Calculate self-damage based on the monster's own power stat.
-            const selfDamage = Math.floor(
-              getModifiedStat(activeMonster, 'power') * selfDamageModifier,
-            );
-
-            if (selfDamage > 0) {
-              activeMonster.battleHp = Math.max(
-                0,
-                activeMonster.battleHp - selfDamage,
-              );
-              battleState.battleLog.push(
-                `${teamName} ${monsterName} is confused and hurt itself for ${selfDamage} damage!`,
-              );
-            }
-
-            // The turn is skipped after self-damage.
-            return { turnSkipped: true };
-          }
-          break; // If confusion check fails, do nothing and proceed.
-        }
-
-        case 'DAMAGE_OVER_TIME': {
+  // --- Process DoT for ALL monsters on the team ---
+  for (const monster of currentTeam) {
+    if (monster.statusEffects?.length > 0) {
+      for (const effect of monster.statusEffects) {
+        if (effect.effectDetails?.effect_type === 'DAMAGE_OVER_TIME') {
+          const monsterName = monster.monster?.name || monster.name;
           const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
-          if (effectValue === 0) break;
+          if (effectValue === 0) continue;
 
           let damageAmount = 0;
           if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-            const maxHp = activeMonster.battleMaxHp || 0;
-            damageAmount = Math.floor(maxHp * (effectValue / 100));
+            damageAmount = Math.floor((monster.battleMaxHp || 0) * (effectValue / 100));
           } else {
             damageAmount = effectValue;
           }
 
           if (damageAmount > 0) {
-            activeMonster.battleHp = Math.max(0, (activeMonster.battleHp || 0) - damageAmount);
-            battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name} takes ${damageAmount} damage from ${effect.name}!`);
+            monster.battleHp = Math.max(0, (monster.battleHp || 0) - damageAmount);
+            battleState.battleLog.push(`${teamName} ${monsterName} takes ${damageAmount} damage from ${effect.name}!`);
           }
-          break;
         }
       }
     }
   }
 
-  battleState.battleLog.push(
-    `${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`,
-  );
+  // --- Process Turn-Skipping effects for ACTIVE monster ONLY ---
+  const activeMonster = currentTeam[isPlayerTurn ? battleState.activePlayerIndex : battleState.activeAiIndex];
+  if (activeMonster.statusEffects?.length > 0) {
+    for (const effect of activeMonster.statusEffects) {
+      if (!effect.effectDetails) continue;
+      switch (effect.effectDetails.effect_type) {
+        case 'TURN_SKIP':
+          battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name} is paralyzed and can't move!`);
+          return { turnSkipped: true };
+        case 'DISRUPTION':
+          // (Existing Confusion logic here...)
+          const confusionChance = parseFloat(effect.effectDetails.default_value || '0.5');
+          if (Math.random() < confusionChance) {
+            const monsterName = activeMonster.monster?.name || activeMonster.name;
+            const selfDamageModifier = parseFloat(effect.effectDetails.secondary_value || '0.4');
+            const selfDamage = Math.floor(getModifiedStat(activeMonster, 'power') * selfDamageModifier);
+            if (selfDamage > 0) {
+              activeMonster.battleHp = Math.max(0, activeMonster.battleHp - selfDamage);
+              battleState.battleLog.push(`${teamName} ${monsterName} is confused and hurt itself for ${selfDamage} damage!`);
+            }
+            return { turnSkipped: true };
+          }
+          break;
+      }
+    }
+  }
+
+  battleState.battleLog.push(`${teamName} ${activeMonster.monster?.name || activeMonster.name}'s turn begins!`);
   return { turnSkipped: false };
 };
 

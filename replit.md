@@ -1001,6 +1001,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed database integrity issue at source rather than patching code logic
   - Removed diagnostic console logging for clean production code
   - Soothing Aura now correctly heals 3% of max HP using authentic database-driven percentage calculation
+- July 6, 2025: Team-Wide DoT Processing System Implementation
+  - Enhanced handleStartOfTurn function to process DAMAGE_OVER_TIME effects on ALL monsters in the team
+  - Replaced single-monster DoT processing with team-wide iteration using `for (const monster of currentTeam)`
+  - Maintained separation between team-wide DoT processing and active-monster-only turn-skipping effects
+  - Added comprehensive unit test validating benched monster DoT damage while preserving active monster HP
+  - Achieves 47/47 passing tests confirming authentic strategic team management gameplay
+  - Enables realistic battle mechanics where benched monsters can be damaged by persistent status effects
+  - Maintains server-authoritative architecture with database-driven effect calculations for all team members
   - Maintains database-driven architecture with proper data integrity
 - July 6, 2025: Vitest Testing Framework Implementation (Task 69)
   - Installed Vitest testing framework for comprehensive test coverage
