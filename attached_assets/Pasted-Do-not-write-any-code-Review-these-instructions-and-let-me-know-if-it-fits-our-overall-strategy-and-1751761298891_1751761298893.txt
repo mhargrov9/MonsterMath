@@ -1,0 +1,80 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem: The complex logic inside the handleEndOfTurn function, which handles status effects like Burned and passive healing, is not yet covered by our automated test suite.
+
+Goal
+Expand the test coverage in server/battleEngine.test.ts to include the handleEndOfTurn function. Add specific unit tests to verify that Damage-over-Time and percentage-based Healing-over-Time effects are calculated correctly.
+
+File Modifications
+server/battleEngine.test.ts
+
+Action: At the end of the file, add a new describe block for the handleEndOfTurn function. This will involve creating new mock data and two new tests.
+
+Code to Add:
+
+TypeScript
+
+// Add this new describe block after the existing 'calculateDamage' block
+
+describe('handleEndOfTurn', () => {
+  it('should correctly apply percentage-based healing from a passive ability', () => {
+    // Setup: Player turn is ending. A benched monster has Soothing Aura.
+    const mockBattleState = {
+      turn: 'player',
+      playerTeam: [
+        { id: 1, battleHp: 500, battleMaxHp: 1000, monster: { id: 101, name: 'ActiveMon' } }, // Active monster
+        { id: 2, battleHp: 100, battleMaxHp: 100, monster: { id: 102, name: 'BenchMon' } }  // Benched monster with the passive
+      ],
+      aiTeam: [],
+      activePlayerIndex: 0,
+      abilities_map: {
+        102: [{ // Abilities for the benched monster
+          ability_type: 'PASSIVE',
+          activation_trigger: 'END_OF_TURN',
+          activation_scope: 'ANY_POSITION',
+          effectDetails: {
+            effect_type: 'HEALING_OVER_TIME',
+            value_type: 'PERCENT_MAX_HP',
+            default_value: '5.00' // Heal for 5%
+          }
+        }]
+      }
+    };
+
+    handleEndOfTurn(mockBattleState);
+    // Expect the active monster's HP to increase by 5% of 1000 (50 HP)
+    expect(mockBattleState.playerTeam[0].battleHp).toBe(550);
+  });
+
+  it('should correctly apply flat damage from a status effect', () => {
+    // Setup: AI turn is ending. The AI monster is Burned.
+    // Let's use a mock effect that does 20 flat damage for easy testing.
+    const mockBattleState = {
+      turn: 'ai',
+      playerTeam: [],
+      aiTeam: [
+        { 
+          id: 1, 
+          battleHp: 100, 
+          statusEffects: [{
+            duration: 2,
+            effectDetails: {
+              name: 'Test Burn',
+              effect_type: 'DAMAGE_OVER_TIME',
+              value_type: 'FLAT',
+              default_value: '20'
+            }
+          }] 
+        }
+      ],
+      activeAiIndex: 0,
+      abilities_map: {}
+    };
+
+    handleEndOfTurn(mockBattleState);
+    // Expect HP to decrease by 20
+    expect(mockBattleState.aiTeam[0].battleHp).toBe(80);
+    // Expect the duration to tick down by 1
+    expect(mockBattleState.aiTeam[0].statusEffects[0].duration).toBe(1);
+  });
+});
