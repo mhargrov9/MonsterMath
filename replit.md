@@ -1177,6 +1177,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Test coverage: fixed hit count (3/3), variable hit count (2-5), MP cost validation, damage accumulation
   - All 20 tests passing with 100% multi-hit ability functionality validation
   - Abilities like Peck Flurry now execute multiple hits as intended using database-driven hit counts
+- July 6, 2025: AI Opponent Data Structure Consistency Fix
+  - Refactored generateAiOpponent function in server/storage.ts to return nested monster data structure
+  - Changed from flat monster property spreading to proper nested monster object under monster key
+  - AI opponents now use identical data structure to player monsters (UserMonster type consistency)
+  - Hoisted id property to top level for easier component access while maintaining nested structure
+  - Eliminated client-server data inconsistency between AI and player monster handling
+  - MonsterCard components can now treat AI and player monsters identically without special cases
+  - Enhanced type safety by aligning with established UserMonster interface patterns
+  - All 20 tests continue passing with improved data structure consistency
+  - Reduced technical debt by eliminating dual data structure handling throughout battle system
 
 ## User Preferences
 

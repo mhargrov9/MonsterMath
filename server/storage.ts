@@ -711,14 +711,15 @@ export class DatabaseStorage implements IStorage {
         const monsterAbilities = await this.getMonsterAbilities(monster.id);
 
         return {
-          ...monster, // Spread the base monster properties
+          monster: monster, // Nest the original monster object
+          id: monster.id,   // Hoist id for easier access
           level: level,
           hp: hp,
-          maxHp: hp, // Use max_hp for consistency
+          maxHp: hp,
           mp: mp,
-          maxMp: mp, // Use max_mp for consistency
+          maxMp: mp,
           is_fainted: false,
-          abilities: monsterAbilities, // Embed the fetched abilities
+          abilities: monsterAbilities,
         };
       }),
     );
