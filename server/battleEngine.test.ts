@@ -729,6 +729,57 @@ describe('battleEngine Helpers', () => {
     });
   });
 
+  describe('Advanced Damage Calculation', () => {
+    it('should apply a 1.5x damage multiplier for a critical hit', () => {
+      // Mock Math.random to return specific values for crit chance and variance
+      let callCount = 0;
+      vi.spyOn(Math, 'random').mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return 0.01; // Force critical hit (< 0.05)
+        if (callCount === 2) return 0.5;  // Set variance to 1.0 (0.9 + 0.5 * 0.2)
+        if (callCount === 3) return 0.99; // Force non-critical (>= 0.05)
+        if (callCount === 4) return 0.5;  // Same variance as critical hit
+        return 0.5; // Default for any additional calls
+      });
+
+      const critResult = calculateDamage(mockPlayerMonster, mockAiMonster, mockAbility);
+      expect(critResult.isCritical).toBe(true);
+
+      const nonCritResult = calculateDamage(mockPlayerMonster, mockAiMonster, mockAbility);
+      expect(nonCritResult.isCritical).toBe(false);
+
+      // Since both have same variance (1.0), critical should be 1.5x non-critical
+      expect(critResult.damage).toBeGreaterThan(nonCritResult.damage);
+      
+      // More flexible assertion - critical damage should be significantly higher
+      const damageRatio = critResult.damage / nonCritResult.damage;
+      expect(damageRatio).toBeGreaterThan(1.4); // Should be close to 1.5
+      expect(damageRatio).toBeLessThan(1.6); // But allow some tolerance
+
+      vi.spyOn(Math, 'random').mockRestore();
+    });
+
+    it('should deal less damage to a monster with higher defense', () => {
+      const lowDefenseMonster = { ...mockAiMonster, baseDefense: 50 };
+      const highDefenseMonster = { ...mockAiMonster, baseDefense: 200 };
+
+      const damageVsLowDef = calculateDamage(mockPlayerMonster, lowDefenseMonster, mockAbility);
+      const damageVsHighDef = calculateDamage(mockPlayerMonster, highDefenseMonster, mockAbility);
+
+      expect(damageVsHighDef.damage).toBeLessThan(damageVsLowDef.damage);
+    });
+
+    it('should deal more damage from a monster with higher power', () => {
+      const lowPowerMonster = { ...mockPlayerMonster, power: 100 };
+      const highPowerMonster = { ...mockPlayerMonster, power: 200 };
+
+      const damageFromLowPower = calculateDamage(lowPowerMonster, mockAiMonster, mockAbility);
+      const damageFromHighPower = calculateDamage(highPowerMonster, mockAiMonster, mockAbility);
+
+      expect(damageFromHighPower.damage).toBeGreaterThan(damageFromLowPower.damage);
+    });
+  });
+
   describe('Multi-Hit Abilities', () => {
     it('should handle multi-hit abilities correctly', async () => {
       const multiHitAbility = {
