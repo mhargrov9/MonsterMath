@@ -1,0 +1,57 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Misleading Test Failures: 8 of our integration tests are failing, not because the game logic is wrong, but because the tests themselves are not correctly written to handle expected error conditions.
+
+Problem 2: Inaccurate Test Reporting: The test suite reports failures for tests that are actually succeeding in their goal of validating error-prevention logic, such as preventing fainted monsters from acting.
+
+Goal:
+To refactor the 8 failing integration tests in server/battleEngine.test.ts to correctly assert expected outcomes, including handling thrown errors. The objective is to achieve a 100% passing rate (57/57 tests) on the test suite.
+
+File to Modify:
+server/battleEngine.test.ts
+
+Implementation Plan:
+Fix "Fainted Monster Action" Test:
+
+Locate the test: "should prevent a fainted monster from taking any action"
+
+The current implementation incorrectly expects a normal execution.
+
+Refactor the assertion: Wrap the applyDamage call in an expect block that asserts an error is thrown. The code should look like this:
+
+JavaScript
+
+await expect(() => applyDamage(battleId, 1)).rejects.toThrow(
+  'Test PlayerMon has 0 HP and cannot perform an action.',
+);
+Note: The test must be async and use await expect(...).rejects.toThrow() because applyDamage is an async function.
+
+Fix "Forced Swap" Test:
+
+Locate the test: "should force a player to swap after their active monster faints"
+
+The current test setup is likely incomplete.
+
+Action: Ensure the processAiTurn function is called correctly on a mock state where the AI's attack will be lethal to the player's monster.
+
+Assert: Verify that the final battleState.turn is correctly set to 'player-must-swap'.
+
+Fix "Battle End" Test:
+
+Locate the test: "should end the battle when an entire team is fainted"
+
+Similar to the forced swap test, ensure the setup is correct.
+
+Action: Call processAiTurn to deliver the final blow.
+
+Assert: Verify that battleState.winner is 'ai' and battleState.battleEnded is true.
+
+Fix "Passive Deactivation" Test:
+
+Locate the test: "should deactivate all passive abilities for a fainted monster"
+
+Action: Ensure handleEndOfTurn is called on a state where the monster with the passive is fainted.
+
+Assert: Check that the active monster's HP does not change, proving the passive did not trigger.
+
+Review and Fix Remaining Tests: Systematically review the other 4 failing tests, which are likely minor variations of the issues above (e.g., incorrect turn state in the mock data, or another expected error that needs to be caught). Adjust the mock data and assertions as needed to ensure they accurately reflect the intended game logic. The goal is a clean run with 57 passed, 0 failed.
