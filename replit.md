@@ -543,6 +543,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Maintained existing turn lifecycle architecture to avoid test regressions
   - Fixed core mathematical calculation bug affecting all percentage-based status effects
   - Enhanced battle system reliability with authentic database-driven DoT damage calculations
+- July 7, 2025: Forced Swap State Preservation Fix Implementation
+  - Fixed critical bug where handleEndOfTurn was overriding 'player-must-swap' turn state set by handleMonsterDefeatLogic
+  - Added conditional guard in handleEndOfTurn to preserve 'player-must-swap' state instead of unconditionally switching turns
+  - Root cause: handleMonsterDefeatLogic correctly set forced swap state, but handleEndOfTurn immediately overwrote it
+  - Solution: if (battleState.turn !== 'player-must-swap') guard clause before turn switching logic
+  - Fixed core game rule violation where players weren't forced to swap after active monster faints
+  - Test success rate improved from 52/57 to 53/57 tests passing (91% → 93% success rate)
+  - Enhanced battle system reliability with proper forced swap mechanics for strategic team-based gameplay
 - July 2, 2025: Critical Deep Copy Fix for Battle State (Task 9f)
   - Fixed data corruption bug in startBattle function that was resetting monster HP to full
   - Replaced shallow copy ([...playerTeam]) with proper deep copy using JSON.parse(JSON.stringify())

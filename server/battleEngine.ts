@@ -407,7 +407,10 @@ export const handleEndOfTurn = (battleState: any): void => {
   });
 
   // After processing all monsters, switch the turn to the other player
-  battleState.turn = isPlayerTurnEnding ? 'ai' : 'player';
+  // But don't override if already set to 'player-must-swap' by defeat logic
+  if (battleState.turn !== 'player-must-swap') {
+    battleState.turn = isPlayerTurnEnding ? 'ai' : 'player';
+  }
 };
 
 // Helper function to execute healing abilities using database healing_power field
