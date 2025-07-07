@@ -527,6 +527,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Tests validate server-authoritative battle engine maintains proper state through complex interactions
   - Integration tests ensure atomic swap functionality works correctly with status effects and passive abilities
   - Strengthened battle system reliability with 8 new integration tests targeting critical gameplay mechanics
+- July 7, 2025: Integration Test Data Structure Fix - abilities_map Array Consistency
+  - Fixed critical "targetAbilities is not iterable" error preventing integration tests from running
+  - Ensured all abilities_map entries are arrays instead of mixed single objects and arrays
+  - Added proper player monster abilities (IDs 100, 101) and AI monster abilities (ID 200) to all integration tests
+  - Standardized abilities_map structure: all entries now use array format for consistent iteration
+  - Test success rate improved from broken state to 49/57 tests passing (86% pass rate)
+  - Eliminated data structure inconsistencies that caused battle engine lookup failures
+  - Integration tests now execute properly with correct mock battle state and abilities data
 - July 2, 2025: Critical Deep Copy Fix for Battle State (Task 9f)
   - Fixed data corruption bug in startBattle function that was resetting monster HP to full
   - Replaced shallow copy ([...playerTeam]) with proper deep copy using JSON.parse(JSON.stringify())

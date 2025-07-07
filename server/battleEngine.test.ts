@@ -1035,12 +1035,19 @@ describe('battleEngine Helpers', () => {
       const mockState = {
         turn: 'player' as const,
         playerTeam: [faintedMonster],
-        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility],
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1087,7 +1094,10 @@ describe('battleEngine Helpers', () => {
         activeAiIndex: 0,
         battleLog: [],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility], // Ability arrays for consistency
+          100: [mockBasicAttackAbility], // Player monster needs abilities  
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1129,7 +1139,9 @@ describe('battleEngine Helpers', () => {
         activeAiIndex: 0,
         battleLog: [],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility],
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1168,7 +1180,12 @@ describe('battleEngine Helpers', () => {
       const mockState = {
         turn: 'player' as const,
         playerTeam: [activeMonster, faintedHealerMonster],
-        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
@@ -1185,7 +1202,10 @@ describe('battleEngine Helpers', () => {
               value_type: 'PERCENT_MAX_HP',
               default_value: '0.03'
             }
-          }
+          },
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities  
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1245,7 +1265,10 @@ describe('battleEngine Helpers', () => {
         activeAiIndex: 0,
         battleLog: [],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility],
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1307,11 +1330,20 @@ describe('battleEngine Helpers', () => {
       const mockState = {
         turn: 'player' as const,
         playerTeam: [buffedActiveMonster, burnedBenchMonster],
-        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
-        abilities_map: {}
+        abilities_map: {
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
+        }
       };
 
       const battleId = 'duration-test';
@@ -1349,12 +1381,19 @@ describe('battleEngine Helpers', () => {
       const mockState = {
         turn: 'player' as const,
         playerTeam: [paralyzedMonster],
-        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility],
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1409,7 +1448,12 @@ describe('battleEngine Helpers', () => {
       const mockState = {
         turn: 'player' as const,
         playerTeam: [damagedActiveMonster, healerBenchMonster],
-        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: [],
@@ -1426,7 +1470,10 @@ describe('battleEngine Helpers', () => {
               value_type: 'PERCENT_MAX_HP',
               default_value: '0.03'
             }
-          }
+          },
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
@@ -1453,12 +1500,22 @@ describe('battleEngine Helpers', () => {
           { ...mockPlayerMonster, id: 100, battleHp: 300 },
           { ...mockPlayerMonster, id: 101, battleHp: 350 }
         ],
-        aiTeam: [{ ...mockAiMonster, id: 200, battleHp: 500, battleMaxHp: 500 }],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200, 
+          battleHp: 500, 
+          battleMaxHp: 500,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
         activePlayerIndex: 0,
         activeAiIndex: 0,
         battleLog: ['Battle started!'],
         abilities_map: {
-          1: mockBasicAttackAbility
+          1: [mockBasicAttackAbility],
+          100: [mockBasicAttackAbility], // Player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [mockBasicAttackAbility] // AI monster needs abilities
         }
       };
 
