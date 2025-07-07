@@ -1,0 +1,43 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Double Faint & Swap Crash: When a monster faints, the "fainted" message is logged twice, and the subsequent swap action fails. This is caused by the handleMonsterDefeatLogic function executing more than once for the same monster.
+
+Problem 2: Data Corruption: The AI monster's data structure becomes corrupted over multiple turns, causing the game to crash. This is due to a data-handling error in the turn lifecycle.
+
+Goal:
+To fix the root causes of our two failing integration tests. This involves adding a guard clause to handleMonsterDefeatLogic to prevent double execution and making our data access patterns in the battle engine more resilient to prevent crashes from data corruption.
+
+File to Modify:
+server/battleEngine.ts
+
+Implementation Plan:
+Fix the Double Faint Bug:
+
+In the handleMonsterDefeatLogic function, we need to prevent the logic from running on a monster that has already been marked as fainted.
+
+Action:
+
+At the very beginning of the if (playerHp <= 0) block, add a guard clause: if (playerMonster.isFainted) return;.
+
+After the logic runs and before the block closes, mark the monster as fainted: playerMonster.isFainted = true;.
+
+Do the same for the AI monster block (if (aiHp <= 0)). This ensures the fainting process for any single monster can only ever happen once.
+
+Fix the Data Corruption Crash:
+
+The engine crashes when it can't find aiMonster.monster.id because the object has been flattened. We need to make the code more resilient.
+
+Action: In the processAiTurn function, change the ability lookup to handle both nested and flat objects.
+
+Current (Brittle) Code:
+
+TypeScript
+
+const monsterAbilities = battleState.abilities_map[aiMonster.monster.id] || [];
+New (Resilient) Code:
+
+TypeScript
+
+const templateId = aiMonster.monster?.id || aiMonster.id;
+const monsterAbilities = battleState.abilities_map[templateId] || [];
+Apply this same resilient pattern (monster.monster?.property || monster.property) to any other place in the engine that accesses AI monster data to prevent future crashes.

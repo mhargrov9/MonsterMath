@@ -48,22 +48,31 @@ const mockPlayerMonster: UserMonster = {
   },
 };
 
-const mockAiMonster: Monster = {
+const mockAiMonster: any = {
   id: 2,
-  name: 'Test AiMon',
-  type: 'water',
-  basePower: 120,
-  baseSpeed: 90,
-  baseDefense: 110,
-  baseHp: 220,
-  baseMp: 120,
-  goldCost: 100,
-  diamondCost: 0,
-  iconClass: '',
-  gradient: '',
-  resistances: ['fire'], // Fire attacks are resisted by water
-  weaknesses: [],
-  levelUpgrades: {},
+  hp: 220,
+  mp: 120,
+  speed: 90,
+  power: 120,
+  defense: 110,
+  monster: {
+    id: 2,
+    name: 'Test AiMon',
+    type: 'water',
+    basePower: 120,
+    baseSpeed: 90,
+    baseDefense: 110,
+    baseHp: 220,
+    baseMp: 120,
+    goldCost: 100,
+    diamondCost: 0,
+    iconClass: '',
+    gradient: '',
+    resistances: ['fire'], // Fire attacks are resisted by water
+    weaknesses: [],
+    levelUpgrades: {},
+    speed: 90,
+  },
 };
 
 const mockAbility: Ability = {
@@ -1025,7 +1034,7 @@ describe('battleEngine Helpers', () => {
   describe('Integration - Multi-Turn State Integrity', () => {
     it('should maintain AI monster data structure over multiple turns', async () => {
       // Setup: Create a battle session with player and AI
-      const { battleId, battleState } = await createBattleSession([mockPlayerMonster], [mockAiMonster], {});
+      const { battleId, battleState } = await createBattleSession([mockPlayerMonster], [mockAiMonster], 0);
       
       // Assert initial state is correct
       expect(battleState.aiTeam[0].monster).toBeDefined();

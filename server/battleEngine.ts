@@ -739,6 +739,9 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
 
   // Handle player monster defeat
   if (playerHp <= 0) {
+    // Guard clause: prevent double execution for already fainted monsters
+    if (playerMonster.isFainted) return;
+    
     const defeatedMonsterName = playerMonster.monster.name;
     battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
 
@@ -763,10 +766,16 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
       // Force player to swap
       battleState.turn = 'player-must-swap';
     }
+    
+    // Mark monster as fainted to prevent duplicate execution
+    playerMonster.isFainted = true;
   }
 
   // Handle AI monster defeat
   if (aiHp <= 0) {
+    // Guard clause: prevent double execution for already fainted monsters
+    if (aiMonster.isFainted) return;
+    
     const defeatedMonsterName = aiMonster.monster?.name || aiMonster.name;
     battleState.battleLog.push(`${defeatedMonsterName} has fainted!`);
 
@@ -814,9 +823,12 @@ const handleMonsterDefeatLogic = async (battleState: any): Promise<void> => {
         battleState.activeAiIndex = healthyAiIndex;
         const newAiMonster = battleState.aiTeam[healthyAiIndex];
         // CORRECTED NAME ACCESS:
-        battleState.battleLog.push(`Opponent sends out ${newAiMonster.monster.name}!`);
+        battleState.battleLog.push(`Opponent sends out ${newAiMonster.monster?.name || newAiMonster.name}!`);
       }
     }
+    
+    // Mark monster as fainted to prevent duplicate execution
+    aiMonster.isFainted = true;
   }
 };
 
@@ -1079,13 +1091,13 @@ export const createBattleSession = async (
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
 
   battleState.battleLog.push(
-    `${playerMonster.monster.name} enters the battle!`,
+    `${playerMonster.monster?.name || playerMonster.name} enters the battle!`,
   );
-  battleState.battleLog.push(`Opponent's ${aiMonster.monster.name} appears!`);
+  battleState.battleLog.push(`Opponent's ${aiMonster.monster?.name || aiMonster.name} appears!`);
 
   // Determine first turn by comparing speed stats (now potentially boosted by passives)
   const playerSpeed = playerMonster.speed || 0;
-  const aiSpeed = aiMonster.monster.speed || 0;
+  const aiSpeed = aiMonster.monster?.speed || aiMonster.speed || 0;
 
   if (playerSpeed >= aiSpeed) {
     battleState.turn = 'player';
@@ -1112,7 +1124,9 @@ export const processAiTurn = async (battleId: string) => {
   const battleState = JSON.parse(JSON.stringify(originalState));
 
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+  // Resilient data access to handle both nested and flat objects
+  const templateId = aiMonster.monster?.id || aiMonster.id;
+  const monsterAbilities = battleState.abilities_map[templateId] || [];
   const activeAbilities = monsterAbilities.filter(
     (a: any) => a.ability_type === 'ACTIVE',
   );
