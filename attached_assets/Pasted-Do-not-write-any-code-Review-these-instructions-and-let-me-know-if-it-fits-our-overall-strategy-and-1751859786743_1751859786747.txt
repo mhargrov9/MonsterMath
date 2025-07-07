@@ -1,0 +1,47 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Uncaptured Bug: When a player's monster faints, the "fainted" message is logged twice, and the subsequent swap action fails. Our current test suite does not cover this specific scenario, allowing this game-breaking bug to exist.
+
+Goal:
+To add a new, comprehensive integration test to server/battleEngine.test.ts. This test will specifically replicate the "faint and swap" bug you've discovered. This new test is expected to FAIL with the current code. This failure is the desired outcome of this step, as it will prove we have successfully captured the bug in an automated test.
+
+File to Modify:
+server/battleEngine.test.ts
+
+Implementation Plan:
+Navigate to the Test Suite: Open server/battleEngine.test.ts and find the describe block named "Integration - Fainting & Defeat Logic".
+
+Add the New Test Case: Add a new it block inside this suite with the name: "should log the faint message exactly once and allow a successful swap".
+
+Set Up the Scenario: Inside this new test, create a mock battleState with the following conditions:
+
+A playerTeam with two monsters:
+
+An active monster with very low HP (e.g., battleHp: 1).
+
+A healthy monster on the bench.
+
+An aiTeam with one monster capable of defeating the weak player monster.
+
+A correctly configured abilities_map for all monsters involved.
+
+Set the initial turn to 'ai'.
+
+Simulate the Bug:
+
+Call await processAiTurn(battleId); to make the AI defeat the player's active monster.
+
+After the AI's turn, get the intermediateState from the battleSessions map.
+
+Now, simulate the player's required swap by calling await performSwap(battleId, 1); (assuming the healthy monster is at index 1).
+
+Get the finalState from the battleSessions map.
+
+Add Assertions: The test will check for the following conditions:
+
+Assert that the intermediate state correctly puts the player into a forced swap: expect(intermediateState.turn).toBe('player-must-swap');.
+
+Filter the finalState.battleLog to count how many times the "has fainted!" message appears. Assert that the count is exactly 1: expect(faintMessages).toHaveLength(1);.
+
+Assert that the swap was successful by checking that the finalState.activePlayerIndex is now 1.
+

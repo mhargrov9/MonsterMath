@@ -1251,6 +1251,93 @@ describe('battleEngine Helpers', () => {
       // Active monster should not have received healing from fainted monster
       expect(activeMonster.battleHp).toBe(initialHp);
     });
+
+    it('should log the faint message exactly once and allow a successful swap', async () => {
+      // Create a weak active monster and a healthy bench monster
+      const weakActiveMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 1, // Very low HP - easily defeated
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300,
+        statusEffects: []
+      };
+
+      const healthyBenchMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 250,
+        battleMaxMp: 300,
+        statusEffects: []
+      };
+
+      // Create a strong AI monster capable of defeating the weak player monster
+      const strongAiMonster = {
+        ...mockAiMonster,
+        id: 200,
+        battleHp: 500,
+        battleMaxHp: 500,
+        battleMp: 150,
+        battleMaxMp: 200,
+        power: 200, // High power to guarantee defeat
+        basePower: 200
+      };
+
+      // Set up battle state with AI turn (AI will defeat player's weak monster)
+      const mockState = {
+        turn: 'ai' as const,
+        playerTeam: [weakActiveMonster, healthyBenchMonster],
+        aiTeam: [strongAiMonster],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          100: [mockBasicAttackAbility], // Weak player monster needs abilities
+          101: [mockBasicAttackAbility], // Bench player monster needs abilities
+          200: [{  // AI monster with powerful attack
+            id: 1,
+            name: 'Basic Attack',
+            ability_type: 'ACTIVE',
+            mp_cost: 0,
+            power_multiplier: '2.0', // Strong attack to guarantee defeat
+            affinity: 'PHYSICAL',
+            effectDetails: null
+          }]
+        }
+      };
+
+      const battleId = 'faint-and-swap-test';
+      battleSessions.set(battleId, mockState);
+
+      // Step 1: AI defeats the weak player monster
+      await processAiTurn(battleId);
+
+      // Get intermediate state to check forced swap condition
+      const intermediateState = battleSessions.get(battleId);
+      
+      // Assert that player is forced to swap after their monster faints
+      expect(intermediateState.turn).toBe('player-must-swap');
+
+      // Step 2: Player performs required swap to healthy monster
+      await performSwap(battleId, 1);
+
+      // Get final state after swap
+      const finalState = battleSessions.get(battleId);
+
+      // Assert that swap was successful
+      expect(finalState.activePlayerIndex).toBe(1);
+
+      // Count "has fainted!" messages in battle log
+      const faintMessages = finalState.battleLog.filter(msg => 
+        msg.includes('has fainted!') || msg.includes('faints!')
+      );
+
+      // Assert that faint message appears exactly once (this will FAIL with current bug)
+      expect(faintMessages).toHaveLength(1);
+    });
   });
 
   describe('Integration - Status Effects & Durations', () => {
