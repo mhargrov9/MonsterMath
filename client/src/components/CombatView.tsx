@@ -2,7 +2,7 @@ import React from 'react';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Swords } from 'lucide-react';
-import { UserMonster, Monster, Ability, FloatingText } from '@/shared/types';
+import { UserMonster, Monster, Ability, FloatingText, BattleLog as BattleLogType } from '@/shared/types';
 
 interface CombatViewProps {
   playerMonster: UserMonster;
@@ -11,7 +11,7 @@ interface CombatViewProps {
   opponentBench: Monster[];
   isPlayerTurn: boolean;
   canSwap: boolean;
-  battleLog: string[];
+  battleLog: BattleLogType[]; // <-- UPDATED: Now expects an array of BattleLog objects
   battleEnded: boolean;
   winner: 'player' | 'ai' | null;
   logRef: React.RefObject<HTMLDivElement>;
@@ -112,6 +112,18 @@ export const CombatView: React.FC<CombatViewProps> = ({
   isTargeting,
   onTargetSelected,
 }) => {
+  const getLogColor = (turn: 'player' | 'ai' | 'system') => {
+    switch (turn) {
+      case 'player':
+        return 'text-cyan-300';
+      case 'ai':
+        return 'text-red-300';
+      case 'system':
+      default:
+        return 'text-gray-400';
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -206,8 +218,8 @@ export const CombatView: React.FC<CombatViewProps> = ({
                 {battleLog.map((log, i) => (
                   <p
                     key={i}
-                    className={`mb-1 ${log.startsWith('Your') ? 'text-cyan-300' : log.startsWith('Opponent') ? 'text-red-300' : ''}`}
-                  >{`> ${log}`}</p>
+                    className={`mb-1 ${getLogColor(log.turn)}`} // <-- UPDATED: Use the new log object structure
+                  >{`> ${log.message}`}</p> // <-- UPDATED: Use log.message
                 ))}
                 {battleEnded && (
                   <div className="text-center mt-2">

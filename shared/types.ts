@@ -1,23 +1,24 @@
-// Shared types for the entire application - single source of truth
+// shared/types.ts
 
-export type Turn = 'player' | 'ai' | 'pre-battle' | 'player-must-swap';
+import {
+  type User,
+  type Monster as BaseMonster,
+  type UserMonster as BaseUserMonster,
+  type Ability as BaseAbility,
+  type StatusEffect as BaseStatusEffect,
+} from './schema';
 
-export interface StatusEffect {
-  id: number;
-  name: string;
-  duration: number;
-  value?: number;
-  effectDetails?: any;
-  [key: string]: any;
-}
+// Re-export base types from schema
+export type { User, BaseMonster, BaseUserMonster, BaseAbility, BaseStatusEffect };
 
-export interface ActiveEffect {
-  id: string; // A unique ID for this specific application of the effect
-  stat: 'power' | 'defense' | 'speed';
-  type: 'FLAT' | 'PERCENTAGE';
-  value: number;
-  duration: number;
-}
+// --- BATTLE-SPECIFIC INTERFACES ---
+
+export type Turn =
+  | 'pre-battle'
+  | 'player'
+  | 'ai'
+  | 'battle-over'
+  | 'player-must-swap';
 
 export interface DamageResult {
   damage: number;
@@ -25,138 +26,66 @@ export interface DamageResult {
   affinityMultiplier: number;
 }
 
-export interface UserMonster {
-  id: number;
-  userId: string;
-  monsterId: number;
-  level: number;
-  power: number;
-  speed: number;
-  defense: number;
-  experience: number;
-  evolutionStage: number;
-  upgradeChoices: Record<string, any>;
-  acquiredAt?: string | Date | null;
-  monster: Monster;
-  hp: number;
-  mp: number;
-  maxHp?: number;
-  maxMp?: number;
-  battleHp?: number;
-  battleMaxHp?: number;
-  battleMp?: number;
-  battleMaxMp?: number;
-  isShattered?: boolean;
-  statusEffects?: StatusEffect[];
-  activeEffects?: ActiveEffect[];
-}
-
-export interface Monster {
-  id: number;
-  name: string;
-  type: string;
-  basePower: number;
-  baseSpeed: number;
-  baseDefense: number;
-  baseHp?: number;
-  baseMp?: number;
-  goldCost: number;
-  diamondCost: number;
-  description?: string;
-  iconClass: string;
-  gradient: string;
-  abilities?: any[];
-  resistances?: string[];
-  statusEffects?: StatusEffect[];
-  battleHp?: number;
-  battleMaxHp?: number;
-  battleMp?: number;
-  battleMaxMp?: number;
-  weaknesses?: string[];
-  levelUpgrades?: any;
-  hp?: number;
-  mp?: number;
-  activeEffects?: ActiveEffect[];
-}
-
-export interface Ability {
-  id: number;
-  name: string;
-  description?: string;
-  ability_type: string;
-  mp_cost?: number;
-  affinity?: string | null;
-  power_multiplier?: string;
-  scaling_stat?: string;
-  target_scope?: string;
-  healing_power?: number;
-  status_effect_applies?: string;
-  status_effect_chance?: number;
-  status_effect_duration?: number;
-  status_effect_id?: number;
-  effectDetails?: any;
-  override_chance?: number;
-  override_duration?: number;
-  override_value?: number;
-  activation_trigger?: string;
-  activation_scope?: string;
-  healing_power_multiplier?: number;
-  stat_modifiers?: any;
-  duration_reduction_position?: string;
-}
-
-export interface GameUser {
-  id: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  profileImageUrl?: string;
-  gold: number;
-  diamonds: number;
-  currentSubject?: string;
-  questionsAnswered: number;
-  correctAnswers: number;
-  currentStreak: number;
-  battleTokens: number;
-}
-
-export interface Question {
-  id: number;
-  subject: string;
-  difficulty: number;
-  questionText: string;
-  correctAnswer: string;
-  options: string[];
-  hint?: string;
-  goldReward: number;
-}
-
-export interface Battle {
-  id: number;
-  attackerId: string;
-  defenderId: string;
-  attackerMonsterId: number;
-  defenderMonsterId: number;
-  winnerId: string;
-  goldFee: number;
-  diamondsAwarded: number;
-  battleAt?: string;
-}
-
-export interface ActiveEffect {
-  id: number;
-  type: string;
-  value: number;
-  duration: number;
-}
-
 export interface FloatingText {
   id: number;
   text: string;
   type: 'damage' | 'heal' | 'crit';
-  targetId: number;
+  targetId: number | string;
   isPlayerTarget: boolean;
 }
 
-export type Subject = 'math' | 'spelling' | 'mixed';
-export type GameTab = 'learn' | 'lab' | 'battle' | 'story';
+export interface BattleLog {
+  message: string;
+  turn: 'player' | 'ai' | 'system';
+}
+
+// --- CORE BATTLE ENGINE TYPES ---
+
+// Extend base types for in-battle use
+export interface Ability extends BaseAbility {
+  effectDetails: StatusEffect | null;
+}
+
+export interface StatusEffect extends BaseStatusEffect {
+  isNew?: boolean; // Flag for effects applied this turn
+}
+
+export interface ActiveEffect {
+  id: string; // UUID for this specific application
+  sourceAbilityId: number;
+  stat: 'power' | 'defense' | 'speed';
+  type: 'FLAT' | 'PERCENTAGE';
+  value: number;
+  duration: number;
+}
+
+/**
+ * A consistent, internal representation of a monster in battle.
+ * This is the SINGLE SOURCE OF TRUTH for a monster's state during combat.
+ * It standardizes both player-owned monsters and AI-generated opponents.
+ */
+export interface BattleMonster extends Omit<BaseUserMonster, 'monster'> {
+  monster: BaseMonster & { abilities: Ability[] };
+  isFainted: boolean;
+  battleHp: number;
+  battleMaxHp: number;
+  battleMp: number;
+  battleMaxMp: number;
+  statusEffects: StatusEffect[];
+  activeEffects: ActiveEffect[];
+}
+
+/**
+ * The definitive shape of the battle state object. This object is what's
+ * stored in the `battleSessions` map and passed around the engine.
+ */
+export interface BattleState {
+  playerTeam: BattleMonster[];
+  aiTeam: BattleMonster[];
+  activePlayerIndex: number;
+  activeAiIndex: number;
+  turn: Turn;
+  battleEnded: boolean;
+  winner: 'player' | 'ai' | null;
+  battleLog: BattleLog[];
+}
