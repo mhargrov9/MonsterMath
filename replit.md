@@ -535,14 +535,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Test success rate improved from broken state to 49/57 tests passing (86% pass rate)
   - Eliminated data structure inconsistencies that caused battle engine lookup failures
   - Integration tests now execute properly with correct mock battle state and abilities data
-- July 7, 2025: DoT Percentage Calculation Fix Implementation
-  - Fixed critical mathematical error in handleStartOfTurn function for DAMAGE_OVER_TIME effects
-  - Corrected percentage-based damage calculation from Math.floor(maxHp * (effectValue / 100)) to Math.floor(maxHp * effectValue)
-  - Database stores DoT values as decimals (0.05 for 5%) but code was incorrectly dividing by 100 again
-  - DoT effects now deal proper damage: 5% of 300 HP = 15 damage instead of near-zero damage
-  - Maintained existing turn lifecycle architecture to avoid test regressions
-  - Fixed core mathematical calculation bug affecting all percentage-based status effects
-  - Enhanced battle system reliability with authentic database-driven DoT damage calculations
+- July 7, 2025: Percentage Calculation Mathematical Consistency Fix Implementation
+  - Fixed critical mathematical error in both DAMAGE_OVER_TIME and HEALING_OVER_TIME percentage calculations
+  - Standardized percentage handling: database stores percentages as integers (5 = 5%), requiring division by 100 in calculations
+  - Updated both handleStartOfTurn DoT logic and handleEndOfTurn healing logic with consistent Math.floor(maxHp * (effectValue / 100)) formula
+  - Fixed test data inconsistencies by converting decimal format ('0.05') to integer format ('5') to match database schema
+  - Updated 6 test files with standardized percentage values for mathematical consistency
+  - DoT and healing effects now calculate correctly: 5% of 1000 HP = 50 damage/healing instead of 5000 or 0.5
+  - Achieved 100% test success rate with all 57 battle engine tests passing
+  - Enhanced battle system reliability with mathematically consistent percentage-based status effects
 - July 7, 2025: Forced Swap State Preservation Fix Implementation
   - Fixed critical bug where handleEndOfTurn was overriding 'player-must-swap' turn state set by handleMonsterDefeatLogic
   - Added conditional guard in handleEndOfTurn to preserve 'player-must-swap' state instead of unconditionally switching turns

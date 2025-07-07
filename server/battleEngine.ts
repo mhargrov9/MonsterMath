@@ -92,13 +92,21 @@ export const handleStartOfTurn = (
 
           let damageAmount = 0;
           if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-            damageAmount = Math.floor((monster.battleMaxHp || 0) * effectValue);
+            damageAmount = Math.floor((monster.battleMaxHp || 0) * (effectValue / 100));
           } else {
             damageAmount = effectValue;
           }
 
           if (damageAmount > 0) {
-            monster.battleHp = Math.max(0, (monster.battleHp || 0) - damageAmount);
+            // Use immutable update pattern to ensure state persistence
+            const monsterIndex = currentTeam.findIndex(m => m.id === monster.id);
+            if (monsterIndex !== -1) {
+              const updatedMonster = {
+                ...monster,
+                battleHp: Math.max(0, (monster.battleHp || 0) - damageAmount),
+              };
+              currentTeam[monsterIndex] = updatedMonster;
+            }
             battleState.battleLog.push(`${teamName} ${monsterName} takes ${damageAmount} damage from ${effect.name}!`);
           }
         }
@@ -207,7 +215,7 @@ export const handleEndOfTurn = (battleState: any): void => {
 
     // FIRST: Process passive abilities that have activation_trigger of 'END_OF_TURN'
     monsterAbilities.forEach((ability: any) => {
-      console.log(`[END_OF_TURN DEBUG] Checking ability: ${ability.name}, type: ${ability.ability_type}, trigger: ${ability.activation_trigger}, scope: ${ability.activation_scope}`);
+
       if (
         ability.ability_type === 'PASSIVE' &&
         ability.activation_trigger === 'END_OF_TURN'

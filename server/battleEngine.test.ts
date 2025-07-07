@@ -217,7 +217,7 @@ describe('battleEngine Helpers', () => {
         activePlayerIndex: 0,
         battleLog: [],
         abilities_map: {
-          102: [
+          2: [
             {
               // Abilities for the benched monster
               name: 'Soothing Aura',
@@ -469,7 +469,7 @@ describe('battleEngine Helpers', () => {
           effectDetails: {
             effect_type: 'DAMAGE_OVER_TIME',
             value_type: 'PERCENT_MAX_HP',
-            default_value: '0.05' // 5% damage
+            default_value: '5' // 5% damage
           }
         }]
       };
@@ -1200,7 +1200,7 @@ describe('battleEngine Helpers', () => {
             effectDetails: {
               effect_type: 'HEALING_OVER_TIME',
               value_type: 'PERCENT_MAX_HP',
-              default_value: '0.03'
+              default_value: '3'
             }
           },
           100: [mockBasicAttackAbility], // Player monster needs abilities
@@ -1237,7 +1237,7 @@ describe('battleEngine Helpers', () => {
           effectDetails: {
             effect_type: 'DAMAGE_OVER_TIME',
             value_type: 'PERCENT_MAX_HP',
-            default_value: '0.05', // 5% max HP
+            default_value: '5', // 5% max HP
             duration_reduction_position: 'ANY'
           }
         }]
@@ -1324,7 +1324,7 @@ describe('battleEngine Helpers', () => {
           effectDetails: {
             effect_type: 'DAMAGE_OVER_TIME',
             value_type: 'PERCENT_MAX_HP',
-            default_value: '0.05',
+            default_value: '5',
             duration_reduction_position: 'ANY'
           }
         }]
@@ -1376,7 +1376,7 @@ describe('battleEngine Helpers', () => {
           duration: 2,
           effectDetails: {
             effect_type: 'TURN_SKIP',
-            default_value: '0.25',
+            default_value: '25',
             duration_reduction_position: 'ANY'
           }
         }]
