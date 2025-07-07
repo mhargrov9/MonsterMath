@@ -8,6 +8,8 @@ import {
   getAffinityMultiplier,
   performSwap,
   battleSessions,
+  applyDamage,
+  processAiTurn,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -70,6 +72,18 @@ const mockAbility: Ability = {
   mp_cost: 10,
   affinity: 'fire',
   power_multiplier: '1.20',
+  scaling_stat: 'power',
+  healing_power: 0,
+  target_scope: 'ACTIVE_OPPONENT',
+};
+
+const mockBasicAttackAbility: Ability = {
+  id: 1,
+  name: 'Basic Attack',
+  ability_type: 'ACTIVE',
+  mp_cost: 0,
+  affinity: 'physical',
+  power_multiplier: '0.60',
   scaling_stat: 'power',
   healing_power: 0,
   target_scope: 'ACTIVE_OPPONENT',
@@ -1003,6 +1017,478 @@ describe('battleEngine Helpers', () => {
       // Verify that swap messages were added to battle log
       expect(finalState.battleLog.some(log => log.includes('withdrew from battle'))).toBe(true);
       expect(finalState.battleLog.some(log => log.includes('enters the battle'))).toBe(true);
+    });
+  });
+
+  // Integration Test Suites
+  describe('Integration - Fainting & Defeat Logic', () => {
+    it('should prevent a fainted monster from taking any action', () => {
+      const faintedMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 0, // Fainted monster
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300
+      };
+
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [faintedMonster],
+        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'fainted-test';
+      battleSessions.set(battleId, mockState);
+
+      // Attempt to make the fainted monster attack
+      expect(() => {
+        applyDamage(battleId, 1, undefined); // Basic attack
+      }).toThrow(/has 0 HP and cannot perform an action/);
+    });
+
+    it('should force a player to swap after their active monster faints', () => {
+      const weakPlayerMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 1, // Will be killed by AI attack
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300
+      };
+
+      const healthyBenchMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 250,
+        battleMaxMp: 300
+      };
+
+      const mockState = {
+        turn: 'ai' as const,
+        playerTeam: [weakPlayerMonster, healthyBenchMonster],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200, 
+          battleHp: 500, 
+          battleMaxHp: 500,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'force-swap-test';
+      battleSessions.set(battleId, mockState);
+
+      // AI attacks and should defeat the player's active monster
+      processAiTurn(battleId);
+
+      const finalState = battleSessions.get(battleId);
+      
+      // Player should be forced to swap
+      expect(finalState.turn).toBe('player-must-swap');
+      expect(finalState.playerTeam[0].battleHp).toBe(0);
+    });
+
+    it('should end the battle when an entire team is fainted', () => {
+      const lastPlayerMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 1, // Will be defeated
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300
+      };
+
+      const mockState = {
+        turn: 'ai' as const,
+        playerTeam: [lastPlayerMonster], // Only one monster remaining
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200, 
+          battleHp: 500, 
+          battleMaxHp: 500,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'team-defeat-test';
+      battleSessions.set(battleId, mockState);
+
+      // AI attacks and should win the battle
+      processAiTurn(battleId);
+
+      const finalState = battleSessions.get(battleId);
+      
+      expect(finalState.winner).toBe('ai');
+      expect(finalState.battleEnded).toBe(true);
+    });
+
+    it('should deactivate all passive abilities for a fainted monster', () => {
+      const activeMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 200, // Damaged, eligible for healing
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300
+      };
+
+      const faintedHealerMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 0, // Fainted - should not provide healing
+        battleMaxHp: 350,
+        battleMp: 120,
+        battleMaxMp: 200,
+        statusEffects: []
+      };
+
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [activeMonster, faintedHealerMonster],
+        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          15: { // Soothing Aura passive ability
+            id: 15,
+            name: 'Soothing Aura',
+            ability_type: 'PASSIVE',
+            activation_trigger: 'END_OF_TURN',
+            activation_scope: 'BENCH',
+            healing_power: 3,
+            effectDetails: {
+              effect_type: 'HEALING_OVER_TIME',
+              value_type: 'PERCENT_MAX_HP',
+              default_value: '0.03'
+            }
+          }
+        }
+      };
+
+      const battleId = 'fainted-passive-test';
+      battleSessions.set(battleId, mockState);
+
+      const initialHp = activeMonster.battleHp;
+
+      // Process end of turn - fainted monster's passive should not trigger
+      handleEndOfTurn(mockState);
+
+      // Active monster should not have received healing from fainted monster
+      expect(activeMonster.battleHp).toBe(initialHp);
+    });
+  });
+
+  describe('Integration - Status Effects & Durations', () => {
+    it('should continue to apply DoT damage to a benched monster', () => {
+      const burnedMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 300,
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300,
+        statusEffects: [{
+          name: 'Burned',
+          duration: 2,
+          effectDetails: {
+            effect_type: 'DAMAGE_OVER_TIME',
+            value_type: 'PERCENT_MAX_HP',
+            default_value: '0.05' // 5% max HP
+          }
+        }]
+      };
+
+      const healthyMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 250,
+        battleMaxMp: 300,
+        statusEffects: []
+      };
+
+      const mockState = {
+        turn: 'player' as const, // Start with player turn for swap
+        playerTeam: [burnedMonster, healthyMonster],
+        aiTeam: [{ 
+          ...mockAiMonster, 
+          id: 200,
+          battleMp: 100,
+          battleMaxMp: 150
+        }],
+        activePlayerIndex: 0, // Burned monster starts active
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'benched-dot-test';
+      battleSessions.set(battleId, mockState);
+
+      // Swap the burned monster to bench (this will switch turn to AI)
+      performSwap(battleId, 1);
+
+      const afterSwapState = battleSessions.get(battleId);
+      const initialBenchedHp = afterSwapState.playerTeam[0].battleHp;
+
+      // Process AI turn which should apply DoT to benched monster
+      processAiTurn(battleId);
+
+      const finalState = battleSessions.get(battleId);
+      const benchedMonster = finalState.playerTeam[0]; // Originally active, now benched
+
+      // Benched monster should have taken DoT damage
+      expect(benchedMonster.battleHp).toBeLessThan(initialBenchedHp);
+    });
+
+    it('should correctly decrement status effect durations for all monsters at the end of each turn', () => {
+      const buffedActiveMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300,
+        statusEffects: [{
+          name: 'Power Boost',
+          duration: 3,
+          effectDetails: {
+            effect_type: 'STAT_MODIFIER',
+            default_value: '1.2'
+          }
+        }]
+      };
+
+      const burnedBenchMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 300,
+        battleMaxHp: 400,
+        battleMp: 250,
+        battleMaxMp: 300,
+        statusEffects: [{
+          name: 'Burned',
+          duration: 2,
+          effectDetails: {
+            effect_type: 'DAMAGE_OVER_TIME',
+            value_type: 'PERCENT_MAX_HP',
+            default_value: '0.05'
+          }
+        }]
+      };
+
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [buffedActiveMonster, burnedBenchMonster],
+        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {}
+      };
+
+      const battleId = 'duration-test';
+      battleSessions.set(battleId, mockState);
+
+      // Process end of turn
+      handleEndOfTurn(mockState);
+
+      const finalState = battleSessions.get(battleId);
+
+      // Active monster's buff duration should be decremented
+      expect(finalState.playerTeam[0].statusEffects[0].duration).toBe(2);
+      // Benched monster's burn duration should be decremented
+      expect(finalState.playerTeam[1].statusEffects[0].duration).toBe(1);
+    });
+
+    it('should correctly apply PARALYZED for its exact database-defined duration', () => {
+      const paralyzedMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300,
+        statusEffects: [{
+          name: 'Paralyzed',
+          duration: 2,
+          effectDetails: {
+            effect_type: 'TURN_SKIP',
+            default_value: '0.25'
+          }
+        }]
+      };
+
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [paralyzedMonster],
+        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'paralysis-duration-test';
+      battleSessions.set(battleId, mockState);
+
+      // Turn 1: Should skip due to paralysis
+      const turn1Result = handleStartOfTurn(mockState, true);
+      expect(turn1Result.turnSkipped).toBe(true);
+      expect(mockState.battleLog.some(log => log.includes('paralyzed'))).toBe(true);
+
+      // Process end of turn to decrement duration
+      handleEndOfTurn(mockState);
+      expect(paralyzedMonster.statusEffects[0].duration).toBe(1);
+
+      // Turn 2: Should still skip due to paralysis
+      const turn2Result = handleStartOfTurn(mockState, true);
+      expect(turn2Result.turnSkipped).toBe(true);
+
+      // Process end of turn to remove paralysis
+      handleEndOfTurn(mockState);
+      expect(paralyzedMonster.statusEffects).toHaveLength(0);
+
+      // Turn 3: Should be able to act normally
+      const turn3Result = handleStartOfTurn(mockState, true);
+      expect(turn3Result.turnSkipped).toBe(false);
+    });
+  });
+
+  describe('Integration - Swapping & Turn Lifecycle', () => {
+    it('should process end-of-turn effects for the team when a player swaps', () => {
+      const damagedActiveMonster = {
+        ...mockPlayerMonster,
+        id: 100,
+        battleHp: 200, // Damaged, eligible for healing
+        battleMaxHp: 400,
+        battleMp: 200,
+        battleMaxMp: 300,
+        statusEffects: []
+      };
+
+      const healerBenchMonster = {
+        ...mockPlayerMonster,
+        id: 101,
+        battleHp: 350,
+        battleMaxHp: 400,
+        battleMp: 250,
+        battleMaxMp: 300,
+        statusEffects: []
+      };
+
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [damagedActiveMonster, healerBenchMonster],
+        aiTeam: [{ ...mockAiMonster, id: 200 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: [],
+        abilities_map: {
+          15: { // Soothing Aura passive ability
+            id: 15,
+            name: 'Soothing Aura',
+            ability_type: 'PASSIVE',
+            activation_trigger: 'END_OF_TURN',
+            activation_scope: 'BENCH',
+            healing_power: 3,
+            effectDetails: {
+              effect_type: 'HEALING_OVER_TIME',
+              value_type: 'PERCENT_MAX_HP',
+              default_value: '0.03'
+            }
+          }
+        }
+      };
+
+      const battleId = 'swap-healing-test';
+      battleSessions.set(battleId, mockState);
+
+      const initialHp = damagedActiveMonster.battleHp;
+
+      // Perform swap, which internally calls handleEndOfTurn
+      performSwap(battleId, 1);
+
+      const finalState = battleSessions.get(battleId);
+      const previouslyActiveMonster = finalState.playerTeam[0]; // Now on bench
+
+      // Monster that was active should have received healing from bench passive
+      expect(previouslyActiveMonster.battleHp).toBeGreaterThan(initialHp);
+      expect(finalState.turn).toBe('ai'); // Should be AI's turn after swap
+    });
+
+    it('should immediately process the AI turn after a player swap', () => {
+      const mockState = {
+        turn: 'player' as const,
+        playerTeam: [
+          { ...mockPlayerMonster, id: 100, battleHp: 300 },
+          { ...mockPlayerMonster, id: 101, battleHp: 350 }
+        ],
+        aiTeam: [{ ...mockAiMonster, id: 200, battleHp: 500, battleMaxHp: 500 }],
+        activePlayerIndex: 0,
+        activeAiIndex: 0,
+        battleLog: ['Battle started!'],
+        abilities_map: {
+          1: mockBasicAttackAbility
+        }
+      };
+
+      const battleId = 'atomic-swap-test';
+      battleSessions.set(battleId, mockState);
+
+      const initialLogLength = mockState.battleLog.length;
+
+      // Perform atomic swap (which chains performSwap → processAiTurn)
+      performSwap(battleId, 1);
+
+      const finalState = battleSessions.get(battleId);
+
+      // Verify swap was completed
+      expect(finalState.activePlayerIndex).toBe(1);
+      
+      // Verify AI has already taken its turn
+      expect(finalState.turn).toBe('player'); // Should be back to player after AI acted
+      
+      // Verify battle log contains both swap messages and AI action
+      const swapMessages = finalState.battleLog.filter(log => 
+        log.includes('withdrew from battle') || log.includes('enters the battle')
+      );
+      const aiActionMessages = finalState.battleLog.filter(log => 
+        log.includes('used') || log.includes('dealing')
+      );
+      
+      expect(swapMessages.length).toBeGreaterThanOrEqual(2); // Withdraw + enter messages
+      expect(aiActionMessages.length).toBeGreaterThanOrEqual(1); // AI action message
+      expect(finalState.battleLog.length).toBeGreaterThan(initialLogLength + 2);
     });
   });
 });
