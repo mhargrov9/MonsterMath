@@ -943,9 +943,9 @@ export const createBattleSession = async (
     allMonsterIds.push(userMonster.id);
   }
 
-  // For AI team, ID is at monster.id
+  // For AI team, ID is at monster.monster.id (nested structure)
   for (const monster of opponentTeam) {
-    allMonsterIds.push(monster.id);
+    allMonsterIds.push(monster.monster.id);
   }
 
   // Get abilities for all monsters in the battle
@@ -1049,11 +1049,11 @@ export const createBattleSession = async (
   battleState.battleLog.push(
     `${playerMonster.monster.name} enters the battle!`,
   );
-  battleState.battleLog.push(`Opponent's ${aiMonster.name} appears!`);
+  battleState.battleLog.push(`Opponent's ${aiMonster.monster.name} appears!`);
 
   // Determine first turn by comparing speed stats (now potentially boosted by passives)
   const playerSpeed = playerMonster.speed || 0;
-  const aiSpeed = aiMonster.speed || 0;
+  const aiSpeed = aiMonster.monster.speed || 0;
 
   if (playerSpeed >= aiSpeed) {
     battleState.turn = 'player';
