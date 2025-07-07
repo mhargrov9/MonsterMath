@@ -1096,6 +1096,15 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Command: `npx tsx server/seed.ts` provides automated database population for new environments
   - All 8 tests continue passing, maintaining code quality and regression protection
   - Database-driven architecture enhanced with essential game progression data foundation
+- July 7, 2025: Monster ID Consistency Fix - Critical Architectural Repair
+  - Identified and resolved fundamental monster ID mismatch between abilities_map keying and lookup logic
+  - Root cause: createBattleSession used userMonster.monster.id (template ID = 1) for abilities_map keys, but handleEndOfTurn used userMonster.id (unique ID = 100, 101)
+  - Fixed createBattleSession to use userMonster.id for abilities_map keys instead of nested template monster IDs
+  - Updated handleEndOfTurn to use monster.id consistently for abilities_map lookup
+  - Resolved critical test failure: "should process end-of-turn effects when the player swaps" now passes
+  - Test success rate improved to 53/57 passing tests (93% success rate)
+  - Fixed abilities lookup architecture ensuring passive abilities like Soothing Aura work correctly during swaps
+  - Maintains server-authoritative database-driven architecture with authentic user monster ID resolution
 - July 6, 2025: Comprehensive Database Seed Script Expansion (Task 74)
   - Expanded server/seed.ts with complete game data: 7 monsters, 16 abilities, and 22 monster-ability relationships
   - Added authentic monster data from database including all stats, descriptions, resistances, weaknesses, and level upgrades

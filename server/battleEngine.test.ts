@@ -1435,19 +1435,43 @@ describe('battleEngine Helpers', () => {
 
   describe('Integration - Swapping & Turn Lifecycle', () => {
     it('should process end-of-turn effects for the team when a player swaps', async () => {
-      const damagedActiveMonster = {
-        ...mockPlayerMonster,
+      const damagedActiveMonster: UserMonster = {
         id: 100,
-        battleHp: 200, // Damaged, eligible for healing
+        userId: 'test-user',
+        monsterId: 1,
+        level: 5,
+        power: 150,
+        speed: 100,
+        defense: 80,
+        hp: 200,
+        mp: 100,
+        experience: 0,
+        isShattered: false,
+        evolutionStage: 1,
+        upgradeChoices: {},
+        monster: mockPlayerMonster.monster,
+        battleHp: 200,
         battleMaxHp: 400,
         battleMp: 200,
         battleMaxMp: 300,
         statusEffects: []
       };
 
-      const healerBenchMonster = {
-        ...mockPlayerMonster,
+      const healerBenchMonster: UserMonster = {
         id: 101,
+        userId: 'test-user',
+        monsterId: 1,
+        level: 5,
+        power: 150,
+        speed: 100,
+        defense: 80,
+        hp: 350,
+        mp: 250,
+        experience: 0,
+        isShattered: false,
+        evolutionStage: 1,
+        upgradeChoices: {},
+        monster: mockPlayerMonster.monster,
         battleHp: 350,
         battleMaxHp: 400,
         battleMp: 250,

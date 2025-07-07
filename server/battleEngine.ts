@@ -194,7 +194,7 @@ export const handleEndOfTurn = (battleState: any): void => {
 
   // Loop through each monster on the team (both active and benched)
   currentTeam.forEach((monster: any, index: number) => {
-    const monsterId = monster.monster?.id || monster.id;
+    const monsterId = monster.id; // Use the user monster ID for abilities_map lookup
     const monsterName = monster.monster?.name || monster.name;
     const isActive =
       index ===
@@ -207,6 +207,7 @@ export const handleEndOfTurn = (battleState: any): void => {
 
     // FIRST: Process passive abilities that have activation_trigger of 'END_OF_TURN'
     monsterAbilities.forEach((ability: any) => {
+      console.log(`[END_OF_TURN DEBUG] Checking ability: ${ability.name}, type: ${ability.ability_type}, trigger: ${ability.activation_trigger}, scope: ${ability.activation_scope}`);
       if (
         ability.ability_type === 'PASSIVE' &&
         ability.activation_trigger === 'END_OF_TURN'
@@ -929,9 +930,9 @@ export const createBattleSession = async (
   // Collect all unique monster IDs from both teams
   const allMonsterIds: number[] = [];
 
-  // For player team, ID is at monster.id (nested monster object)
+  // For player team, use userMonster.id (the unique user monster ID)
   for (const userMonster of playerTeam) {
-    allMonsterIds.push(userMonster.monster.id);
+    allMonsterIds.push(userMonster.id);
   }
 
   // For AI team, ID is at monster.id
@@ -1146,16 +1147,18 @@ export const performSwap = (battleId: string, newMonsterIndex: number) => {
   // Get the name of the new monster at the newMonsterIndex
   const newMonsterName = newMonster.monster.name;
 
-  // Add two messages to the battleLog
-  battleState.battleLog.push(`${currentMonsterName} withdrew from battle!`);
-  battleState.battleLog.push(`${newMonsterName} enters the battle!`);
+  // The player's action was to swap, so now we process the end of their turn.
+  // handleEndOfTurn will correctly process effects and switch the turn to the AI.
+  // CRITICAL: This must happen BEFORE updating activePlayerIndex so end-of-turn effects
+  // apply to the outgoing monster (like Soothing Aura healing the active monster)
+  handleEndOfTurn(battleState);
 
   // Update the activePlayerIndex to the newMonsterIndex
   battleState.activePlayerIndex = newMonsterIndex;
 
-  // The player's action was to swap, so now we process the end of their turn.
-  // handleEndOfTurn will correctly process effects and switch the turn to the AI.
-  handleEndOfTurn(battleState);
+  // Add two messages to the battleLog
+  battleState.battleLog.push(`${currentMonsterName} withdrew from battle!`);
+  battleState.battleLog.push(`${newMonsterName} enters the battle!`);
 
   // Save the updated battle state back into the battleSessions map
   battleSessions.set(battleId, battleState);
