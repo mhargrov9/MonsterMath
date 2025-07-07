@@ -1,0 +1,54 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Incorrect Turn Event Sequencing: When a player swaps monsters, END_OF_TURN effects are not triggering because the active monster is changed before the end-of-turn logic runs, causing passives like Soothing Aura to miss their target.
+
+Problem 2: Failing Integration Test: The test "should process end-of-turn effects when the player swaps" is failing because the outgoing monster's HP is not increasing as expected.
+
+Goal:
+To replace the flawed performSwap function in server/battleEngine.ts with a corrected version that executes its operations in the proper order, ensuring end-of-turn effects are processed correctly.
+
+File to Modify:
+server/battleEngine.ts
+
+Implementation Plan:
+Locate the performSwap function: Open server/battleEngine.ts and find the existing performSwap function.
+
+Delete the Entire Function: Remove the existing performSwap function block completely.
+
+Replace with Corrected Code: Insert the following code in its place. This version ensures handleEndOfTurn is called before the active monster index is updated.
+
+TypeScript
+
+// server/battleEngine.ts
+
+export const performSwap = (battleId: string, newMonsterIndex: number) => {
+  const battleState = battleSessions.get(battleId);
+  if (!battleState) {
+    throw new Error(`Battle session ${battleId} not found`);
+  }
+
+  const currentMonster = battleState.playerTeam[battleState.activePlayerIndex];
+  const newMonster = battleState.playerTeam[newMonsterIndex];
+
+  // Basic validation
+  if (!newMonster || newMonster.hp <= 0 || newMonsterIndex === battleState.activePlayerIndex) {
+    // In a real game, we might throw an error here, but for testing, we can let it proceed
+    // to ensure the turn structure is solid regardless.
+  }
+
+  // --- CRITICAL FIX ---
+  // 1. Process end-of-turn effects for the OUTGOING monster.
+  //    This triggers passives like Soothing Aura and correctly switches the turn to 'ai'.
+  handleEndOfTurn(battleState);
+
+  // 2. NOW, update the active monster index for the player.
+  battleState.activePlayerIndex = newMonsterIndex;
+
+  // 3. Add log messages to reflect the change.
+  battleState.battleLog.push(`${currentMonster.monster.name} withdrew from battle!`);
+  battleState.battleLog.push(`${newMonster.monster.name} enters the battle!`);
+
+  // 4. Save and return the final state.
+  battleSessions.set(battleId, battleState);
+  return battleState;
+};
