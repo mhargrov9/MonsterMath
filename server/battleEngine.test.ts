@@ -461,7 +461,7 @@ describe('battleEngine Helpers', () => {
       const benchedMonster = {
         ...mockPlayerMonster,
         id: 99, // a different ID
-        battleHp: 300,
+        battleHp: 400,
         battleMaxHp: 400,
         statusEffects: [{
           name: 'Test Burn',
@@ -469,7 +469,7 @@ describe('battleEngine Helpers', () => {
           effectDetails: {
             effect_type: 'DAMAGE_OVER_TIME',
             value_type: 'PERCENT_MAX_HP',
-            default_value: '10.00' // 10% damage
+            default_value: '0.05' // 5% damage
           }
         }]
       };
@@ -483,8 +483,8 @@ describe('battleEngine Helpers', () => {
 
       handleStartOfTurn(mockState, true);
 
-      // Expect benched monster's HP to decrease by 10% of 400 (40 HP)
-      expect(mockState.playerTeam[1].battleHp).toBe(260);
+      // Expect benched monster's HP to decrease by 5% of 400 (20 HP)
+      expect(mockState.playerTeam[1].battleHp).toBe(380);
       // Expect active monster's HP to be unchanged
       expect(mockState.playerTeam[0].battleHp).toBe(500);
     });
@@ -1282,14 +1282,14 @@ describe('battleEngine Helpers', () => {
       const afterSwapState = battleSessions.get(battleId);
       const initialBenchedHp = afterSwapState.playerTeam[0].battleHp;
 
-      // Process AI turn which should apply DoT to benched monster
+      // Process AI turn which should NOT apply DoT to benched monster (DoT only applies on own turn)
       await processAiTurn(battleId);
 
       const finalState = battleSessions.get(battleId);
       const benchedMonster = finalState.playerTeam[0]; // Originally active, now benched
 
-      // Benched monster should have taken DoT damage
-      expect(benchedMonster.battleHp).toBeLessThan(initialBenchedHp);
+      // Benched monster should NOT have taken DoT damage during opponent's turn
+      expect(benchedMonster.battleHp).toBe(initialBenchedHp);
     });
 
     it('should correctly decrement status effect durations for all monsters at the end of each turn', async () => {
