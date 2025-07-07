@@ -1,0 +1,36 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Crash on Attack: Any attempt to perform an attack in battle results in an error, making the game unplayable.
+
+Problem 2: Incorrect Status Effect Duration: Status effects like PARALYZED last for one turn longer than intended.
+
+Problem 3: Illogical Battle Log Order: Combat effectiveness messages (e.g., "It's not very effective...") appear in the battle log before the action that caused them.
+
+Goal:
+To perform a targeted bug-fixing pass on server/battleEngine.ts to resolve the three identified issues, restoring core gameplay functionality and improving the user experience.
+
+File to Modify:
+server/battleEngine.ts
+
+Implementation Plan:
+Fix Crash on Attack:
+
+In the executeAbility function, the logic that determines the targets of an attack is flawed when the player attacks the AI.
+
+It correctly identifies the defendingTeam as battleState.aiTeam, but there's an error in how it accesses the active AI monster.
+
+Action: Find the line that defines const defender = defendingTeam[defenderIndex]; and ensure it correctly resolves to the active AI monster object before it is added to the targets array. Add validation to prevent a crash if the target is somehow undefined.
+
+Fix Paralysis Duration:
+
+In the handleEndOfTurn function, locate the loop that processes statusEffects.
+
+The current logic has an if/else block based on the effect.isNew flag, which causes the off-by-one error.
+
+Action: Simplify this logic. Remove the if/else statement and simply decrement the duration for every effect on each pass of handleEndOfTurn. The isNew flag can be removed. The logic should be: effect.duration -= 1; followed by the check if (effect.duration > 0).
+
+Fix Log Order:
+
+In the executeAbility function, locate the block of code that pushes messages to the battleState.battleLog.
+
+Action: Find the lines that push the effectiveness (It's super effective!) and critical hit messages. Move these lines so they are pushed to the log after the main action message (...used [Ability] on [Defender], dealing [X] damage!) has been pushed.
