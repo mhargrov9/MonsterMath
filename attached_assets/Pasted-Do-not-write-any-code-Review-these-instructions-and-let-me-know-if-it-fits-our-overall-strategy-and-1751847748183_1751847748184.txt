@@ -1,0 +1,108 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Critical Gameplay Bugs: The current test suite fails to catch critical gameplay bugs, including fainted monsters being able to act, status effects not persisting correctly on the bench or having incorrect durations, and turn lifecycle events being skipped during swaps.
+
+Problem 2: Risk of Regression: Without comprehensive tests covering how systems interact, any new change or bug fix has a high risk of breaking existing functionality, making the codebase fragile and difficult to maintain.
+
+Goal:
+To implement a comprehensive integration test suite within server/battleEngine.test.ts. This suite will simulate multi-turn battle scenarios to validate that complex interactions between game mechanics are working correctly and to prevent future regressions. This is a testing-only task; no production code in battleEngine.ts should be modified.
+
+File to Modify:
+server/battleEngine.test.ts
+
+Implementation Plan:
+Add new describe blocks to server/battleEngine.test.ts containing the following integration tests. These tests must create realistic, multi-turn battleState objects to properly simulate the scenarios.
+
+1. New Test Suite: "Integration - Fainting & Defeat Logic"
+Test 1: "should prevent a fainted monster from taking any action"
+
+Setup: Create a battle state where the player's active monster has battleHp: 0.
+
+Action: Attempt to call applyDamage for the fainted monster.
+
+
+Assert: The function should throw an error with a message like "[Monster Name] has 0 HP and cannot perform an action." 
+
+Test 2: "should force a player to swap after their active monster faints"
+
+Setup: Create a battle where the player's active monster will take lethal damage from an AI attack.
+
+Action: Process the AI's turn where the player's monster faints.
+
+
+Assert: The resulting battleState must have turn set to 'player-must-swap'. 
+
+
+Test 3: "should end the battle when an entire team is fainted"
+
+Setup: A battle where only one player monster remains, and it is about to take lethal damage.
+
+Action: Process the AI turn where the final monster faints.
+
+
+Assert: The final battleState.winner must be 'ai', and battleState.battleEnded must be true. 
+
+Test 4: "should deactivate all passive abilities for a fainted monster"
+
+Setup: A state where a benched monster with a team-wide passive (Soothing Aura) is fainted (battleHp: 0).
+
+Action: Process an handleEndOfTurn.
+
+Assert: The passive ability must not trigger. The active monster must not receive any healing.
+
+2. New Test Suite: "Integration - Status Effects & Durations"
+Test 1: "should continue to apply DoT damage to a benched monster"
+
+Setup: The player's active monster is BURNED. The player swaps it to the bench.
+
+Action: Process a full turn (the AI's turn).
+
+
+Assert: The benched, BURNED monster's battleHp must decrease at the start of the next turn, confirming the effect is processed team-wide. 
+
+
+
+Test 2: "should correctly decrement status effect durations for all monsters at the end of each turn"
+
+Setup: The player's active monster has a stat buff with duration: 3. A benched monster has a BURNED effect with duration: 2.
+
+Action: Process a single handleEndOfTurn.
+
+
+Assert: The active monster's buff duration must now be 2. The benched monster's BURNED duration must now be 1. 
+
+
+Test 3: "should correctly apply PARALYZED for its exact database-defined duration"
+
+Setup: A monster is afflicted with PARALYZED with duration: 2.
+
+Action: Process 3 full turns.
+
+Assert:
+
+Turn 1 & 2: The monster's action phase is skipped.
+
+Turn 3: The 
+
+PARALYZED effect is gone, and the monster can act normally. 
+
+
+3. New Test Suite: "Integration - Swapping & Turn Lifecycle"
+Test 1: "should process end-of-turn effects for the team when a player swaps"
+
+Setup: A player's benched monster has the Soothing Aura passive. The player's active monster is damaged.
+
+Action: The player executes a swap. The performSwap function is called, which internally calls handleEndOfTurn.
+
+
+Assert: The monster that was active before the swap must receive healing from Soothing Aura, proving handleEndOfTurn was triggered. 
+
+Test 2: "should immediately process the AI's turn after a player swap"
+
+Setup: It is the player's turn.
+
+Action: Call the /api/battle/swap logic, which chains performSwap and then processAiTurn.
+
+Assert: The returned battleState must reflect that the player's swap is complete AND that the AI has already taken its subsequent turn. The 
+
+battleLog must contain entries for both the swap and the AI's action. 
