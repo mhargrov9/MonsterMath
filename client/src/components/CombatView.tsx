@@ -2,7 +2,13 @@ import React from 'react';
 import MonsterCard from './MonsterCard';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Swords } from 'lucide-react';
-import { UserMonster, Monster, Ability, FloatingText, BattleLog as BattleLogType } from '@/shared/types';
+import {
+  UserMonster,
+  Monster,
+  Ability,
+  FloatingText,
+  BattleLog as BattleLogType,
+} from '@/shared/types';
 
 interface CombatViewProps {
   playerMonster: UserMonster;
@@ -11,7 +17,7 @@ interface CombatViewProps {
   opponentBench: Monster[];
   isPlayerTurn: boolean;
   canSwap: boolean;
-  battleLog: BattleLogType[]; // <-- UPDATED: Now expects an array of BattleLog objects
+  battleLog: BattleLogType[];
   battleEnded: boolean;
   winner: 'player' | 'ai' | null;
   logRef: React.RefObject<HTMLDivElement>;
@@ -26,16 +32,29 @@ interface CombatViewProps {
 }
 
 const FloatingTextComponent: React.FC<{ text: FloatingText }> = ({ text }) => {
-  const colorClass =
-    text.type === 'damage'
-      ? 'text-red-500'
-      : text.type === 'heal'
-        ? 'text-green-400'
-        : 'text-yellow-400';
+  const getColor = () => {
+    switch (text.type) {
+      case 'damage':
+        return 'text-red-500';
+      case 'crit':
+        return 'text-red-400 font-black';
+      case 'heal':
+        return 'text-green-400';
+      case 'stat':
+        return 'text-blue-400';
+      case 'status':
+        return 'text-purple-400';
+      case 'miss':
+        return 'text-gray-400';
+      default:
+        return 'text-yellow-400';
+    }
+  };
+
   return (
     <div
       key={text.id}
-      className={`absolute inset-0 flex items-center justify-center pointer-events-none floating-text-anim font-bold text-4xl stroke-black ${colorClass}`}
+      className={`absolute inset-0 flex items-center justify-center pointer-events-none floating-text-anim font-bold text-4xl stroke-black ${getColor()}`}
       style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}
     >
       {text.text}
@@ -50,6 +69,7 @@ const BenchCard: React.FC<{
   disabled: boolean;
   isTargeting?: boolean;
   onTargetSelected?: (id: number) => void;
+  floatingTexts: FloatingText[]; // <-- ADDED: Receive floating texts
 }> = ({
   monster,
   isPlayer,
@@ -57,6 +77,7 @@ const BenchCard: React.FC<{
   disabled,
   isTargeting = false,
   onTargetSelected,
+  floatingTexts,
 }) => {
   const userMonster = isPlayer ? (monster as UserMonster) : undefined;
   const baseMonster = isPlayer
@@ -66,7 +87,9 @@ const BenchCard: React.FC<{
   const canBeTargeted = isTargeting && isPlayer && !isFainted;
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="relative flex flex-col items-center gap-1">
+      {' '}
+      {/* <-- ADDED: position: relative */}
       <MonsterCard
         monster={baseMonster}
         userMonster={userMonster}
@@ -88,6 +111,12 @@ const BenchCard: React.FC<{
           {isFainted ? 'Fainted' : 'Swap'}
         </Button>
       )}
+      {/* Map and render floating texts specific to this benched monster */}
+      {floatingTexts
+        .filter((ft) => ft.targetId === monster.id)
+        .map((ft) => (
+          <FloatingTextComponent key={ft.id} text={ft} />
+        ))}
     </div>
   );
 };
@@ -136,11 +165,8 @@ export const CombatView: React.FC<CombatViewProps> = ({
         }
       `}</style>
 
-      {/* Main container: A robust flex column layout that prevents clipping */}
       <div className="w-screen h-screen flex flex-col p-2 gap-2 bg-gray-800 text-white">
-        {/* Top Section: Battlefields (this part will grow and shrink) */}
         <div className="flex-1 flex flex-col lg:flex-row gap-2 min-h-0">
-          {/* Opponent's Field */}
           <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg relative">
             <div className="relative flex-grow flex items-center justify-center w-full">
               <MonsterCard
@@ -160,7 +186,6 @@ export const CombatView: React.FC<CombatViewProps> = ({
             </div>
           </div>
 
-          {/* Player's Field */}
           <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg relative">
             <div className="relative flex-grow flex items-center justify-center w-full">
               <MonsterCard
@@ -187,7 +212,6 @@ export const CombatView: React.FC<CombatViewProps> = ({
           </div>
         </div>
 
-        {/* Fixed HUD at the bottom (this part has a fixed height) */}
         <div className="flex-shrink-0 p-2 bg-gray-900/90 backdrop-blur-sm border-t-2 border-gray-700 h-[170px] rounded-lg">
           <div className="w-full h-full grid grid-cols-12 gap-4 items-center">
             <div className="col-span-4 flex flex-col justify-between h-full">
@@ -201,6 +225,9 @@ export const CombatView: React.FC<CombatViewProps> = ({
                     monster={monster}
                     isPlayer={false}
                     disabled={true}
+                    floatingTexts={floatingTexts.filter(
+                      (ft) => !ft.isPlayerTarget,
+                    )} // Pass relevant texts
                   />
                 ))}
               </div>
@@ -216,10 +243,9 @@ export const CombatView: React.FC<CombatViewProps> = ({
                 ref={logRef}
               >
                 {battleLog.map((log, i) => (
-                  <p
-                    key={i}
-                    className={`mb-1 ${getLogColor(log.turn)}`} // <-- UPDATED: Use the new log object structure
-                  >{`> ${log.message}`}</p> // <-- UPDATED: Use log.message
+                  <p key={i} className={`mb-1 ${getLogColor(log.turn)}`}>
+                    {`> ${log.message}`}
+                  </p>
                 ))}
                 {battleEnded && (
                   <div className="text-center mt-2">
@@ -233,7 +259,13 @@ export const CombatView: React.FC<CombatViewProps> = ({
                 )}
               </div>
               <div
-                className={`mt-1 p-1 rounded-lg text-center w-full ${battleEnded ? 'bg-yellow-600/50' : isPlayerTurn ? 'bg-cyan-600/50 animate-pulse' : 'bg-red-800/50'}`}
+                className={`mt-1 p-1 rounded-lg text-center w-full ${
+                  battleEnded
+                    ? 'bg-yellow-600/50'
+                    : isPlayerTurn
+                      ? 'bg-cyan-600/50 animate-pulse'
+                      : 'bg-red-800/50'
+                }`}
               >
                 <p className="text-md font-bold uppercase tracking-widest">
                   {battleEnded
@@ -259,6 +291,9 @@ export const CombatView: React.FC<CombatViewProps> = ({
                     disabled={!canSwap || battleEnded}
                     isTargeting={isTargeting}
                     onTargetSelected={onTargetSelected}
+                    floatingTexts={floatingTexts.filter(
+                      (ft) => ft.isPlayerTarget,
+                    )} // Pass relevant texts
                   />
                 ))}
               </div>

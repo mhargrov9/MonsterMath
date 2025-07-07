@@ -6,11 +6,10 @@ import { setupAuth, isAuthenticated } from './replitAuth';
 import { veoClient } from './veoApi';
 import { insertQuestionSchema, insertMonsterSchema } from '@shared/schema';
 import {
-  calculateDamage,
   applyDamage,
   createBattleSession,
   processAiTurn,
-  performSwap,
+  performSwapAndProcessAiTurn, // <-- UPDATED: Import the new atomic swap function
   processForfeit,
 } from './battleEngine';
 import passport from 'passport';
@@ -93,18 +92,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const monsterIdNum = validateMonsterId(monsterId);
         const levelNum = level ? validateLevel(level) : 1;
 
-        // For monsters with custom uploaded images, serve them directly
         if (
           monsterIdNum === 6 ||
           monsterIdNum === 7 ||
           (monsterIdNum >= 8 && monsterIdNum <= 12)
         ) {
-          // Get all monsters from the database to find the correct name
           const monsters = await storage.getAllMonsters();
           const monster = monsters.find((m) => m.id === monsterIdNum);
           const monsterName = monster?.name;
 
-          // Add a check in case the monster isn't found
           if (!monsterName) {
             console.error(`No monster found with ID: ${monsterIdNum}`);
             const upgradeChoices = level ? { level: levelNum } : {};
@@ -121,14 +117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.send(buffer);
           }
 
-          // Try to find the image file using fs.readdir
           try {
             const files = fs.readdirSync('attached_assets');
-            console.log(
-              `Looking for ${monsterName}_Level_${levelNum}_ in:`,
-              files.filter((f: string) => f.includes(monsterName)),
-            );
-
             const imageFile = files.find(
               (file: string) =>
                 file.startsWith(`${monsterName}_Level_${levelNum}_`) &&
@@ -137,7 +127,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (imageFile) {
               const fullPath = path.join('attached_assets', imageFile);
-              console.log(`Found image file: ${fullPath}`);
               const imageBuffer = fs.readFileSync(fullPath);
               res.set({
                 'Content-Type': 'image/png',
@@ -145,10 +134,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 'Cache-Control': 'public, max-age=3600',
               });
               return res.send(imageBuffer);
-            } else {
-              console.log(
-                `No matching file found for ${monsterName}_Level_${levelNum}_`,
-              );
             }
           } catch (err) {
             console.error(
@@ -158,14 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        // Fallback to VEO API for other monsters or if custom image not found
         const upgradeChoices = level ? { level: levelNum } : {};
         const imageData = await veoClient.generateMonsterImage(
           monsterIdNum,
           upgradeChoices,
         );
 
-        // Return actual image data for img tags
         const buffer = Buffer.from(imageData, 'base64');
         res.set({
           'Content-Type': 'image/png',
@@ -174,14 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         res.send(buffer);
       } catch (validationError) {
-        return res
-          .status(400)
-          .json({
-            message:
-              validationError instanceof Error
-                ? validationError.message
-                : 'Invalid parameters',
-          });
+        return res.status(400).json({
+          message:
+            validationError instanceof Error
+              ? validationError.message
+              : 'Invalid parameters',
+        });
       }
     } catch (error) {
       handleError(error, res, 'Failed to generate monster image');
@@ -207,7 +188,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, email, password } = req.body;
 
-      // Validate input
       if (!username || !email || !password) {
         return res
           .status(400)
@@ -220,7 +200,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ message: 'Password must be at least 6 characters long' });
       }
 
-      // Check if user already exists
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ message: 'Username already exists' });
@@ -231,7 +210,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Email already registered' });
       }
 
-      // Hash password and create user
       const bcrypt = await import('bcrypt');
       const passwordHash = await bcrypt.hash(password, 10);
 
@@ -275,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const { amount = 5 } = req.body;
 
-      const user = await storage.updateUserBattleTokens(userId, amount); // Corrected function call
+      const user = await storage.updateUserBattleTokens(userId, amount);
       res.json({
         message: `${amount} battle tokens added.`,
         user,
@@ -306,7 +284,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW Route: Get User Rank Info
   app.get('/api/user/rank', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -348,24 +325,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
         res.json(userMonster);
       } catch (validationError) {
-        return res
-          .status(400)
-          .json({
-            message:
-              validationError instanceof Error
-                ? validationError.message
-                : 'Invalid monster ID',
-          });
+        return res.status(400).json({
+          message:
+            validationError instanceof Error
+              ? validationError.message
+              : 'Invalid monster ID',
+        });
       }
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Failed to purchase monster',
-        });
+      res.status(400).json({
+        message:
+          error instanceof Error ? error.message : 'Failed to purchase monster',
+      });
     }
   });
 
@@ -384,14 +355,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       res.json(upgradedMonster);
     } catch (error) {
-      res
-        .status(400)
-        .json({
-          message:
-            error instanceof Error
-              ? error.message
-              : 'Failed to upgrade monster',
-        });
+      res.status(400).json({
+        message:
+          error instanceof Error ? error.message : 'Failed to upgrade monster',
+      });
     }
   });
 
@@ -428,19 +395,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json(upgradedMonster);
       } catch (error) {
-        res
-          .status(400)
-          .json({
-            message:
-              error instanceof Error
-                ? error.message
-                : 'Failed to apply upgrade',
-          });
+        res.status(400).json({
+          message:
+            error instanceof Error ? error.message : 'Failed to apply upgrade',
+        });
       }
     },
   );
 
-  // Monster healing endpoint
   app.post('/api/monsters/heal', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -466,7 +428,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Battle Opponent Generation endpoint
   app.post(
     '/api/battle/generate-opponent',
     isAuthenticated,
@@ -479,14 +440,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const aiOpponent = await storage.generateAiOpponent(validatedTPL);
           res.json(aiOpponent);
         } catch (validationError) {
-          return res
-            .status(400)
-            .json({
-              message:
-                validationError instanceof Error
-                  ? validationError.message
-                  : 'Invalid TPL',
-            });
+          return res.status(400).json({
+            message:
+              validationError instanceof Error
+                ? validationError.message
+                : 'Invalid TPL',
+          });
         }
       } catch (error) {
         handleError(error, res, 'Failed to generate opponent');
@@ -494,7 +453,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // Consolidated battle creation endpoint
   app.post('/api/battle/create', isAuthenticated, async (req: any, res) => {
     try {
       const { playerTeam, opponentTeam, playerLeadMonsterIndex } = req.body;
@@ -505,12 +463,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         !Array.isArray(playerTeam) ||
         !Array.isArray(opponentTeam)
       ) {
-        return res
-          .status(400)
-          .json({
-            message:
-              'Missing or invalid team data (playerTeam, opponentTeam must be arrays)',
-          });
+        return res.status(400).json({
+          message:
+            'Missing or invalid team data (playerTeam, opponentTeam must be arrays)',
+        });
       }
 
       if (
@@ -546,7 +502,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Battle action processing endpoint (server-authoritative turn management)
   app.post(
     '/api/battle/perform-action',
     isAuthenticated,
@@ -555,11 +510,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { battleId, abilityId, targetId } = req.body;
 
         if (!battleId || !abilityId) {
-          return res
-            .status(400)
-            .json({
-              message: 'Missing required battle data (battleId, abilityId)',
-            });
+          return res.status(400).json({
+            message: 'Missing required battle data (battleId, abilityId)',
+          });
         }
 
         const actionResult = await applyDamage(battleId, abilityId, targetId);
@@ -570,7 +523,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // AI turn processing endpoint
   app.post('/api/battle/ai-turn', isAuthenticated, async (req: any, res) => {
     try {
       const { battleId } = req.body;
@@ -586,43 +538,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Monster swapping endpoint
+  // UPDATED: Monster swapping endpoint to be atomic
   app.post('/api/battle/swap', isAuthenticated, async (req: any, res) => {
     try {
       const { battleId, newMonsterIndex } = req.body;
       if (battleId === undefined || newMonsterIndex === undefined) {
-        return res.status(400).json({ message: 'Missing battleId or newMonsterIndex' });
+        return res
+          .status(400)
+          .json({ message: 'Missing battleId or newMonsterIndex' });
       }
 
-      // Step 1: Process the player's swap action. This ends the player's turn.
-      performSwap(battleId, newMonsterIndex);
+      // This single function now handles the player's swap and the AI's resulting turn.
+      const { battleState } = await performSwapAndProcessAiTurn(
+        battleId,
+        newMonsterIndex,
+      );
 
-      // Step 2: Immediately process the AI's resulting turn.
-      const aiTurnResult = await processAiTurn(battleId);
-
-      // Step 3: Return the final state after the AI has acted.
-      res.json(aiTurnResult.battleState);
-
+      res.json(battleState);
     } catch (error) {
       handleError(error, res, 'Failed to perform monster swap');
     }
   });
 
-  // Forfeit turn endpoint
-  app.post('/api/battle/forfeit-turn', isAuthenticated, async (req: any, res) => {
-    try {
-      const { battleId } = req.body;
-      if (!battleId) {
-        return res.status(400).json({ message: 'Missing battleId' });
+  app.post(
+    '/api/battle/forfeit-turn',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const { battleId } = req.body;
+        if (!battleId) {
+          return res.status(400).json({ message: 'Missing battleId' });
+        }
+        const { battleState } = processForfeit(battleId);
+        res.json(battleState);
+      } catch (error) {
+        handleError(error, res, 'Failed to process forfeit turn');
       }
-      const battleState = processForfeit(battleId);
-      res.json(battleState);
-    } catch (error) {
-      handleError(error, res, 'Failed to process forfeit turn');
-    }
-  });
+    },
+  );
 
-  // Battle token spending endpoint
   app.post(
     '/api/battle/spend-token',
     isAuthenticated,
@@ -653,7 +607,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
-  // Questions endpoint
   app.get('/api/questions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -682,12 +635,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.body;
 
       if (isCorrect) {
-        // Award gold for correct answer
-        const goldEarned = usedHint ? 15 : 25; // Less gold if hint was used
+        const goldEarned = usedHint ? 15 : 25;
         await storage.updateUserCurrency(userId, goldEarned, 0);
         await storage.markQuestionAnswered(userId, questionId);
 
-        // Get next question
         const nextQuestion = await storage.getRandomQuestion(
           subject,
           difficulty,
@@ -710,35 +661,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Veo API routes for photorealistic monsters (POST endpoint for authenticated users)
-  app.post('/api/generate/monster-image', isAuthenticated, async (req, res) => {
-    try {
-      const { monsterId, upgradeChoices } = req.body;
+  app.post(
+    '/api/generate/monster-image',
+    isAuthenticated,
+    async (req, res) => {
+      try {
+        const { monsterId, upgradeChoices } = req.body;
 
-      if (!monsterId) {
-        return res.status(400).json({ message: 'monsterId is required' });
+        if (!monsterId) {
+          return res.status(400).json({ message: 'monsterId is required' });
+        }
+
+        const imageData = await veoClient.generateMonsterImage(
+          monsterId,
+          upgradeChoices || {},
+        );
+
+        res.json({
+          success: true,
+          imageData: imageData,
+          mimeType: 'image/png',
+        });
+      } catch (error) {
+        console.error('Error generating monster image:', error);
+        res.status(500).json({
+          message: 'Failed to generate monster image',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
+    },
+  );
 
-      const imageData = await veoClient.generateMonsterImage(
-        monsterId,
-        upgradeChoices || {},
-      );
-
-      res.json({
-        success: true,
-        imageData: imageData,
-        mimeType: 'image/png',
-      });
-    } catch (error) {
-      console.error('Error generating monster image:', error);
-      res.status(500).json({
-        message: 'Failed to generate monster image',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  });
-
-  // Battle Token - Check refresh status
   app.get('/api/battle/tokens', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -755,7 +708,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Teams and Encounter System routes
   app.get('/api/ai-teams', isAuthenticated, async (req: any, res) => {
     try {
       const teams = await storage.getAllAiTeams();
@@ -766,16 +718,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/user/battle-slots', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const battleSlots = await storage.getUserBattleSlots(userId);
-      res.json({ battleSlots });
-    } catch (error) {
-      console.error('Error fetching battle slots:', error);
-      res.status(500).json({ message: 'Failed to fetch battle slots' });
-    }
-  });
+  app.get(
+    '/api/user/battle-slots',
+    isAuthenticated,
+    async (req: any, res) => {
+      try {
+        const userId = req.user.claims.sub;
+        const battleSlots = await storage.getUserBattleSlots(userId);
+        res.json({ battleSlots });
+      } catch (error) {
+        console.error('Error fetching battle slots:', error);
+        res.status(500).json({ message: 'Failed to fetch battle slots' });
+      }
+    },
+  );
 
   const httpServer = createServer(app);
   return httpServer;

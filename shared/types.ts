@@ -29,7 +29,7 @@ export interface DamageResult {
 export interface FloatingText {
   id: number;
   text: string;
-  type: 'damage' | 'heal' | 'crit';
+  type: 'damage' | 'heal' | 'crit' | 'status' | 'stat' | 'miss';
   targetId: number | string;
   isPlayerTarget: boolean;
 }
@@ -37,6 +37,18 @@ export interface FloatingText {
 export interface BattleLog {
   message: string;
   turn: 'player' | 'ai' | 'system';
+}
+
+/**
+ * A structured event representing a discrete outcome in a battle turn.
+ * This is used by the client to generate visual feedback like floating text.
+ */
+export interface BattleEvent {
+  type: 'damage' | 'heal' | 'crit' | 'status' | 'stat' | 'miss';
+  targetId: number;
+  isPlayerTarget: boolean;
+  amount?: number; // For damage/heal
+  text?: string; // For status/stat names, etc.
 }
 
 // --- CORE BATTLE ENGINE TYPES ---
@@ -88,4 +100,5 @@ export interface BattleState {
   battleEnded: boolean;
   winner: 'player' | 'ai' | null;
   battleLog: BattleLog[];
+  events: BattleEvent[];
 }
