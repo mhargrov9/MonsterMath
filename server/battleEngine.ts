@@ -376,13 +376,9 @@ export const handleEndOfTurn = (battleState: any): void => {
           }
         }
 
-        // Simplified duration management: decrement all effects except newly applied ones
-        if (effect.isNew) {
-          delete effect.isNew; // Remove flag, do not decrement this turn
-        } else {
-          if (effect.duration !== null) {
-            effect.duration -= 1; // Decrement duration for all other effects
-          }
+        // Simplified duration management: decrement duration for all effects
+        if (effect.duration !== null) {
+          effect.duration -= 1; // Decrement duration for all effects every turn
         }
 
         // Keep effect if duration is still greater than 0
@@ -505,7 +501,11 @@ export const executeAbility = async (
   if (ability.target_scope === 'ALL_OPPONENTS') {
     targets = defendingTeam.filter((m: any) => (m.battleHp ?? m.hp) > 0); // Target all healthy opponents
   } else {
-    targets.push(defendingTeam[defenderIndex]); // Target only the active opponent
+    const defender = defendingTeam[defenderIndex];
+    if (!defender) {
+      throw new Error(`Defender not found at index ${defenderIndex}`);
+    }
+    targets.push(defender); // Target only the active opponent
   }
 
   // Determine number of hits for multi-hit abilities
@@ -564,7 +564,6 @@ export const executeAbility = async (
               const newStatusEffect = {
                 name: passive.effectDetails.name,
                 duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
-                isNew: true,
                 effectDetails: passive.effectDetails,
                 override_value: passive.override_value,
               };
@@ -590,19 +589,19 @@ export const executeAbility = async (
         battleState.battleLog.push(
           `${isPlayerTurn ? 'Your' : "Opponent's"} ${attackerName} hit ${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName} with ${ability.name || 'an ability'} (hit ${hitIndex + 1}/${numHits}), dealing ${damageResult.damage} damage!`,
         );
-      }
+        
+        // Add detailed combat result messages AFTER the action message for this hit
+        if (damageResult.affinityMultiplier > 1.0) {
+          battleState.battleLog.push("It's super effective!");
+        }
 
-      // Add detailed combat result messages based on damageResult for this hit
-      if (damageResult.affinityMultiplier > 1.0) {
-        battleState.battleLog.push("It's super effective!");
-      }
+        if (damageResult.affinityMultiplier < 1.0) {
+          battleState.battleLog.push("It's not very effective...");
+        }
 
-      if (damageResult.affinityMultiplier < 1.0) {
-        battleState.battleLog.push("It's not very effective...");
-      }
-
-      if (damageResult.isCritical) {
-        battleState.battleLog.push('A critical hit!');
+        if (damageResult.isCritical) {
+          battleState.battleLog.push('A critical hit!');
+        }
       }
     }
 
@@ -618,6 +617,19 @@ export const executeAbility = async (
         battleState.battleLog.push(
           `${isPlayerTurn ? 'Your' : "Opponent's"} ${attackerName} used ${abilityName} on ${isPlayerTurn ? "Opponent's" : 'Your'} ${defenderName}, dealing ${targetDamage} damage!`,
         );
+      }
+      
+      // Add effectiveness and critical hit messages AFTER the main action message for single hits
+      if (totalDamageResult.affinityMultiplier > 1.0) {
+        battleState.battleLog.push("It's super effective!");
+      }
+
+      if (totalDamageResult.affinityMultiplier < 1.0) {
+        battleState.battleLog.push("It's not very effective...");
+      }
+
+      if (totalDamageResult.isCritical) {
+        battleState.battleLog.push('A critical hit!');
       }
     } else {
       // Multi-hit - add summary message after all hits (per-hit messages already added above)
@@ -638,7 +650,6 @@ export const executeAbility = async (
         const newStatusEffect = {
           name: ability.effectDetails.name,
           duration: ability.override_duration ?? ability.effectDetails.default_duration ?? 1,
-          isNew: true,
           effectDetails: ability.effectDetails,
           override_value: ability.override_value,
         };
