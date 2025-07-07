@@ -92,7 +92,7 @@ export const handleStartOfTurn = (
 
           let damageAmount = 0;
           if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-            damageAmount = Math.floor((monster.battleMaxHp || 0) * (effectValue / 100));
+            damageAmount = Math.floor((monster.battleMaxHp || 0) * effectValue);
           } else {
             damageAmount = effectValue;
           }

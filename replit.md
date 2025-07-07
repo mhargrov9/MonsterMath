@@ -535,6 +535,14 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Test success rate improved from broken state to 49/57 tests passing (86% pass rate)
   - Eliminated data structure inconsistencies that caused battle engine lookup failures
   - Integration tests now execute properly with correct mock battle state and abilities data
+- July 7, 2025: DoT Percentage Calculation Fix Implementation
+  - Fixed critical mathematical error in handleStartOfTurn function for DAMAGE_OVER_TIME effects
+  - Corrected percentage-based damage calculation from Math.floor(maxHp * (effectValue / 100)) to Math.floor(maxHp * effectValue)
+  - Database stores DoT values as decimals (0.05 for 5%) but code was incorrectly dividing by 100 again
+  - DoT effects now deal proper damage: 5% of 300 HP = 15 damage instead of near-zero damage
+  - Maintained existing turn lifecycle architecture to avoid test regressions
+  - Fixed core mathematical calculation bug affecting all percentage-based status effects
+  - Enhanced battle system reliability with authentic database-driven DoT damage calculations
 - July 2, 2025: Critical Deep Copy Fix for Battle State (Task 9f)
   - Fixed data corruption bug in startBattle function that was resetting monster HP to full
   - Replaced shallow copy ([...playerTeam]) with proper deep copy using JSON.parse(JSON.stringify())
