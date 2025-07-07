@@ -10,6 +10,7 @@ import {
   battleSessions,
   applyDamage,
   processAiTurn,
+  createBattleSession,
 } from './battleEngine';
 import { UserMonster, Monster, Ability } from '../shared/types';
 
@@ -1021,6 +1022,36 @@ describe('battleEngine Helpers', () => {
   });
 
   // Integration Test Suites
+  describe('Integration - Multi-Turn State Integrity', () => {
+    it('should maintain AI monster data structure over multiple turns', async () => {
+      // Setup: Create a battle session with player and AI
+      const { battleId, battleState } = await createBattleSession([mockPlayerMonster], [mockAiMonster], {});
+      
+      // Assert initial state is correct
+      expect(battleState.aiTeam[0].monster).toBeDefined();
+      expect(battleState.aiTeam[0].monster.name).toBe('Test AiMon');
+      
+      // Turn 1: Player attacks
+      const playerResult = await applyDamage(battleId, 100); // Basic Attack ability
+      expect(playerResult.battleState.aiTeam[0].monster).toBeDefined();
+      expect(playerResult.battleState.aiTeam[0].monster.name).toBe('Test AiMon');
+      
+      // Turn 2: AI attacks
+      const aiResult = await processAiTurn(battleId);
+      expect(aiResult.battleState.aiTeam[0].monster).toBeDefined();
+      expect(aiResult.battleState.aiTeam[0].monster.name).toBe('Test AiMon');
+      
+      // Turn 3: Player attacks again
+      const finalResult = await applyDamage(battleId, 100); // Basic Attack ability
+      
+      // Final assertion: AI monster data structure is still intact
+      const finalAiMonster = finalResult.battleState.aiTeam[finalResult.battleState.activeAiIndex];
+      expect(finalAiMonster.monster).toBeDefined();
+      expect(finalAiMonster.monster.name).toBe('Test AiMon');
+      expect(finalAiMonster.monster.id).toBe(200);
+    });
+  });
+
   describe('Integration - Fainting & Defeat Logic', () => {
     it('should prevent a fainted monster from taking any action', async () => {
       const faintedMonster = {

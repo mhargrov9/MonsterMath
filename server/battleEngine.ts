@@ -711,7 +711,6 @@ export const executeAbility = async (
           const newStatusEffect = {
             name: passive.effectDetails.name,
             duration: passive.override_duration ?? passive.effectDetails.default_duration ?? 1,
-            isNew: true,
             effectDetails: passive.effectDetails,
             override_value: passive.override_value,
           };
@@ -903,8 +902,8 @@ export const applyDamage = async (
   }
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
-  const monsterAbilities =
-    battleState.abilities_map[activeMonster.monster.id] || [];
+  const templateId = activeMonster.monster?.id || activeMonster.monsterId;
+  const monsterAbilities = battleState.abilities_map[templateId] || [];
   const ability = monsterAbilities.find((a: any) => a.id === abilityId);
 
   if (!ability) throw new Error(`Ability ${abilityId} not found`);
@@ -1091,7 +1090,8 @@ export const processAiTurn = async (battleId: string) => {
   const battleState = JSON.parse(JSON.stringify(originalState));
 
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-  const monsterAbilities = battleState.abilities_map[aiMonster.monster.id] || [];
+  const templateId = aiMonster.monster?.id || aiMonster.monsterId;
+  const monsterAbilities = battleState.abilities_map[templateId] || [];
   const activeAbilities = monsterAbilities.filter(
     (a: any) => a.ability_type === 'ACTIVE',
   );

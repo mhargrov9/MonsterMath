@@ -1,0 +1,65 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Game-Breaking Crash: The application crashes when a player attacks or swaps due to data corruption of the AI monster object over multiple turns.
+
+Problem 2: Incorrect Status Effect Logic: The PARALYZED status effect lasts for 3 turns instead of 2 due to an off-by-one error in the countdown logic.
+
+Problem 3: Illogical Battle Log: Combat effectiveness messages are printed before the action that caused them.
+
+Problem 4: Insufficient Test Coverage: The test suite lacks a multi-turn integration test that can catch state corruption bugs.
+
+Goal:
+To implement a robust, comprehensive fix in battleEngine.ts that resolves all three known bugs (crash, duration, log order) and to enhance battleEngine.test.ts with a new multi-turn test to prevent future data corruption regressions.
+
+Files to Modify:
+server/battleEngine.ts
+
+server/battleEngine.test.ts
+
+Implementation Plan:
+Part 1: Fix the Battle Engine (server/battleEngine.ts)
+Fix Crash on Attack (Resiliency Fix):
+
+In the processAiTurn function, the line const monsterAbilities = battleState.abilities_map[aiMonster.monster.id] || []; is the point of failure.
+
+Action: Make this lookup resilient. The code must handle cases where aiMonster.monster might be undefined due to data corruption. Change the lookup to use the correct template ID, which is stored in aiMonster.monsterId for player monsters and can be inferred for AI monsters.
+
+Corrected Logic:
+
+TypeScript
+
+// In processAiTurn
+const templateId = aiMonster.monster?.id || aiMonster.monsterId; 
+const monsterAbilities = battleState.abilities_map[templateId] || [];
+Apply this same resilient access pattern (monster.monster?.name || monster.name) anywhere the engine accesses monster properties to prevent similar crashes.
+
+Fix PARALYZED Duration:
+
+In the handleEndOfTurn function, locate the statusEffects loop.
+
+Action: The if/else logic based on an isNew flag is causing the off-by-one error. Remove this conditional logic entirely. The duration for every effect should be decremented at the end of every turn it is active.
+
+Corrected Logic: effect.duration -= 1; should be called for every effect inside the loop.
+
+Fix Battle Log Order:
+
+In the executeAbility function, find where the battle log messages are pushed.
+
+Action: Reorder the battleState.battleLog.push() calls. The main action message (...used Ability...dealing X damage!) must be pushed before any secondary messages like It's super effective! or A critical hit!.
+
+Part 2: Improve the Test Suite (server/battleEngine.test.ts)
+Add a New Multi-Turn Test:
+
+Create a new integration test named: "should maintain AI monster data structure over multiple turns".
+
+Setup: Create a battle session with a player and an AI.
+
+Action: Simulate three full turns: Player action, AI action, then another Player action.
+
+Assert: After the three turns, get the AI monster from the final battle state and assert that its nested monster property is still defined.
+
+TypeScript
+
+const finalAiMonster = finalState.aiTeam[finalState.activeAiIndex];
+expect(finalAiMonster.monster).toBeDefined();
+expect(finalAiMonster.monster.name).toBe('Test AiMon');
