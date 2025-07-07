@@ -1080,7 +1080,7 @@ export const processAiTurn = async (battleId: string) => {
   const battleState = JSON.parse(JSON.stringify(originalState));
 
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
+  const monsterAbilities = battleState.abilities_map[aiMonster.monster.id] || [];
   const activeAbilities = monsterAbilities.filter(
     (a: any) => a.ability_type === 'ACTIVE',
   );
