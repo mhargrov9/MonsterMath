@@ -81,39 +81,25 @@ export const handleStartOfTurn = (
   const currentTeam = isPlayerTurn ? battleState.playerTeam : battleState.aiTeam;
   const teamName = isPlayerTurn ? 'Your' : "Opponent's";
 
-  // --- Process DoT for ALL monsters on BOTH teams (DoT effects tick every turn) ---
-  const teamsToProcess = [
-    { team: battleState.playerTeam, name: 'Your', teamKey: 'playerTeam' },
-    { team: battleState.aiTeam, name: "Opponent's", teamKey: 'aiTeam' }
-  ];
+  // --- Process DoT for ALL monsters on the team ---
+  for (const monster of currentTeam) {
+    if (monster.statusEffects?.length > 0) {
+      for (const effect of monster.statusEffects) {
+        if (effect.effectDetails?.effect_type === 'DAMAGE_OVER_TIME') {
+          const monsterName = monster.monster?.name || monster.name;
+          const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
+          if (effectValue === 0) continue;
 
-  for (const { team, name, teamKey } of teamsToProcess) {
-    for (let i = 0; i < team.length; i++) {
-      const monster = team[i];
-      if (monster.statusEffects?.length > 0) {
-        for (const effect of monster.statusEffects) {
-          if (effect.effectDetails?.effect_type === 'DAMAGE_OVER_TIME') {
-            const monsterName = monster.monster?.name || monster.name;
-            const effectValue = parseFloat(effect.override_value || effect.effectDetails.default_value || '0');
-            if (effectValue === 0) continue;
+          let damageAmount = 0;
+          if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
+            damageAmount = Math.floor((monster.battleMaxHp || 0) * (effectValue / 100));
+          } else {
+            damageAmount = effectValue;
+          }
 
-            let damageAmount = 0;
-            if (effect.effectDetails.value_type === 'PERCENT_MAX_HP') {
-              damageAmount = Math.floor((monster.battleMaxHp || 0) * effectValue);
-            } else {
-              damageAmount = effectValue;
-            }
-
-            if (damageAmount > 0) {
-              // Update the battleState array directly to ensure state persistence
-              const updatedMonster = { ...monster };
-              updatedMonster.battleHp = Math.max(0, (monster.battleHp || 0) - damageAmount);
-              
-              // Update the correct team array in battleState
-              battleState[teamKey][i] = updatedMonster;
-              
-              battleState.battleLog.push(`${name} ${monsterName} takes ${damageAmount} damage from ${effect.effectDetails?.name || effect.name || 'DOT'}!`);
-            }
+          if (damageAmount > 0) {
+            monster.battleHp = Math.max(0, (monster.battleHp || 0) - damageAmount);
+            battleState.battleLog.push(`${teamName} ${monsterName} takes ${damageAmount} damage from ${effect.name}!`);
           }
         }
       }
