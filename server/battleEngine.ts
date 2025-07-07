@@ -331,7 +331,10 @@ export const handleEndOfTurn = (battleState: any): void => {
         if (effect.effectDetails) {
           // Process status effect based on effect_type
           switch (effect.effectDetails.effect_type) {
-
+            case 'TURN_SKIP':
+              // TURN_SKIP effects don't need special processing during END_OF_TURN
+              // They're handled during START_OF_TURN phase, just let them fall through to duration management
+              break;
 
             case 'HEALING_OVER_TIME': {
               const healValue = parseFloat(
@@ -364,23 +367,13 @@ export const handleEndOfTurn = (battleState: any): void => {
           }
         }
 
-        // Manage duration
-        let shouldDecrementDuration = false;
-        // A new effect should not have its duration decremented on the turn it is applied.
+        // Simplified duration management: decrement all effects except newly applied ones
         if (effect.isNew) {
-          delete effect.isNew; // Remove the flag for the next turn
+          delete effect.isNew; // Remove flag, do not decrement this turn
         } else {
-          const reductionPos = effect.effectDetails.duration_reduction_position;
-          if (
-            reductionPos === 'ANY' ||
-            (reductionPos === 'ACTIVE_ONLY' && isActive)
-          ) {
-            shouldDecrementDuration = true;
+          if (effect.duration !== null) {
+            effect.duration -= 1; // Decrement duration for all other effects
           }
-        }
-
-        if (shouldDecrementDuration && effect.duration !== null) {
-          effect.duration -= 1;
         }
 
         // Keep effect if duration is still greater than 0

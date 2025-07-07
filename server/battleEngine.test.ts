@@ -1409,17 +1409,23 @@ describe('battleEngine Helpers', () => {
       expect(turn1Result.turnSkipped).toBe(true);
       expect(mockState.battleLog.some(log => log.includes('paralyzed'))).toBe(true);
 
-      // Process end of turn to decrement duration
+      // Process end of turn to decrement duration (player turn ending)
       await handleEndOfTurn(mockState);
-      expect(paralyzedMonster.statusEffects[0].duration).toBe(1);
+      expect(mockState.playerTeam[0].statusEffects[0].duration).toBe(1);
+      expect(mockState.turn).toBe('ai'); // Turn should switch to AI
+
+      // Simulate AI turn ending (no effects on AI team)
+      await handleEndOfTurn(mockState);
+      expect(mockState.turn).toBe('player'); // Turn should switch back to player
+      expect(mockState.playerTeam[0].statusEffects[0].duration).toBe(1); // Should still be 1 (not decremented during AI turn)
 
       // Turn 2: Should still skip due to paralysis
       const turn2Result = handleStartOfTurn(mockState, true);
       expect(turn2Result.turnSkipped).toBe(true);
 
-      // Process end of turn to remove paralysis
+      // Process end of turn to remove paralysis (second player turn ending)
       await handleEndOfTurn(mockState);
-      expect(paralyzedMonster.statusEffects).toHaveLength(0);
+      expect(mockState.playerTeam[0].statusEffects).toHaveLength(0);
 
       // Turn 3: Should be able to act normally
       const turn3Result = handleStartOfTurn(mockState, true);
