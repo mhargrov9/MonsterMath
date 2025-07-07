@@ -9,8 +9,6 @@ import {
   BattleMonster,
   BattleState,
   DamageResult,
-  StatusEffect,
-  ActiveEffect,
 } from '@shared/types';
 import { storage } from './storage.js';
 import crypto from 'crypto';
@@ -244,9 +242,10 @@ function handleStartOfTurn(state: BattleState, isPlayerTurn: boolean): { state: 
 async function executeAbility(state: BattleState, ability: Ability, isPlayerAttacking: boolean, targetId?: number): Promise<BattleState> {
   let currentState = state;
   const attackingTeamKey = isPlayerAttacking ? 'playerTeam' : 'aiTeam';
+  const defendingTeamKey = isPlayerAttacking ? 'aiTeam' : 'playerTeam';
   const attackerIndex = isPlayerAttacking ? currentState.activePlayerIndex : currentState.activeAiIndex;
 
-  // --- MP DEDUCTION (IMMUTABLE) ---
+  // --- 1. MP DEDUCTION (IMMUTABLE) ---
   currentState[attackingTeamKey] = currentState[attackingTeamKey].map((mon, index) => {
     if (index === attackerIndex) {
       return { ...mon, battleMp: mon.battleMp - (ability.mp_cost || 0) };
@@ -257,13 +256,15 @@ async function executeAbility(state: BattleState, ability: Ability, isPlayerAtta
 
   currentState.battleLog.push({ message: `${attacker.monster.name} used ${ability.name}!`, turn: isPlayerAttacking ? 'player' : 'ai' });
 
-  // --- DETERMINE TARGETS ---
-  const defendingTeamKey = isPlayerAttacking ? 'aiTeam' : 'playerTeam';
+  // --- 2. DETERMINE TARGETS ---
   let targets: BattleMonster[] = [];
   switch (ability.target_scope) {
     case 'ANY_ALLY':
       const allyTarget = currentState[attackingTeamKey].find(m => m.id === targetId);
       if (allyTarget && !allyTarget.isFainted) targets.push(allyTarget);
+      break;
+    case 'ALL_OPPONENTS':
+      targets = currentState[defendingTeamKey].filter(m => !m.isFainted);
       break;
     case 'ACTIVE_OPPONENT':
     default:
@@ -276,66 +277,101 @@ async function executeAbility(state: BattleState, ability: Ability, isPlayerAtta
     return currentState;
   }
 
-  // --- PROCESS ACTION FOR EACH TARGET ---
+  // --- 3. PROCESS ACTION FOR EACH TARGET ---
   for (const target of targets) {
-     // Apply Healing
+    let finalTarget = target; // This will be updated immutably
+
+    // --- 3a. PRIMARY EFFECT (HEALING OR DAMAGE) ---
     if (ability.healing_power && ability.healing_power > 0) {
-        const targetTeamKeyToUpdate = currentState.playerTeam.some(p => p.id === target.id) ? 'playerTeam' : 'aiTeam';
-        currentState[targetTeamKeyToUpdate] = currentState[targetTeamKeyToUpdate].map(mon => {
-            if (mon.id === target.id && !mon.isFainted) {
-                const healedHp = Math.min(mon.battleMaxHp, mon.battleHp + ability.healing_power!);
-                currentState.battleLog.push({ message: `${mon.monster.name} healed for ${healedHp - mon.battleHp} HP!`, turn: 'system' });
-                return { ...mon, battleHp: healedHp };
-            }
-            return mon;
-        });
-    } else { // Apply Damage
-        const damageResult = calculateDamage(attacker, target, ability);
-        const targetTeamKeyToUpdate = currentState.playerTeam.some(p => p.id === target.id) ? 'playerTeam' : 'aiTeam';
-        currentState[targetTeamKeyToUpdate] = currentState[targetTeamKeyToUpdate].map(mon => {
-            if (mon.id === target.id) {
-                return { ...mon, battleHp: Math.max(0, mon.battleHp - damageResult.damage) };
-            }
-            return mon;
-        });
-        currentState.battleLog.push({ message: `It dealt ${damageResult.damage} damage to ${target.monster.name}.`, turn: 'system' });
+        const healedHp = Math.min(finalTarget.battleMaxHp, finalTarget.battleHp + ability.healing_power!);
+        currentState.battleLog.push({ message: `${finalTarget.monster.name} healed for ${healedHp - finalTarget.battleHp} HP!`, turn: 'system' });
+        finalTarget = { ...finalTarget, battleHp: healedHp };
+    } else {
+        const damageResult = calculateDamage(attacker, finalTarget, ability);
+        finalTarget = { ...finalTarget, battleHp: Math.max(0, finalTarget.battleHp - damageResult.damage) };
+        currentState.battleLog.push({ message: `It dealt ${damageResult.damage} damage to ${finalTarget.monster.name}.`, turn: 'system' });
         if (damageResult.affinityMultiplier > 1) currentState.battleLog.push({ message: "It's super effective!", turn: 'system' });
         if (damageResult.affinityMultiplier < 1) currentState.battleLog.push({ message: "It's not very effective...", turn: 'system' });
     }
-  }
 
+    // --- 3b. STATUS EFFECT APPLICATION ---
+    if (ability.status_effect_id && ability.effectDetails) {
+        const applicationChance = ability.override_chance ? parseFloat(ability.override_chance) : 1.0;
+        if (Math.random() < applicationChance) {
+            const newEffect: StatusEffect = {
+                ...ability.effectDetails,
+                duration: ability.override_duration || ability.effectDetails.default_duration,
+            };
+            finalTarget.statusEffects = [...finalTarget.statusEffects, newEffect];
+            currentState.battleLog.push({ message: `${finalTarget.monster.name} was afflicted with ${newEffect.name}!`, turn: 'system' });
+        }
+    }
+
+    // --- 3c. UPDATE STATE WITH FINAL TARGET ---
+    const targetTeamKeyToUpdate = currentState.playerTeam.some(p => p.id === finalTarget.id) ? 'playerTeam' : 'aiTeam';
+    currentState[targetTeamKeyToUpdate] = currentState[targetTeamKeyToUpdate].map(mon => 
+        mon.id === finalTarget.id ? finalTarget : mon
+    );
+  }
   return currentState;
 }
 
 function handleEndOfTurn(state: BattleState, turnWasPlayers: boolean): BattleState {
-  const teamKey = turnWasPlayers ? 'playerTeam' : 'aiTeam';
-
-  // Decrement status effect durations
-  state[teamKey] = state[teamKey].map(monster => {
-      const newStatusEffects = (monster.statusEffects || [])
-          .map(effect => ({ ...effect, duration: effect.duration! - 1 }))
-          .filter(effect => effect.duration! > 0);
-      return { ...monster, statusEffects: newStatusEffects };
-  });
+  let newState = state;
+  const allMonsters = [...newState.playerTeam, ...newState.aiTeam];
 
   // Process End of Turn Passives (e.g., Soothing Aura)
-  // This logic can be expanded here
+  for (const monster of allMonsters) {
+    if (monster.isFainted) continue;
+
+    for (const ability of monster.monster.abilities) {
+        if (ability.ability_type === 'PASSIVE' && ability.activation_trigger === 'END_OF_TURN') {
+            const isPlayersMonster = newState.playerTeam.some(p => p.id === monster.id);
+            const isActive = (isPlayersMonster && newState.playerTeam[newState.activePlayerIndex].id === monster.id) ||
+                             (!isPlayersMonster && newState.aiTeam[newState.activeAiIndex].id === monster.id);
+
+            let shouldTrigger = false;
+            if ((ability.activation_scope === 'ACTIVE' && isActive) ||
+                (ability.activation_scope === 'BENCH' && !isActive) ||
+                 ability.activation_scope === 'ANY_POSITION') {
+                shouldTrigger = true;
+            }
+
+            if (shouldTrigger && ability.effectDetails?.effect_type === 'HEALING_OVER_TIME') {
+                const targetTeamKey = isPlayersMonster ? 'playerTeam' : 'aiTeam';
+                const activeTargetIndex = isPlayersMonster ? newState.activePlayerIndex : newState.activeAiIndex;
+                const healAmount = Math.floor(newState[targetTeamKey][activeTargetIndex].battleMaxHp * (parseFloat(ability.override_value as any || ability.effectDetails.default_value) / 100));
+
+                newState[targetTeamKey] = newState[targetTeamKey].map((mon, index) => {
+                    if (index === activeTargetIndex && !mon.isFainted) {
+                        const healedHp = Math.min(mon.battleMaxHp, mon.battleHp + healAmount);
+                        if (healedHp > mon.battleHp) {
+                           newState.battleLog.push({ message: `${monster.monster.name}'s ${ability.name} heals ${mon.monster.name} for ${healedHp - mon.battleHp} HP.`, turn: 'system' });
+                        }
+                        return { ...mon, battleHp: healedHp };
+                    }
+                    return mon;
+                });
+            }
+        }
+    }
+  }
+
+  // Decrement status effect durations
+  newState.playerTeam = newState.playerTeam.map(monster => ({ ...monster, statusEffects: (monster.statusEffects || []).map(effect => ({ ...effect, duration: effect.duration! - 1 })).filter(effect => effect.duration! > 0) }));
+  newState.aiTeam = newState.aiTeam.map(monster => ({ ...monster, statusEffects: (monster.statusEffects || []).map(effect => ({ ...effect, duration: effect.duration! - 1 })).filter(effect => effect.duration! > 0) }));
 
   // Switch turn
-  state.turn = turnWasPlayers ? 'ai' : 'player';
-  return state;
+  newState.turn = turnWasPlayers ? 'ai' : 'player';
+  return newState;
 }
-
 
 async function handleMonsterDefeatLogic(state: BattleState): Promise<BattleState> {
   let finalState = state;
-
   const checkTeam = (teamKey: 'playerTeam' | 'aiTeam') => {
     const isActivePlayerTeam = teamKey === 'playerTeam';
-    let teamWiped = true;
 
     const newTeam = finalState[teamKey].map((monster) => {
-      if (monster.battleHp > 0) teamWiped = false;
       if (monster.battleHp <= 0 && !monster.isFainted) {
         finalState.battleLog.push({ message: `${monster.monster.name} has fainted!`, turn: 'system' });
         return { ...monster, isFainted: true };
@@ -344,7 +380,7 @@ async function handleMonsterDefeatLogic(state: BattleState): Promise<BattleState
     });
     finalState = { ...finalState, [teamKey]: newTeam };
 
-    if (teamWiped) {
+    if (finalState[teamKey].every((m) => m.isFainted)) {
         finalState.battleEnded = true;
         finalState.winner = isActivePlayerTeam ? 'ai' : 'player';
         return;
