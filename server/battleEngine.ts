@@ -902,8 +902,7 @@ export const applyDamage = async (
   }
 
   const activeMonster = battleState.playerTeam[battleState.activePlayerIndex];
-  const templateId = activeMonster.monster?.id || activeMonster.monsterId;
-  const monsterAbilities = battleState.abilities_map[templateId] || [];
+  const monsterAbilities = battleState.abilities_map[activeMonster.id] || [];
   const ability = monsterAbilities.find((a: any) => a.id === abilityId);
 
   if (!ability) throw new Error(`Ability ${abilityId} not found`);
@@ -945,22 +944,45 @@ export const createBattleSession = async (
   // Generate unique battle ID
   const battleId = crypto.randomUUID();
 
-  // Collect all unique monster IDs from both teams
-  const allMonsterIds: number[] = [];
+  // First, collect all the numeric template IDs from both the player and AI teams (monster.monster.id)
+  const allTemplateIds: number[] = [];
 
-  // For player team, use userMonster.id (the unique user monster ID)
+  // For player team, use monster.monster.id (template ID)
   for (const userMonster of playerTeam) {
-    allMonsterIds.push(userMonster.id);
+    if (userMonster.monster?.id) {
+      allTemplateIds.push(userMonster.monster.id);
+    }
   }
 
-  // For AI team, ID is at monster.monster.id (nested structure)
+  // For AI team, use monster.monster.id (template ID)
   for (const monster of opponentTeam) {
-    allMonsterIds.push(monster.monster.id);
+    if (monster.monster?.id) {
+      allTemplateIds.push(monster.monster.id);
+    }
   }
 
-  // Get abilities for all monsters in the battle
-  const abilitiesMap = await storage.getAbilitiesForMonsters(allMonsterIds);
-  console.log('ABILITIES MAP:', JSON.stringify(abilitiesMap, null, 2));
+  // Use these template IDs to fetch all abilities from the database in a single call
+  const abilitiesByTemplateId = await storage.getAbilitiesForMonsters(allTemplateIds);
+
+  // Create the final battleState.abilities_map keyed by unique instance IDs
+  const abilities_map: Record<string, any[]> = {};
+  
+  // For player team: use unique instance ID (monster.id) as key, template ID for lookup
+  for (const monster of playerTeam) {
+    const templateId = monster.monster?.id;
+    if (templateId && abilitiesByTemplateId[templateId]) {
+      abilities_map[monster.id] = abilitiesByTemplateId[templateId];
+    }
+  }
+  
+  // For AI team: use unique instance ID (monster.id) as key, template ID for lookup
+  for (const monster of opponentTeam) {
+    const templateId = monster.monster?.id;
+    if (templateId && abilitiesByTemplateId[templateId]) {
+      abilities_map[monster.id] = abilitiesByTemplateId[templateId];
+    }
+  }
+  console.log('ABILITIES MAP:', JSON.stringify(abilities_map, null, 2));
   // Create initial battle state with standardized health properties
   const playerTeamCopy = JSON.parse(JSON.stringify(playerTeam)); // Deep copy to avoid mutations
   const aiTeamCopy = JSON.parse(JSON.stringify(opponentTeam)); // Deep copy to avoid mutations
@@ -994,7 +1016,7 @@ export const createBattleSession = async (
     battleEnded: false,
     winner: null as 'player' | 'ai' | null,
     battleLog: [] as string[],
-    abilities_map: abilitiesMap, // Store abilities for entire battle duration
+    abilities_map: abilities_map, // Store abilities for entire battle duration
   };
 
   // Process ON_BATTLE_START passive abilities for both teams
@@ -1005,8 +1027,8 @@ export const createBattleSession = async (
 
   for (const team of allTeams) {
     for (const monster of team.monsters) {
-      const monsterId = monster.monsterId || monster.id;
-      const monsterAbilities = abilitiesMap[monsterId] || [];
+      const monsterId = monster.id;
+      const monsterAbilities = abilities_map[monsterId] || [];
 
       for (const ability of monsterAbilities) {
         // Check if this is an ON_BATTLE_START passive ability
@@ -1090,8 +1112,7 @@ export const processAiTurn = async (battleId: string) => {
   const battleState = JSON.parse(JSON.stringify(originalState));
 
   const aiMonster = battleState.aiTeam[battleState.activeAiIndex];
-  const templateId = aiMonster.monster?.id || aiMonster.monsterId;
-  const monsterAbilities = battleState.abilities_map[templateId] || [];
+  const monsterAbilities = battleState.abilities_map[aiMonster.id] || [];
   const activeAbilities = monsterAbilities.filter(
     (a: any) => a.ability_type === 'ACTIVE',
   );
