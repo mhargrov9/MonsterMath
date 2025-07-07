@@ -1,0 +1,46 @@
+Do not write any code. Review these instructions and let me know if it fits our overall strategy and if it violates any of the unbreakable rules (without writing code). Also, please let me know if you think this will solve the following problems:
+
+Problem 1: Status Effects Not Expiring: Status effects like PARALYZED are not being removed after their duration ends because the countdown logic is flawed.
+
+Problem 2: Incorrect Turn Lifecycle Logic: The handleEndOfTurn function is not correctly decrementing the duration of all active status effects for every monster on a team, breaking a key phase of the turn lifecycle.
+
+Goal:
+To fix the status effect duration management system within the handleEndOfTurn function in server/battleEngine.ts. The fix will ensure that the duration of every active status effect on every monster (both active and benched) is reliably decremented by 1 at the end of every turn.
+
+File to Modify:
+server/battleEngine.ts
+
+Implementation Plan:
+Locate the handleEndOfTurn function: Open server/battleEngine.ts and find the handleEndOfTurn function.
+
+Analyze the Status Effect Loop: Focus on the section that begins monster.statusEffects.forEach((effect: any) => { ... });.
+
+Identify the Flaw: The current logic for decrementing duration is overly complex and likely contains a flaw related to the isNew flag or the shouldDecrementDuration checks. This is preventing the effect.duration -= 1; line from running consistently.
+
+Refactor the Duration Logic:
+
+Simplify the loop. The logic should be straightforward: at the end of a turn, every existing effect's duration should be reduced.
+
+Remove the complex shouldDecrementDuration boolean logic.
+
+Ensure the effect.duration -= 1; line is executed for every effect that has a duration.
+
+The isNew flag should only prevent the duration from decrementing on the very turn it was applied. A simple way to handle this is to process the isNew flag before the duration decrement.
+
+Corrected Logic Example:
+
+TypeScript
+
+// Inside the statusEffects loop...
+if (effect.isNew) {
+  delete effect.isNew; // Remove flag, do not decrement this turn.
+} else {
+  effect.duration -= 1; // Decrement duration for all other effects.
+}
+
+if (effect.duration > 0) {
+    newStatusEffects.push(effect);
+} else {
+    // Log that the effect wore off...
+}
+Run Tests: After refactoring the duration logic, execute the test suite. We expect the "Paralysis duration" test to pass, increasing our pass rate to at least 54/57. This fix may also resolve the benched DoT issue.
