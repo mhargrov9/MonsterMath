@@ -26,7 +26,7 @@ import {
   type InsertInventoryItem,
   type InsertAiTeam,
 } from '@shared/schema';
-
+import { type BattleMonster } from '@shared/types';
 import { db } from './db';
 import { eq, and, ne, sql, desc, asc, lte, gt, inArray } from 'drizzle-orm';
 
@@ -1003,6 +1003,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async populateMonstersWithAbilities(monsters: (UserMonster & { monster: Monster })[]) {
+      if (!monsters || monsters.length === 0) {
+          return [];
+      }
       const monsterIds = monsters.map(m => m.monsterId);
       const abilitiesMap = await this.getAbilitiesForMonsters(monsterIds);
 
@@ -1016,7 +1019,7 @@ export class DatabaseStorage implements IStorage {
       return populated;
   }
 
-  async saveFinalBattleState(playerTeam: any[]): Promise<void> {
+  async saveFinalBattleState(playerTeam: BattleMonster[]): Promise<void> {
     if (playerTeam.length === 0) return;
     await db.transaction(async (tx) => {
       await Promise.all(
