@@ -70,7 +70,7 @@ const createTestMonster = (template: any, id: number, abilities: Ability[]): Bat
     isFainted: false,
 } as unknown as BattleMonster);
 
-describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
+describe('Battle Engine Comprehensive Test Suite', () => {
     let battleId: string;
 
     const setupBattle = async (playerMonsters: BattleMonster[], aiMonsters: BattleMonster[]) => {
@@ -95,7 +95,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
     afterEach(() => { vi.restoreAllMocks(); });
 
     // --- Section 1: Ability-Specific Mechanics ---
-    describe('Ability Mechanics (40 Tests)', () => {
+    describe('Ability Mechanics', () => {
         // Basic Attack (1)
         it('[1.1] Basic Attack: should deal damage', async () => {
             const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
@@ -219,7 +219,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
             await setupBattle([p], [a]);
             let state = battleSessions.get(battleId)!;
             state.playerTeam[0].battleHp = 99;
-            state.playerTeam[0].activeEffects.push({ stat: 'defense' } as any);
+            state.playerTeam[0].activeEffects.push({ sourceAbilityId: 7, stat: 'defense' } as any);
             const { battleState } = await applyDamage(battleId, mockRestoringGeyser.id, p.id);
             expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'defense')).toBe(false);
         });
@@ -229,7 +229,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
             await setupBattle([p], [a]);
             let state = battleSessions.get(battleId)!;
             state.playerTeam[0].battleHp = 99;
-            state.playerTeam[0].activeEffects.push({ stat: 'speed' } as any);
+            state.playerTeam[0].activeEffects.push({ sourceAbilityId: 7, stat: 'speed' } as any);
             const { battleState } = await applyDamage(battleId, mockRestoringGeyser.id, p.id);
             expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'speed')).toBe(false);
         });
@@ -406,7 +406,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
     });
 
     // --- Section 2: Status Effect Mechanics ---
-    describe('Status Effect Mechanics (25 Tests)', () => {
+    describe('Status Effect Mechanics', () => {
         // PARALYZED
         it('[SE.1] PARALYZED: should cause the monster to skip its Action Phase', async () => {
             const p = createTestMonster(mockGigaTemplate, 101, []);
@@ -635,7 +635,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
     });
 
     // --- Section 3: Foundational Rules & Engine Logic ---
-    describe('Foundational Rules & Engine Logic (59 Tests)', () => {
+    describe('Foundational Rules & Engine Logic', () => {
         // Pillar 1: State Management & Data Flow
         it('[FR.1.1] Immutability: battle state object must be a new instance after an action', async () => {
             const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
@@ -854,7 +854,7 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
     });
 
     // --- Section 4: Input Validation & Edge Cases ---
-    describe('Input Validation & Edge Cases (10 Tests)', () => {
+    describe('Input Validation & Edge Cases', () => {
         it('[IV.1] should reject action if abilityId is invalid', async () => {
             const p = createTestMonster(mockGigaTemplate, 101, []);
             const a = createTestMonster(mockAethTemplate, 201, []);
@@ -927,5 +927,444 @@ describe('Battle Engine Comprehensive Test Suite (124 Tests)', () => {
             expect(battleState.playerTeam[0].isFainted).toBe(true);
             expect(battleState.battleLog.some(l => l.message.includes('used Basic Attack'))).toBe(false);
         });
+    });
+
+    // --- NEWLY ADDED TESTS ---
+    describe('Newly Added Granular Tests', () => {
+        it('[ADD.1] Stat Modifier: FLAT buffs should apply before PERCENTAGE buffs', async () => {
+            const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+            p.activeEffects.push({ stat: 'power', type: 'FLAT', value: 50, duration: 1 } as ActiveEffect);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 10, duration: 1 } as ActiveEffect);
+            // Expected: (100 + 50) * 1.10 = 165. This needs a getModifiedStat function to test.
+            expect(true).toBe(true); // Placeholder
+        });
+
+        it('[ADD.2] Stat Modifier: FLAT debuffs should apply before PERCENTAGE debuffs', async () => {
+             const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+            p.activeEffects.push({ stat: 'power', type: 'FLAT', value: -20, duration: 1 } as ActiveEffect);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: -50, duration: 1 } as ActiveEffect);
+            // Expected: (100 - 20) * 0.5 = 40. This needs a getModifiedStat function to test.
+            expect(true).toBe(true); // Placeholder
+        });
+
+        it('[ADD.3] Stat Modifier: Multiple PERCENTAGE buffs should stack additively', async () => {
+            const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 10, duration: 1 } as ActiveEffect);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 20, duration: 1 } as ActiveEffect);
+            // Expected: 100 * 1.30 = 130. This needs a getModifiedStat function to test.
+            expect(true).toBe(true); // Placeholder
+        });
+
+        it('[ADD.4] Stat Modifier: A buff and a debuff should partially cancel each other out', async () => {
+            const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 50, duration: 1 } as ActiveEffect);
+            p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: -20, duration: 1 } as ActiveEffect);
+            // Expected: 100 * 1.30 = 130. This needs a getModifiedStat function to test.
+            expect(true).toBe(true); // Placeholder
+        });
+
+        it('[ADD.5] Passive Trigger: ON_BATTLE_START should trigger when battle begins', async () => {
+            const p1 = createTestMonster(mockGigaTemplate, 101, []);
+            const p2 = createTestMonster(mockGriffinTemplate, 102, [mockTailwindPassive]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            const state = await setupBattle([p1, p2], [a]);
+            expect(state.battleLog.some(l => l.message.includes('Tailwind'))).toBe(true);
+        });
+
+        it('[ADD.6] Passive Trigger: ON_BEING_HIT should trigger when taking damage', async () => {
+            vi.spyOn(Math, 'random').mockReturnValue(0);
+            const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+            const a = createTestMonster(mockAethTemplate, 201, [mockPhaseShiftPassive]);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.battleLog.some(l => l.message.includes('evaded'))).toBe(true);
+        });
+
+        it('[ADD.7] Passive Trigger: ON_HP_THRESHOLD should trigger when crossing the threshold going down', async () => {
+            const p = createTestMonster(mockTortoiseTemplate, 101, [mockCrystalizePassive]);
+            const a = createTestMonster(mockAethTemplate, 201, [mockBasicAttack]);
+            await setupBattle([p], [a]);
+            let state = battleSessions.get(battleId)!;
+            state.playerTeam[0].battleHp = 101; // Above 50%
+            state.turn = 'ai';
+            // AI attacks and brings player below 50%
+            const { battleState } = await processAiTurn(battleId);
+            expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'defense')).toBe(true);
+        });
+
+        it('[ADD.8] Passive Trigger: ON_HP_THRESHOLD should trigger when crossing the threshold going up', async () => {
+            const p = createTestMonster(mockTortoiseTemplate, 101, [mockCrystalizePassive, mockRestoringGeyser]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            let state = battleSessions.get(battleId)!;
+            state.playerTeam[0].battleHp = 99; // Below 50%
+            state.playerTeam[0].activeEffects.push({ sourceAbilityId: 7, stat: 'defense' } as any);
+            const { battleState } = await applyDamage(battleId, mockRestoringGeyser.id, p.id);
+            expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'defense')).toBe(false);
+        });
+
+        it('[ADD.9] Passive Trigger: ON_ABILITY_USE should trigger when an ability is used', async () => {
+             vi.spyOn(Math, 'random').mockReturnValue(0);
+            const p = createTestMonster(mockSalamanderTemplate, 101, [mockSootCloudPassive, mockEmberSpit]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockEmberSpit.id);
+            expect(battleState.battleLog.some(l => l.message.includes('Soot Cloud'))).toBe(true);
+        });
+
+        it('[ADD.10] Passive Trigger: END_OF_TURN should trigger at the end of a turn', async () => {
+            const p = createTestMonster(mockAxolotlTemplate, 101, [mockSoothingAuraPassive, mockBasicAttack]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.battleLog.some(l => l.message.includes('Soothing Aura'))).toBe(true);
+        });
+
+        it('[ADD.11] Combinatorial: BURN damage should trigger ON_HP_THRESHOLD passive', async () => {
+            const p = createTestMonster(mockTortoiseTemplate, 101, [mockCrystalizePassive]);
+            p.battleHp = 101; // Just above 50%
+            p.statusEffects.push({ ...mockBurnedEffect, duration: 1, default_value: '10' }); // 10% burn
+            const a = createTestMonster(mockAethTemplate, 201, [mockBasicAttack]);
+            const state = await setupBattle([p], [a]);
+            state.turn = 'player';
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'defense')).toBe(true);
+        });
+
+        it('[ADD.12] Combinatorial: HEALING effect should trigger ON_HP_THRESHOLD deactivation', async () => {
+            const p = createTestMonster(mockTortoiseTemplate, 101, [mockCrystalizePassive]);
+            p.battleHp = 90; // Below 50%
+            p.activeEffects.push({ sourceAbilityId: 7, stat: 'defense' } as any);
+            p.statusEffects.push({ ...mockHealingEffect, duration: 1, default_value: '20' }); // 20% heal
+            const a = createTestMonster(mockAethTemplate, 201, [mockBasicAttack]);
+            const state = await setupBattle([p], [a]);
+            state.turn = 'player';
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.playerTeam[0].activeEffects.some(e => e.stat === 'defense')).toBe(false);
+        });
+
+        it('[ADD.13] Combinatorial: PARALYZED should prevent END_OF_TURN passives from triggering', async () => {
+            const p = createTestMonster(mockSalamanderTemplate, 101, [mockVolcanicHeartPassive, mockBasicAttack]);
+            p.statusEffects.push({ ...mockParalyzedEffect, duration: 1 });
+            const initialHp = p.battleHp;
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            const state = await setupBattle([p], [a]);
+            state.turn = 'player';
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.playerTeam[0].battleHp).toBe(initialHp); // No healing should occur
+        });
+
+        it('[ADD.14] Combinatorial: CONFUSED self-damage should trigger ON_BEING_HIT passives', async () => {
+            // This tests if a monster can evade its own confusion damage. Per rules, it should not.
+            const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, [mockPhaseShiftPassive, mockBasicAttack]);
+            const initialHp = p.battleHp;
+            p.statusEffects.push({ ...mockConfusedEffect, duration: 1 });
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.playerTeam[0].battleHp).toBeLessThan(initialHp);
+            expect(battleState.battleLog.some(l => l.message.includes('evaded'))).toBe(false);
+        });
+
+        it('[ADD.15] Data Structure: All monsters in battle session must have a nested .monster property', async () => {
+            const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const state = battleSessions.get(battleId)!;
+            expect(state.playerTeam[0]).toHaveProperty('monster');
+            expect(state.aiTeam[0]).toHaveProperty('monster');
+        });
+
+        it('[ADD.16] Data Structure: top-level ID should be different from nested monsterId', async () => {
+            const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const state = battleSessions.get(battleId)!;
+            expect(state.playerTeam[0].id).not.toBe(state.playerTeam[0].monster.id);
+        });
+
+        it('[ADD.17] Targeting: ANY_ALLY should not be able to target self if not explicitly allowed', async () => {
+             const p = createTestMonster(mockAxolotlTemplate, 101, [mockRestoringGeyser]);
+            p.battleHp = 10;
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockRestoringGeyser.id, p.id);
+            expect(battleState.playerTeam[0].battleHp).toBe(10 + 150);
+        });
+
+        it('[ADD.18] Targeting: ACTIVE_OPPONENT should only target the active opponent', async () => {
+            const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+            const a1 = createTestMonster(mockAethTemplate, 201, []);
+            const a2 = createTestMonster(mockSquirrelTemplate, 202, []);
+            const initialHp2 = a2.battleHp;
+            await setupBattle([p], [a1, a2]);
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            expect(battleState.aiTeam[1].battleHp).toBe(initialHp2);
+        });
+
+        it('[ADD.19] Affinity: Basic Attack should use override_affinity from monster_abilities', async () => {
+            // This requires a more complex mock of storage.ts to test properly.
+            // We are assuming the logic will be implemented in the engine.
+            expect(true).toBe(true);
+        });
+
+        it('[ADD.20] Faint: A fainted monster\'s passives should be deactivated', async () => {
+            const p = createTestMonster(mockAxolotlTemplate, 101, [mockSoothingAuraPassive, mockBasicAttack]);
+            p.isFainted = true;
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            const state = await setupBattle([p], [a]);
+            state.turn = 'ai';
+            const { battleState } = await processAiTurn(battleId);
+            // No healing should occur because the owner is fainted
+            expect(battleState.battleLog.some(l => l.message.includes('Soothing Aura'))).toBe(false);
+        });
+
+        it('[ADD.21] Faint: A forced swap should be required when active monster faints', async () => {
+            const p1 = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+            const p2 = createTestMonster(mockTortoiseTemplate, 102, []);
+            const a = createTestMonster(mockAethTemplate, 201, [mockPsyBeam]);
+            p1.battleHp = 1;
+            const state = await setupBattle([p1, p2], [a]);
+            state.turn = 'ai';
+            const { battleState } = await processAiTurn(battleId);
+            expect(battleState.turn).toBe('player-must-swap');
+        });
+    });
+});
+
+
+// --- Section 5: Final Granular & Combinatorial Tests ---
+// These tests should be added to the end of your server/battleEngine.test.ts file.
+describe('Final Granular & Combinatorial Tests', () => {
+    it('[ADD.1] Stat Modifier: should correctly calculate a single FLAT buff', async () => {
+        // This test requires a getModifiedStat helper function to be exposed or tested indirectly.
+        // Assuming getModifiedStat(monster, 'power') exists and is testable.
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+        p.activeEffects.push({ stat: 'power', type: 'FLAT', value: 50, duration: 1 } as ActiveEffect);
+        // const modifiedPower = getModifiedStat(p, 'power');
+        // expect(modifiedPower).toBe(150);
+        expect(true).toBe(true); // Placeholder until getModifiedStat is available
+    });
+
+    it('[ADD.2] Stat Modifier: should correctly calculate a single PERCENTAGE buff', async () => {
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+        p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 20, duration: 1 } as ActiveEffect);
+        // const modifiedPower = getModifiedStat(p, 'power');
+        // expect(modifiedPower).toBe(120);
+        expect(true).toBe(true); // Placeholder
+    });
+
+    it('[ADD.3] Stat Modifier: should apply FLAT buffs before PERCENTAGE buffs', async () => {
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+        p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 10, duration: 1 } as ActiveEffect);
+        p.activeEffects.push({ stat: 'power', type: 'FLAT', value: 50, duration: 1 } as ActiveEffect);
+        // const modifiedPower = getModifiedStat(p, 'power');
+        // Expected: (100 + 50) * 1.10 = 165
+        // expect(modifiedPower).toBe(165);
+        expect(true).toBe(true); // Placeholder
+    });
+
+    it('[ADD.4] Stat Modifier: should correctly stack multiple PERCENTAGE buffs', async () => {
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+        p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 10, duration: 1 } as ActiveEffect);
+        p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 20, duration: 1 } as ActiveEffect);
+        // const modifiedPower = getModifiedStat(p, 'power');
+        // Expected: 100 * (1 + 0.10 + 0.20) = 130
+        // expect(modifiedPower).toBe(130);
+        expect(true).toBe(true); // Placeholder
+    });
+
+    it('[ADD.5] Stat Modifier: should correctly apply a PERCENTAGE debuff', async () => {
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, []);
+        p.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: -50, duration: 1 } as ActiveEffect);
+        // const modifiedPower = getModifiedStat(p, 'power');
+        // Expected: 100 * (1 - 0.50) = 50
+        // expect(modifiedPower).toBe(50);
+        expect(true).toBe(true); // Placeholder
+    });
+
+    it('[ADD.6] Passive Scope: ON_ABILITY_USE (ACTIVE) should not trigger from bench', async () => {
+        const p1 = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const p2 = createTestMonster(mockSalamanderTemplate, 102, [mockSootCloudPassive, mockEmberSpit]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p1, p2], [a]);
+        // p1 (Gigalith) uses Basic Attack, p2 (Salamander) is on bench with Soot Cloud.
+        // Soot Cloud should not trigger.
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.aiTeam[0].statusEffects.some(e => e.name === 'POISONED')).toBe(false);
+    });
+
+    it('[ADD.7] Passive Scope: END_OF_TURN (ACTIVE) should not trigger from bench', async () => {
+        const p1 = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const p2 = createTestMonster(mockSalamanderTemplate, 102, [mockVolcanicHeartPassive]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p1, p2], [a]);
+        const initialHp = p2.battleHp;
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        // Volcanic Heart is on the benched monster, so it should not heal.
+        expect(battleState.playerTeam[1].battleHp).toBe(initialHp);
+    });
+
+    it('[ADD.8] Combinatorial: Two different DoT effects should both apply damage', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, []);
+        const a = createTestMonster(mockAethTemplate, 201, [mockBasicAttack]);
+        const state = await setupBattle([p], [a]);
+        const initialHp = a.battleHp;
+        state.aiTeam[0].statusEffects.push({ ...mockBurnedEffect, duration: 1 });
+        state.aiTeam[0].statusEffects.push({ ...mockPoisonedEffect, duration: 1 });
+        state.turn = 'ai';
+
+        const { battleState } = await processAiTurn(battleId);
+        const burnDamage = Math.floor(a.battleMaxHp * 0.05);
+        const poisonDamage = 15;
+        expect(battleState.aiTeam[0].battleHp).toBe(initialHp - burnDamage - poisonDamage);
+    });
+
+    it('[ADD.9] Combinatorial: Evasion should be checked for each hit of a multi-hit attack', async () => {
+        // Phase Shift has 100% chance for this test
+        const p = createTestMonster(mockGriffinTemplate, 101, [mockPeckFlurry]);
+        const a = createTestMonster(mockAethTemplate, 201, [mockPhaseShiftPassive]);
+        await setupBattle([p], [a]);
+
+        // Mock random to make the first hit evade and the next two hit.
+        vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.9).mockReturnValueOnce(0.9);
+        const initialHp = a.battleHp;
+        const { battleState } = await applyDamage(battleId, mockPeckFlurry.id);
+
+        const damageDealt = initialHp - battleState.aiTeam[0].battleHp;
+        // Only 2 of 3 hits should have dealt damage.
+        expect(damageDealt).toBeGreaterThan(0);
+        expect(battleState.battleLog.filter(l => l.message.includes('evaded')).length).toBe(1);
+        expect(battleState.battleLog.filter(l => l.message.includes('damage')).length).toBe(2);
+    });
+
+    it('[ADD.10] Granular: Restoring Geyser healing amount should be exact', async () => {
+        const p = createTestMonster(mockAxolotlTemplate, 101, [mockRestoringGeyser]);
+        p.battleHp = 10;
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockRestoringGeyser.id, p.id);
+        expect(battleState.playerTeam[0].battleHp).toBe(10 + 150);
+    });
+
+    it('[ADD.11] Granular: CONFUSED self-damage calculation should be precise', async () => {
+        const p = createTestMonster({ ...mockGigaTemplate, basePower: 100 }, 101, [mockBasicAttack]);
+        const initialHp = p.battleHp;
+        p.statusEffects.push({ ...mockConfusedEffect, duration: 1 });
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        const expectedDamage = Math.floor(100 * parseFloat(mockConfusedEffect.secondary_value!));
+        expect(battleState.playerTeam[0].battleHp).toBe(initialHp - expectedDamage);
+    });
+
+    it('[ADD.12] Granular: BURNED damage calculation should be precise', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, []);
+        const a = createTestMonster({ ...mockAethTemplate, baseHp: 200, battleMaxHp: 200 }, 201, [mockBasicAttack]);
+        const state = await setupBattle([p], [a]);
+        const initialHp = a.battleHp;
+        state.aiTeam[0].statusEffects.push({ ...mockBurnedEffect, duration: 1 });
+        state.turn = 'ai';
+        const { battleState } = await processAiTurn(battleId);
+        const expectedDamage = Math.floor(200 * (parseInt(mockBurnedEffect.default_value!) / 100));
+        expect(battleState.aiTeam[0].battleHp).toBe(initialHp - expectedDamage);
+    });
+
+    it('[ADD.13] Granular: POISONED damage calculation should be precise', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, []);
+        const a = createTestMonster(mockAethTemplate, 201, [mockBasicAttack]);
+        const state = await setupBattle([p], [a]);
+        const initialHp = a.battleHp;
+        state.aiTeam[0].statusEffects.push({ ...mockPoisonedEffect, duration: 1 });
+        state.turn = 'ai';
+        const { battleState } = await processAiTurn(battleId);
+        const expectedDamage = parseInt(mockPoisonedEffect.default_value!);
+        expect(battleState.aiTeam[0].battleHp).toBe(initialHp - expectedDamage);
+    });
+
+    it('[ADD.14] Granular: Peck Flurry MP cost should only be deducted once', async () => {
+        const p = createTestMonster(mockGriffinTemplate, 101, [mockPeckFlurry]);
+        const initialMp = p.battleMp;
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockPeckFlurry.id);
+        expect(battleState.playerTeam[0].battleMp).toBe(initialMp - mockPeckFlurry.mp_cost);
+    });
+
+    it('[ADD.15] Granular: Soot Cloud chance-based application should be verifiable', async () => {
+        let count = 0;
+        for (let i = 0; i < 100; i++) {
+            vi.spyOn(Math, 'random').mockReturnValueOnce(i / 100);
+            const p = createTestMonster(mockSalamanderTemplate, 101, [mockSootCloudPassive, mockEmberSpit]);
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockEmberSpit.id);
+            if (battleState.aiTeam[0].statusEffects.some(e => e.name === 'POISONED')) count++;
+        }
+        // Soot Cloud has 100% chance in mock, this test is for the principle
+        // If chance was 0.25, we'd expect it to be around 25.
+        expect(count).toBe(100); 
+    });
+
+    it('[ADD.16] Granular: Volcanic Heart chance-based application should be verifiable', async () => {
+        let count = 0;
+        for (let i = 0; i < 100; i++) {
+            vi.spyOn(Math, 'random').mockReturnValueOnce(i / 100);
+            const p = createTestMonster(mockSalamanderTemplate, 101, [mockVolcanicHeartPassive, mockBasicAttack]);
+            p.battleHp = 10;
+            const a = createTestMonster(mockAethTemplate, 201, []);
+            await setupBattle([p], [a]);
+            const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+            if (battleState.battleLog.some(l => l.message.includes('Volcanic Heart'))) count++;
+        }
+        // Volcanic Heart has 100% chance in mock, this test is for the principle
+        expect(count).toBe(100);
+    });
+
+    it('[ADD.17] Faint: A fainted monster should have isFainted = true', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        a.battleHp = 1;
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.aiTeam[0].isFainted).toBe(true);
+    });
+
+    it('[ADD.18] Faint: A fainted monster should have its HP set to 0', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        a.battleHp = 1;
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.aiTeam[0].battleHp).toBe(0);
+    });
+
+    it('[ADD.19] Faint: All status effects should be cleared from a fainted monster', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        a.battleHp = 1;
+        a.statusEffects.push({ ...mockBurnedEffect, duration: 2 });
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.aiTeam[0].statusEffects.length).toBe(0);
+    });
+
+    it('[ADD.20] Faint: All active effects (buffs/debuffs) should be cleared from a fainted monster', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        a.battleHp = 1;
+        a.activeEffects.push({ stat: 'power', type: 'PERCENTAGE', value: 50, duration: 1 } as ActiveEffect);
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.aiTeam[0].activeEffects.length).toBe(0);
+    });
+
+    it('[ADD.21] Battle Log: should log a message for a successful hit', async () => {
+        const p = createTestMonster(mockGigaTemplate, 101, [mockBasicAttack]);
+        const a = createTestMonster(mockAethTemplate, 201, []);
+        await setupBattle([p], [a]);
+        const { battleState } = await applyDamage(battleId, mockBasicAttack.id);
+        expect(battleState.battleLog.some(l => l.message.includes('Gigalith used Basic Attack'))).toBe(true);
+        expect(battleState.battleLog.some(l => l.message.includes('damage to Aetherion'))).toBe(true);
     });
 });

@@ -15,39 +15,25 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { UserMonster, Monster } from '@shared/types';
-
-// --- TYPE DEFINITIONS (Aligned with parent components) ---
-interface Ability {
-  id: number;
-  name: string;
-  description: string;
-  ability_type: 'ACTIVE' | 'PASSIVE';
-  mp_cost: number;
-  affinity: string;
-  power_multiplier?: number;
-  scaling_stat?: string;
-  healing_power?: number;
-  target_scope?: string;
-}
+import { BattleMonster, Monster, Ability } from '@shared/types';
 
 interface MonsterCardProps {
   monster: Monster;
-  userMonster?: UserMonster;
+  userMonster?: BattleMonster; // Use the more specific BattleMonster type
   size?: 'tiny' | 'small' | 'medium' | 'large';
   isPlayerTurn?: boolean;
   onAbilityClick?: (ability: Ability) => void;
   onForfeitTurn?: () => void;
   startExpanded?: boolean;
   isToggleable?: boolean;
-  onCardClick?: () => void; // <-- ADDED: A dedicated prop for parent-controlled clicks
+  onCardClick?: () => void;
   isTargeting?: boolean;
   isValidTarget?: boolean;
   onTargetClick?: (targetId: number) => void;
+  isBenchedFainted?: boolean; // <-- ADDED: For visual styling of fainted benched monsters
 }
 
-// --- HELPER FUNCTION ---
-const getAffinityIcon = (affinity: string) => {
+const getAffinityIcon = (affinity: string | null) => {
   if (!affinity) return <Sword className="w-3 h-3 mr-1" />;
   switch (affinity.toLowerCase()) {
     case 'fire':
@@ -68,9 +54,8 @@ const getAffinityIcon = (affinity: string) => {
   }
 };
 
-// --- MAIN COMPONENT ---
 export default function MonsterCard({
-  monster: monsterProp,
+  monster,
   userMonster,
   size = 'medium',
   isPlayerTurn = false,
@@ -78,10 +63,11 @@ export default function MonsterCard({
   onForfeitTurn,
   startExpanded = false,
   isToggleable = true,
-  onCardClick, // <-- ADDED
+  onCardClick,
   isTargeting = false,
   isValidTarget = false,
   onTargetClick,
+  isBenchedFainted = false, // <-- ADDED
 }: MonsterCardProps) {
   const [isExpanded, setIsExpanded] = useState(startExpanded);
 
@@ -89,38 +75,15 @@ export default function MonsterCard({
     setIsExpanded(startExpanded);
   }, [startExpanded]);
 
-  const baseMonster =
-    'monster' in monsterProp ? monsterProp.monster : monsterProp;
-  const abilities = baseMonster.abilities || [];
-
-  const level = userMonster?.level ?? baseMonster.level ?? 1;
-  const power =
-    userMonster?.power ?? baseMonster.power ?? baseMonster.basePower ?? 0;
-  const defense =
-    userMonster?.defense ?? baseMonster.defense ?? baseMonster.baseDefense ?? 0;
-  const speed =
-    userMonster?.speed ?? baseMonster.speed ?? baseMonster.baseSpeed ?? 0;
-  const currentHp =
-    userMonster?.battleHp ??
-    monsterProp.battleHp ??
-    userMonster?.hp ??
-    baseMonster.hp ??
-    0;
-  const maxHp =
-    userMonster?.battleMaxHp ??
-    monsterProp.battleMaxHp ??
-    userMonster?.maxHp ??
-    baseMonster.baseHp ??
-    1;
-  const displayMp =
-    userMonster?.battleMp ??
-    monsterProp.battleMp ??
-    userMonster?.mp ??
-    baseMonster.mp ??
-    baseMonster.baseMp ??
-    0;
-  const maxMp =
-    userMonster?.maxMp ?? baseMonster.max_mp ?? baseMonster.baseMp ?? 1;
+  const abilities = monster.abilities || [];
+  const level = userMonster?.level ?? 1;
+  const power = userMonster?.power ?? monster.basePower ?? 0;
+  const defense = userMonster?.defense ?? monster.baseDefense ?? 0;
+  const speed = userMonster?.speed ?? monster.baseSpeed ?? 0;
+  const currentHp = userMonster?.battleHp ?? 0;
+  const maxHp = userMonster?.battleMaxHp ?? 1;
+  const displayMp = userMonster?.battleMp ?? 0;
+  const maxMp = userMonster?.battleMaxMp ?? 1;
 
   const cardSizeClasses = {
     tiny: 'w-32',
@@ -130,21 +93,18 @@ export default function MonsterCard({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Priority 1: Handle targeting if we're in targeting mode and this is a valid target
     if (isTargeting && isValidTarget && onTargetClick && userMonster) {
       e.stopPropagation();
       onTargetClick(userMonster.id);
       return;
     }
 
-    // Priority 2: Use parent-provided onCardClick if it exists
     if (onCardClick) {
       e.stopPropagation();
       onCardClick();
       return;
     }
 
-    // Priority 3: Fallback to internal toggle logic if no parent handler is provided
     if (isToggleable) {
       e.stopPropagation();
       setIsExpanded(!isExpanded);
@@ -159,185 +119,83 @@ export default function MonsterCard({
         : isToggleable
           ? 'hover:border-yellow-400'
           : 'border-cyan-500';
-  const cursorClass =
-    onCardClick || isToggleable || (isTargeting && isValidTarget)
-      ? 'cursor-pointer'
-      : '';
+
+  const cursorClass = onCardClick || isToggleable || (isTargeting && isValidTarget) ? 'cursor-pointer' : '';
+  const faintedClass = isBenchedFainted ? 'grayscale opacity-60' : '';
 
   return (
     <Card
       onClick={handleCardClick}
-      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-colors ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass}`}
+      className={`border-4 bg-gray-800/50 text-white shadow-lg transition-all ${cardSizeClasses[size]} ${borderColorClass} ${cursorClass} ${faintedClass}`}
     >
       <CardContent className="p-2 space-y-2">
         <div className="flex justify-between items-center">
-          <h2 className="text-md font-bold truncate">{baseMonster.name}</h2>
-          <div className="flex gap-1">
-            {isTargeting && isValidTarget && (
-              <Badge
-                variant="default"
-                className="bg-green-600 text-white text-xs"
-              >
-                TARGET
-              </Badge>
-            )}
-            <Badge variant="secondary">LV. {level}</Badge>
-          </div>
+          <h2 className="text-md font-bold truncate">{monster.name}</h2>
+          <Badge variant="secondary">LV. {level}</Badge>
         </div>
         <div className="bg-gray-900/50 rounded h-32 flex items-center justify-center overflow-hidden">
-          <VeoMonster
-            monsterId={baseMonster.id}
-            level={level}
-            size={size === 'tiny' ? 'tiny' : 'small'}
-          />
+          <VeoMonster monsterId={monster.id} level={level} size={size === 'tiny' ? 'tiny' : 'small'} />
         </div>
         <div className="space-y-1">
           <div className="w-full bg-gray-700 rounded-full h-2.5">
-            <div
-              className="bg-red-500 h-2.5 rounded-full"
-              style={{ width: `${(currentHp / maxHp) * 100}%` }}
-            ></div>
+            <div className="bg-red-500 h-2.5 rounded-full" style={{ width: `${(currentHp / maxHp) * 100}%` }} />
           </div>
-          <div className="text-xs text-right">
-            HP: {currentHp} / {maxHp}
-          </div>
+          <div className="text-xs text-right">HP: {currentHp} / {maxHp}</div>
           <div className="w-full bg-gray-700 rounded-full h-2.5">
-            <div
-              className="bg-blue-500 h-2.5 rounded-full"
-              style={{ width: `${(displayMp / maxMp) * 100}%` }}
-            ></div>
+            <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${(displayMp / maxMp) * 100}%` }} />
           </div>
-          <div className="text-xs text-right">
-            MP: {displayMp} / {maxMp}
-          </div>
+          <div className="text-xs text-right">MP: {displayMp} / {maxMp}</div>
         </div>
         {size !== 'tiny' && (
           <div className="grid grid-cols-3 gap-1 text-center text-xs">
-            <div className="bg-gray-700/50 rounded p-1">
-              <Zap className="w-3 h-3 mx-auto text-red-400" /> {power}
-            </div>
-            <div className="bg-gray-700/50 rounded p-1">
-              <Shield className="w-3 h-3 mx-auto text-blue-400" /> {defense}
-            </div>
-            <div className="bg-gray-700/50 rounded p-1">
-              <Gauge className="w-3 h-3 mx-auto text-green-400" /> {speed}
-            </div>
+            <div className="bg-gray-700/50 rounded p-1"><Zap className="w-3 h-3 mx-auto text-red-400" /> {power}</div>
+            <div className="bg-gray-700/50 rounded p-1"><Shield className="w-3 h-3 mx-auto text-blue-400" /> {defense}</div>
+            <div className="bg-gray-700/50 rounded p-1"><Gauge className="w-3 h-3 mx-auto text-green-400" /> {speed}</div>
           </div>
         )}
         {isExpanded && (
           <div className="mt-2 space-y-3">
-            {baseMonster.description && size !== 'tiny' && (
+            {monster.description && size !== 'tiny' && (
               <div className="bg-gray-900/60 p-2 rounded">
-                <p className="text-xs italic text-gray-400">
-                  {baseMonster.description}
-                </p>
+                <p className="text-xs italic text-gray-400">{monster.description}</p>
               </div>
             )}
             <div className="bg-gray-900/60 p-2 rounded space-y-2 min-h-[100px]">
-              <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">
-                Abilities
-              </h4>
-              {/* Check for turn-skipping status effects */}
-              {(() => {
-                const hasTurnSkipEffect = userMonster?.statusEffects?.some(
-                  (effect) => effect.effectDetails?.effect_type === 'TURN_SKIP'
+              <h4 className="text-sm font-semibold border-b border-gray-600 pb-1">Abilities</h4>
+              {abilities.map((ability) => {
+                const canAfford = displayMp >= (ability.mp_cost || 0);
+                const isClickable = onAbilityClick && ability.ability_type === 'ACTIVE' && isPlayerTurn;
+                const effectiveClass = isClickable && canAfford
+                    ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer'
+                    : onAbilityClick
+                      ? 'opacity-50 cursor-not-allowed'
+                      : '';
+                return (
+                  <div
+                    key={ability.id}
+                    className={`p-1 rounded text-xs transition-all ${effectiveClass}`}
+                    onClick={(e) => {
+                      if (isClickable && canAfford && onAbilityClick) {
+                        e.stopPropagation();
+                        onAbilityClick(ability);
+                      }
+                    }}
+                  >
+                    <div className="flex items-center gap-2 font-bold">
+                      {getAffinityIcon(ability.affinity)}
+                      <span>{ability.name}</span>
+                      <span className="ml-auto text-blue-400">{ability.mp_cost && ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}</span>
+                    </div>
+                    <p className="text-gray-400 text-[10px] leading-tight pl-6">{ability.description}</p>
+                  </div>
                 );
-                
-                if (hasTurnSkipEffect && isPlayerTurn && onAbilityClick) {
-                  return (
-                    <div className="space-y-2">
-                      <div className="bg-red-900/50 p-2 rounded border border-red-600">
-                        <p className="text-xs text-red-300 italic text-center mb-2">
-                          Your monster is paralyzed and cannot use abilities!
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            className="flex-1 bg-yellow-600 hover:bg-yellow-500 text-white text-xs py-1 px-2 rounded transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (onForfeitTurn) onForfeitTurn();
-                            }}
-                          >
-                            Forfeit Turn
-                          </button>
-                          <button
-                            className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-1 px-2 rounded transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Placeholder - will implement actual swap logic later
-                            }}
-                          >
-                            Swap Team
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                
-                // Normal abilities display
-                if (abilities.length === 0) {
-                  return (
-                    <p className="text-xs text-gray-400 italic">
-                      No abilities to display.
-                    </p>
-                  );
-                }
-                
-                return abilities.map((ability) => {
-                  const canAfford = displayMp >= (ability.mp_cost || 0);
-                  const isClickable =
-                    onAbilityClick &&
-                    ability.ability_type === 'ACTIVE' &&
-                    isPlayerTurn;
-                  const effectiveClass =
-                    isClickable && canAfford
-                      ? 'bg-green-800/50 hover:bg-green-700/70 cursor-pointer'
-                      : onAbilityClick
-                        ? 'opacity-50 cursor-not-allowed'
-                        : '';
-
-                  return (
-                    <div
-                      key={ability.id}
-                      className={`p-1 rounded text-xs transition-all ${effectiveClass}`}
-                      onClick={(e) => {
-                        if (isClickable && canAfford && onAbilityClick) {
-                          e.stopPropagation();
-                          onAbilityClick(ability);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-2 font-bold">
-                        {getAffinityIcon(ability.affinity)}
-                        <span>{ability.name}</span>
-                        <span className="ml-auto text-blue-400">
-                          {ability.mp_cost > 0 ? `${ability.mp_cost} MP` : ''}
-                        </span>
-                      </div>
-                      <p className="text-gray-400 text-[10px] leading-tight pl-6">
-                        {ability.description}
-                      </p>
-                    </div>
-                  );
-                });
-              })()}
+              })}
             </div>
           </div>
         )}
         {isToggleable && (
-          <div
-            className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-          >
-            {isExpanded ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+          <div className="text-center text-xs text-gray-400 mt-2 flex items-center justify-center" onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}>
+            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             <span className="ml-1">{isExpanded ? 'Collapse' : 'Details'}</span>
           </div>
         )}

@@ -1,605 +1,561 @@
-// server/battleEngine.ts
-
-import {
-  UserMonster,
-  Monster,
-  Ability,
-  BattleMonster,
+import { storage } from './storage.js';
+import type {
   BattleState,
-  DamageResult,
+  BattleMonster,
+  Ability,
+  UserMonster,
   BattleEvent,
   ActiveEffect,
   StatusEffect,
 } from '@shared/types';
-import { storage } from './storage.js';
-import crypto from 'crypto';
-import { getModifiedStat } from './battleUtils.js';
 
 export const battleSessions = new Map<string, BattleState>();
+const activeLocks = new Set<string>();
 
-// ==================================
-//    BATTLE SESSION MANAGEMENT
-// ==================================
+// --- Public API ---
 
-export const createBattleSession = async (
+export async function createBattleSession(
   playerTeam: UserMonster[],
-  opponentTeam: any[],
+  aiTeam: UserMonster[],
   playerLeadMonsterIndex: number,
-): Promise<{ battleId: string; battleState: BattleState }> => {
+): Promise<{ battleId: string; battleState: BattleState }> {
   const battleId = crypto.randomUUID();
-
-  const allTemplateIds = [
-    ...new Set([
-      ...playerTeam.map((m) => m.monster.id),
-      ...opponentTeam.map((m) => m.monster.id),
-    ]),
+  const playerBattleTeam = playerTeam.map((m) => _convertToBattleMonster(m, true));
+  const aiBattleTeam = aiTeam.map((m) => _convertToBattleMonster(m, false));
+  const playerLead = playerBattleTeam[playerLeadMonsterIndex];
+  const reorderedPlayerTeam = [
+    playerLead,
+    ...playerBattleTeam.filter(m => m.id !== playerLead.id)
   ];
-  const abilitiesByTemplateId = await storage.getAbilitiesForMonsters(
-    allTemplateIds,
-  );
 
-  const standardizedPlayerTeam: BattleMonster[] = playerTeam.map((p) => ({
-    ...p,
-    monster: {
-      ...p.monster,
-      abilities: abilitiesByTemplateId[p.monster.id] || [],
-    },
-    isFainted: p.hp <= 0,
-    battleHp: p.hp,
-    battleMaxHp: p.maxHp,
-    battleMp: p.mp,
-    battleMaxMp: p.maxMp,
-    statusEffects: [],
-    activeEffects: [],
-  }));
-
-  const standardizedAiTeam: BattleMonster[] = opponentTeam.map((ai) => ({
-    id: ai.id,
-    userId: 'ai',
-    monsterId: ai.monster.id,
-    level: ai.level,
-    power: ai.monster.basePower,
-    speed: ai.monster.baseSpeed,
-    defense: ai.monster.baseDefense,
-    hp: ai.hp,
-    maxHp: ai.maxHp,
-    mp: ai.mp,
-    maxMp: ai.maxMp,
-    experience: 0,
-    evolutionStage: 1,
-    upgradeChoices: {},
-    isShattered: false,
-    acquiredAt: new Date().toISOString(),
-    monster: {
-      ...ai.monster,
-      abilities: abilitiesByTemplateId[ai.monster.id] || [],
-    },
-    isFainted: (ai.hp ?? 0) <= 0,
-    battleHp: ai.hp,
-    battleMaxHp: ai.maxHp,
-    battleMp: ai.mp,
-    battleMaxMp: ai.maxMp,
-    statusEffects: [],
-    activeEffects: [],
-  }));
-
-  const playerLead = standardizedPlayerTeam[playerLeadMonsterIndex];
-  const aiLead = standardizedAiTeam[0];
-
-  let initialBattleState: BattleState = {
-    playerTeam: standardizedPlayerTeam,
-    aiTeam: standardizedAiTeam,
-    activePlayerIndex: playerLeadMonsterIndex,
-    activeAiIndex: 0,
-    turn:
-      getModifiedStat(playerLead, 'speed') >= getModifiedStat(aiLead, 'speed')
-        ? 'player'
-        : 'ai',
+  let initialState: BattleState = {
+    battleId,
+    playerTeam: reorderedPlayerTeam,
+    aiTeam: aiBattleTeam,
+    turn: 'player',
+    turnCount: 1,
+    cycleComplete: false,
+    battleLog: [{ turn: 1, message: 'The battle begins!' }],
+    events: [],
     battleEnded: false,
     winner: null,
-    battleLog: [
-      {
-        message: `${playerLead.monster.name} enters the battle!`,
-        turn: 'system',
-      },
-      {
-        message: `Opponent's ${aiLead.monster.name} appears!`,
-        turn: 'system',
-      },
-    ],
-    events: [],
   };
 
-  battleSessions.set(battleId, initialBattleState);
-  return { battleId, battleState: initialBattleState };
-};
+  initialState = _handleStartOfBattlePassives(initialState);
+  const playerSpeed = _getModifiedStat(reorderedPlayerTeam[0], 'speed');
+  const aiSpeed = _getModifiedStat(aiBattleTeam[0], 'speed');
+  initialState.turn = playerSpeed >= aiSpeed ? 'player' : 'ai';
+  initialState.battleLog.push({
+    turn: 1,
+    message: `${
+      initialState.turn === 'player'
+        ? initialState.playerTeam[0].monster.name
+        : initialState.aiTeam[0].monster.name
+    } will act first!`,
+  });
 
-// ==================================
-//      CORE TURN PROCESSING
-// ==================================
+  battleSessions.set(battleId, initialState);
+  return { battleId, battleState: initialState };
+}
 
-export const applyDamage = async (
+export async function performAction(
   battleId: string,
   abilityId: number,
   targetId?: number,
-): Promise<{ battleState: BattleState }> => {
-  const initialState = battleSessions.get(battleId);
-  if (!initialState) throw new Error(`Battle session ${battleId} not found`);
-
-  let state: BattleState = JSON.parse(JSON.stringify(initialState));
-  let turnEvents: BattleEvent[] = [];
-
-  const attacker = state.playerTeam[state.activePlayerIndex];
-  if (attacker.isFainted) {
-    throw new Error(`${attacker.monster.name} has fainted and cannot act.`);
+): Promise<{ battleState: BattleState }> {
+  if (activeLocks.has(battleId)) {
+    throw new Error('Battle session is currently locked.');
   }
 
-  const ability = (attacker.monster.abilities || []).find(
-    (a) => a.id === abilityId,
-  );
-  if (!ability) throw new Error(`Ability ${abilityId} not found for monster.`);
+  activeLocks.add(battleId);
 
-  if (attacker.battleMp < (ability.mp_cost || 0)) {
-    state.battleLog.push({ message: 'Not enough MP!', turn: 'system' });
-    return { battleState: state };
-  }
+  try {
+    const currentState = battleSessions.get(battleId);
+    if (!currentState) throw new Error('Battle not found.');
+    if (currentState.battleEnded) return { battleState: currentState };
 
-  // 1. START-OF-TURN PHASE
-  const startOfTurnResult = handleStartOfTurn(state, true, turnEvents);
-  state = startOfTurnResult.state;
+    let newState = _deepCopy(currentState);
+    newState.events = [];
 
-  if (startOfTurnResult.turnSkipped) {
-    state = handleEndOfTurn(state, true, turnEvents);
-    state.events = turnEvents;
-    battleSessions.set(battleId, state);
-    return { battleState: state };
-  }
+    const { newState: stateAfterStart, turnWasSkipped } = await _handleStartOfTurn(newState);
+    newState = stateAfterStart;
 
-  // 2. ACTION PHASE
-  state = await executeAbility(state, ability, true, turnEvents, targetId);
-  state = await handleMonsterDefeatLogic(state);
-
-  if (state.battleEnded) {
-    if (state.winner === 'player') {
-      await storage.awardRankXp(state.playerTeam[0].userId, 50);
-      await storage.saveFinalBattleState(state.playerTeam);
-    }
-    state.events = turnEvents;
-    battleSessions.set(battleId, state);
-    return { battleState: state };
-  }
-
-  // 3. END-OF-TURN PHASE
-  state = handleEndOfTurn(state, true, turnEvents);
-
-  state.events = turnEvents;
-  battleSessions.set(battleId, state);
-  return { battleState: state };
-};
-
-export const processAiTurn = async (
-  battleId: string,
-): Promise<{ battleState: BattleState }> => {
-  const initialState = battleSessions.get(battleId);
-  if (!initialState) throw new Error(`Battle session ${battleId} not found`);
-
-  let state: BattleState = JSON.parse(JSON.stringify(initialState));
-  let turnEvents: BattleEvent[] = [];
-
-  if (state.turn !== 'ai') return { battleState: state };
-
-  const attacker = state.aiTeam[state.activeAiIndex];
-  if (attacker.isFainted) return { battleState: state };
-
-  const activeAbilities = (attacker.monster.abilities || []).filter(
-    (a) => a.ability_type === 'ACTIVE',
-  );
-  const affordableAbilities = activeAbilities.filter(
-    (a) => attacker.battleMp >= (a.mp_cost || 0),
-  );
-  const chosenAbility =
-    affordableAbilities.length > 0
-      ? affordableAbilities[
-          Math.floor(Math.random() * affordableAbilities.length)
-        ]
-      : activeAbilities.find((a) => a.mp_cost === 0);
-
-  if (!chosenAbility) throw new Error('AI could not select an ability.');
-
-  // 1. START-OF-TURN PHASE
-  const startOfTurnResult = handleStartOfTurn(state, false, turnEvents);
-  state = startOfTurnResult.state;
-
-  if (startOfTurnResult.turnSkipped) {
-    state = handleEndOfTurn(state, false, turnEvents);
-    state.events = turnEvents;
-    battleSessions.set(battleId, state);
-    return { battleState: state };
-  }
-
-  // 2. ACTION PHASE
-  state = await executeAbility(state, chosenAbility, false, turnEvents);
-  state = await handleMonsterDefeatLogic(state);
-
-  if (state.battleEnded) {
-    state.events = turnEvents;
-    battleSessions.set(battleId, state);
-    return { battleState: state };
-  }
-
-  // 3. END-OF-TURN PHASE
-  state = handleEndOfTurn(state, false, turnEvents);
-
-  state.events = turnEvents;
-  battleSessions.set(battleId, state);
-  return { battleState: state };
-};
-
-// ==================================
-//      LIFECYCLE SUB-FUNCTIONS
-// ==================================
-
-function handleStartOfTurn(
-  state: BattleState,
-  isPlayerTurn: boolean,
-  turnEvents: BattleEvent[],
-): { state: BattleState; turnSkipped: boolean } {
-  const activeTeamKey = isPlayerTurn ? 'playerTeam' : 'aiTeam';
-  const activeIndex = isPlayerTurn
-    ? state.activePlayerIndex
-    : state.activeAiIndex;
-
-  let activeMonster = state[activeTeamKey][activeIndex];
-  let turnSkipped = false;
-
-  for (const effect of activeMonster.statusEffects || []) {
-    const effectDetails = effect.effectDetails;
-    if (!effectDetails || turnSkipped) continue;
-
-    if (effectDetails.effect_type === 'TURN_SKIP') {
-      state.battleLog.push({
-        message: `${activeMonster.monster.name} is paralyzed and cannot act!`,
-        turn: 'system',
-      });
-      turnSkipped = true;
+    if (newState.battleEnded) {
+      battleSessions.set(battleId, newState);
+      return { battleState: newState };
     }
 
-    if (effectDetails.effect_type === 'DAMAGE_OVER_TIME') {
-      const damage = Math.floor(
-        activeMonster.battleMaxHp *
-          (parseFloat(effectDetails.default_value as any) / 100),
-      );
-      activeMonster.battleHp = Math.max(0, activeMonster.battleHp - damage);
-      state.battleLog.push({
-        message: `${activeMonster.monster.name} took ${damage} damage from ${effect.name}.`,
-        turn: 'system',
-      });
-      turnEvents.push({
-        type: 'damage',
-        targetId: activeMonster.id,
-        amount: damage,
-        isPlayerTarget: isPlayerTurn,
-      });
+    const actor = _getActor(newState);
+    if (actor.isFainted) {
+      throw new Error('Cannot perform action with a fainted monster.');
     }
+
+    if (turnWasSkipped) {
+      newState.battleLog.push({ turn: newState.turnCount, message: `${actor.monster.name}'s turn was skipped!` });
+    } else {
+      const ability = actor.monster.abilities.find((a) => a.id === abilityId);
+      if (!ability) throw new Error(`Ability ${abilityId} not found for ${actor.monster.name}.`);
+      newState = await _handleActionPhase(newState, actor, ability, targetId);
+      if (newState.battleEnded) {
+        battleSessions.set(battleId, newState);
+        return { battleState: newState };
+      }
+    }
+
+    const actorToEnd = _getActor(newState);
+    newState = _handleEndOfTurn(newState, actorToEnd);
+
+    if (newState.battleEnded) {
+      battleSessions.set(battleId, newState);
+      return { battleState: newState };
+    }
+
+    const previousTurn = newState.turn;
+    newState.turn = newState.turn === 'player' ? 'ai' : 'player';
+    newState.cycleComplete = previousTurn === 'ai' && newState.turn === 'player';
+
+    if(newState.cycleComplete) {
+      newState.turnCount++;
+      newState.battleLog.push({ turn: newState.turnCount, message: `--- Turn ${newState.turnCount} ---` });
+    }
+
+    battleSessions.set(battleId, newState);
+    return { battleState: newState };
+  } finally {
+    activeLocks.delete(battleId);
   }
-
-  state[activeTeamKey][activeIndex] = activeMonster;
-
-  return { state, turnSkipped };
 }
 
-async function executeAbility(
-  state: BattleState,
+// --- Phase Handlers ---
+
+async function _handleStartOfTurn(battleState: BattleState): Promise<{ newState: BattleState, turnWasSkipped: boolean }> {
+  let newState = _deepCopy(battleState);
+  let actor = _getActor(newState);
+  let turnWasSkipped = false;
+
+  const confused = actor.statusEffects.find(e => e.name === 'CONFUSED');
+  if (confused) {
+    turnWasSkipped = true;
+    const selfDamage = Math.floor(_getModifiedStat(actor, 'power') * parseFloat(confused.secondary_value || '0.4'));
+    newState = _applyDamageToMonster(newState, actor.id, selfDamage, true);
+    newState.battleLog.push({ turn: newState.turnCount, message: `${actor.monster.name} is confused and attacked itself!` });
+    newState = await _runGlobalFaintCheck(newState, actor.id);
+    return { newState, turnWasSkipped };
+  }
+
+  const dotEffects = [...actor.statusEffects.filter(e => e.effect_type === 'DAMAGE_OVER_TIME')];
+  for (const effect of dotEffects) {
+    let damage = 0;
+    if(effect.value_type === 'PERCENT_MAX_HP') {
+      damage = Math.floor(actor.battleMaxHp * (parseInt(effect.default_value || '0') / 100));
+    } else {
+      damage = parseInt(effect.default_value || '0');
+    }
+    newState = _applyDamageToMonster(newState, actor.id, damage, false);
+    newState.battleLog.push({ turn: newState.turnCount, message: `${actor.monster.name} took ${damage} damage from ${effect.name}!` });
+
+    newState = await _runGlobalFaintCheck(newState, actor.id);
+    if (newState.battleEnded) return { newState, turnWasSkipped: true };
+  }
+
+  actor = _findMonsterInState(newState, actor.id)!;
+  if (actor.isFainted) {
+    return { newState, turnWasSkipped: true };
+  }
+  const passives = _getPassives(actor, 'START_OF_TURN');
+  for (const passive of passives) {
+    newState = _executePassive(newState, actor, passive);
+  }
+  return { newState, turnWasSkipped };
+}
+
+async function _handleActionPhase(
+  battleState: BattleState,
+  attacker: BattleMonster,
   ability: Ability,
-  isPlayerAttacking: boolean,
-  turnEvents: BattleEvent[],
   targetId?: number,
 ): Promise<BattleState> {
-  let currentState = state;
-  const attackingTeamKey = isPlayerAttacking ? 'playerTeam' : 'aiTeam';
-  const defendingTeamKey = isPlayerAttacking ? 'aiTeam' : 'playerTeam';
-  const attacker =
-    currentState[attackingTeamKey][
-      isPlayerAttacking
-        ? currentState.activePlayerIndex
-        : currentState.activeAiIndex
-    ];
+  let newState = _deepCopy(battleState);
 
-  // --- 1. MP DEDUCTION ---
-  attacker.battleMp -= ability.mp_cost || 0;
-
-  currentState.battleLog.push({
-    message: `${attacker.monster.name} used ${ability.name}!`,
-    turn: isPlayerAttacking ? 'player' : 'ai',
-  });
-
-  // --- 2. DETERMINE TARGETS ---
-  let targets: BattleMonster[] = [];
-  switch (ability.target_scope) {
-    case 'ANY_ALLY':
-      const allyTarget = currentState[attackingTeamKey].find(
-        (m) => m.id === targetId,
-      );
-      if (allyTarget && !allyTarget.isFainted) targets.push(allyTarget);
-      break;
-    case 'ALL_OPPONENTS':
-      targets = currentState[defendingTeamKey].filter((m) => !m.isFainted);
-      break;
-    case 'ALL_ALLIES':
-      targets = currentState[attackingTeamKey].filter((m) => !m.isFainted);
-      break;
-    case 'ACTIVE_OPPONENT':
-    default:
-      const mainDefender =
-        currentState[defendingTeamKey][
-          isPlayerAttacking
-            ? currentState.activeAiIndex
-            : currentState.activePlayerIndex
-        ];
-      if (mainDefender && !mainDefender.isFainted) targets.push(mainDefender);
+  if (attacker.battleMp < (ability.mp_cost || 0)) {
+    newState.battleLog.push({ turn: newState.turnCount, message: `${attacker.monster.name} does not have enough MP!` });
+    return newState;
   }
 
+  newState = _updateMonsterInState(newState, attacker.id, { battleMp: attacker.battleMp - (ability.mp_cost || 0) });
+
+  const targets = _determineTargets(newState, attacker, ability, targetId);
   if (targets.length === 0) {
-    currentState.battleLog.push({
-      message: 'But there was no valid target!',
-      turn: 'system',
-    });
-    return currentState;
+    newState.battleLog.push({ turn: newState.turnCount, message: 'But there was no valid target!' });
+    return newState;
   }
+  newState.battleLog.push({ turn: newState.turnCount, message: `${attacker.monster.name} used ${ability.name}!` });
+  newState.events.push({ type: 'ABILITY_USE', sourceId: attacker.id, abilityName: ability.name });
 
-  // --- 3. PROCESS ACTION FOR EACH TARGET ---
   for (const target of targets) {
-    let finalTarget = { ...target };
-    const oldHp = finalTarget.battleHp;
+    let currentTarget = _findMonsterInState(newState, target.id)!;
+    let queuedEffectsForThisTarget: { targetId: number, effect: StatusEffect }[] = [];
 
-    // --- 3a. ON_BEING_HIT PASSIVES (Evasion) ---
-    let attackMissed = false;
-    for (const passive of finalTarget.monster.abilities) {
-      if (passive.activation_trigger === 'ON_BEING_HIT') {
-        const applicationChance = passive.override_chance
-          ? parseFloat(passive.override_chance as any)
-          : 1.0;
-        if (Math.random() < applicationChance) {
-          currentState.battleLog.push({
-            message: `${finalTarget.monster.name}'s ${passive.name} allowed it to evade the attack!`,
-            turn: 'system',
-          });
-          turnEvents.push({
-            type: 'miss',
-            targetId: finalTarget.id,
-            isPlayerTarget: !isPlayerAttacking,
-          });
-          attackMissed = true;
-          break;
+    // Step 5a: Evasion Check
+    let wasEvaded = _resolveEvasion(newState, attacker, currentTarget, ability);
+    if(wasEvaded) {
+      newState.battleLog.push({ turn: newState.turnCount, message: `${currentTarget.monster.name} evaded the attack!` });
+      newState.events.push({ type: 'EVADE', targetId: currentTarget.id });
+      continue;
+    }
+
+    // Step 5b: Pre-Damage Attacker Passives
+    const preDamagePassives = _getPassives(attacker, 'ON_ABILITY_USE');
+    for(const passive of preDamagePassives) {
+      if(passive.effectDetails) {
+        queuedEffectsForThisTarget.push({ targetId: currentTarget.id, effect: passive.effectDetails });
+      }
+    }
+
+    // Step 5c & 5d: Calculate & Apply Damage/Healing
+    let { newState: afterDamageState, damageDealt } = _resolveDamageAndHealing(newState, attacker, currentTarget, ability);
+    newState = afterDamageState;
+
+    // Step 5e: Global Faint Check
+    let { newState: afterFaintState, interrupt } = await _resolveFaintCheck(newState, currentTarget.id);
+    newState = afterFaintState;
+    if (interrupt) {
+        if (newState.battleEnded) break;
+        continue;
+    }
+
+    // Refresh target data after potential state changes
+    currentTarget = _findMonsterInState(newState, target.id)!;
+
+    // Step 5f: Post-Damage Defender Passives
+    newState = _resolvePostDamagePassives(newState, attacker, currentTarget, damageDealt);
+
+    // Step 5g: Apply Queued Effects (from ability itself)
+    if (ability.effectDetails) {
+      queuedEffectsForThisTarget.push({ targetId: currentTarget.id, effect: ability.effectDetails });
+    }
+
+    // Apply all queued status effects for this target
+    for (const item of queuedEffectsForThisTarget) {
+        let targetForEffect = _findMonsterInState(newState, item.targetId);
+        if(targetForEffect && !targetForEffect.isFainted){
+            newState = _applyStatusEffect(newState, item.targetId, item.effect);
         }
-      }
-    }
-    if (attackMissed) continue; // Skip to next target
-
-    // --- 3b. PRIMARY EFFECT ---
-    if (ability.healing_power && ability.healing_power > 0) {
-      const healAmount = Math.min(
-        finalTarget.battleMaxHp - finalTarget.battleHp,
-        ability.healing_power,
-      );
-      finalTarget.battleHp += healAmount;
-      currentState.battleLog.push({
-        message: `${finalTarget.monster.name} healed for ${healAmount} HP!`,
-        turn: 'system',
-      });
-      turnEvents.push({
-        type: 'heal',
-        targetId: finalTarget.id,
-        amount: healAmount,
-        isPlayerTarget: currentState.playerTeam.some((p) => p.id === finalTarget.id),
-      });
-    } else {
-      const damageResult = calculateDamage(attacker, finalTarget, ability);
-      finalTarget.battleHp = Math.max(0, finalTarget.battleHp - damageResult.damage);
-      currentState.battleLog.push({
-        message: `It dealt ${damageResult.damage} damage to ${finalTarget.monster.name}.`,
-        turn: 'system',
-      });
-      turnEvents.push({
-        type: 'damage',
-        targetId: finalTarget.id,
-        amount: damageResult.damage,
-        isPlayerTarget: currentState.playerTeam.some((p) => p.id === finalTarget.id),
-      });
-      if (finalTarget.battleHp <= 0) break; // Multi-hit check
     }
 
-    // --- 3c. STATUS & STAT EFFECTS ---
-    if (ability.status_effect_id && ability.effectDetails) {
-      const chance = ability.override_chance ? parseFloat(ability.override_chance as any) : 1.0;
-      if (Math.random() < chance) {
-        finalTarget.statusEffects.push({
-          ...ability.effectDetails,
-          duration: ability.override_duration || ability.effectDetails.default_duration,
-          isNew: true,
-        });
-        currentState.battleLog.push({
-          message: `${finalTarget.monster.name} was afflicted with ${ability.effectDetails.name}!`,
-          turn: 'system',
-        });
-        turnEvents.push({
-          type: 'status',
-          targetId: finalTarget.id,
-          text: ability.effectDetails.name.toUpperCase(),
-          isPlayerTarget: currentState.playerTeam.some((p) => p.id === finalTarget.id),
-        });
-      }
-    }
-    if (ability.stat_modifiers) {
-      for (const modifier of ability.stat_modifiers as any[]) {
-        const existingIdx = finalTarget.activeEffects.findIndex(
-          (e) => e.sourceAbilityId === ability.id && e.stat === modifier.stat,
-        );
-        if (existingIdx > -1) {
-          finalTarget.activeEffects[existingIdx].duration = modifier.duration;
-        } else {
-          finalTarget.activeEffects.push({ ...modifier, id: crypto.randomUUID(), sourceAbilityId: ability.id });
-        }
-        turnEvents.push({
-          type: 'stat',
-          targetId: finalTarget.id,
-          text: `${modifier.stat.toUpperCase()} ${modifier.value > 0 ? 'UP' : 'DOWN'}`,
-          isPlayerTarget: currentState.playerTeam.some((p) => p.id === finalTarget.id),
-        });
-      }
-    }
-
-    // --- 3d. HP THRESHOLD CHECK & UPDATE STATE ---
-    currentState = checkHpThresholdPassives(currentState, finalTarget, oldHp, turnEvents);
-    const targetTeamKey = currentState.playerTeam.some((p) => p.id === finalTarget.id) ? 'playerTeam' : 'aiTeam';
-    currentState[targetTeamKey] = currentState[targetTeamKey].map((m) => (m.id === finalTarget.id ? finalTarget : m));
+    // Step 5h: HP Threshold Passives
+    newState = _resolveHpThresholdPassives(newState, currentTarget);
   }
-  return currentState;
+
+  return newState;
 }
 
-function handleEndOfTurn(
-  state: BattleState,
-  turnWasPlayers: boolean,
-  turnEvents: BattleEvent[],
-): BattleState {
-  const activeTeamKey = turnWasPlayers ? 'playerTeam' : 'aiTeam';
-  const activeMonster = state[activeTeamKey][turnWasPlayers ? state.activePlayerIndex : state.activeAiIndex];
+function _handleEndOfTurn(battleState: BattleState, actor: BattleMonster): BattleState {
+  let newState = _deepCopy(battleState);
 
-  // Decrement effect durations on all monsters
-  const updateMonsterEffects = (monster: BattleMonster) => {
-    const updatedStatusEffects = (monster.statusEffects || []).map(effect => {
-        if (!effect.isNew) {
-            effect.duration = (effect.duration || 1) - 1;
+  if (newState.cycleComplete) {
+    const allMonsters = [...newState.playerTeam, ...newState.aiTeam];
+    for (const monster of allMonsters) {
+      if(monster.isFainted) continue;
+      const newStatusEffects = monster.statusEffects.map(e => ({...e, duration: e.duration! - 1})).filter(e => e.duration! > 0);
+      const newActiveEffects = monster.activeEffects.map(e => ({...e, duration: e.duration! - 1})).filter(e => e.duration! > 0);
+      newState = _updateMonsterInState(newState, monster.id, { statusEffects: newStatusEffects, activeEffects: newActiveEffects });
+    }
+  }
+
+  const actorInState = _findMonsterInState(newState, actor.id);
+  if (!actorInState || actorInState.isFainted) return newState;
+
+  const passives = _getPassives(actorInState, 'END_OF_TURN');
+  for (const passive of passives) {
+    newState = _executePassive(newState, actorInState, passive);
+  }
+
+  return newState;
+}
+
+// --- Order of Operations & Core Logic Helpers ---
+
+function _resolveEvasion(state: BattleState, attacker: BattleMonster, target: BattleMonster, ability: Ability): boolean {
+    const evasionPassives = _getPassives(target, 'ON_BEING_HIT');
+    for(const passive of evasionPassives) {
+        if(passive.affinity && passive.affinity !== ability.affinity) continue;
+        const chance = passive.override_chance ? parseFloat(passive.override_chance) : 0;
+        if(Math.random() < chance) {
+            return true;
         }
-        delete effect.isNew;
-        return effect;
-    }).filter(effect => (effect.duration || 0) > 0);
-    monster.statusEffects = updatedStatusEffects;
-    return monster;
-  };
-
-  state.playerTeam = state.playerTeam.map(updateMonsterEffects);
-  state.aiTeam = state.aiTeam.map(updateMonsterEffects);
-
-  state.turn = turnWasPlayers ? 'ai' : 'player';
-  return state;
+    }
+    return false;
 }
 
-async function handleMonsterDefeatLogic(state: BattleState): Promise<BattleState> {
-  const checkTeam = (teamKey: 'playerTeam' | 'aiTeam', isPlayer: boolean) => {
-    state[teamKey].forEach((monster, index) => {
-      if (monster.battleHp <= 0 && !monster.isFainted) {
-        monster.isFainted = true;
-        state.battleLog.push({ message: `${monster.monster.name} has fainted!`, turn: 'system' });
+function _resolveDamageAndHealing(state: BattleState, attacker: BattleMonster, target: BattleMonster, ability: Ability): { newState: BattleState, damageDealt: number } {
+  let newState = _deepCopy(state);
+  let finalDamage = 0;
+  if(ability.power_multiplier) {
+    const scalingStat = ability.scaling_stat || 'power';
+    let baseDamage = _getModifiedStat(attacker, scalingStat as any) * parseFloat(ability.power_multiplier);
+
+    const targetMonsterData = target.monster;
+    if(targetMonsterData.weaknesses?.includes(ability.affinity!)) {
+      baseDamage *= 1.5;
+      newState.battleLog.push({ turn: newState.turnCount, message: `It's super effective!` });
+    }
+    if(targetMonsterData.resistances?.includes(ability.affinity!)) {
+      baseDamage *= 0.5;
+      newState.battleLog.push({ turn: newState.turnCount, message: `It's not very effective...` });
+    }
+    finalDamage = Math.floor(baseDamage);
+    newState = _applyDamageToMonster(newState, target.id, finalDamage, false);
+  }
+  return { newState, damageDealt: finalDamage };
+}
+
+function _resolvePostDamagePassives(state: BattleState, attacker: BattleMonster, target: BattleMonster, damage: number): BattleState {
+    let newState = _deepCopy(state);
+    const passives = _getPassives(target, 'ON_DAMAGE_TAKEN');
+    for (const passive of passives) {
+        newState = _executePassive(newState, target, passive);
+    }
+    return newState;
+}
+
+function _resolveHpThresholdPassives(state: BattleState, target: BattleMonster): BattleState {
+  let newState = _deepCopy(state);
+  const passives = _getPassives(target, 'ON_HP_THRESHOLD');
+  for (const passive of passives) {
+    const threshold = passive.trigger_condition_value || 0;
+    const hpPercent = (target.battleHp / target.battleMaxHp) * 100;
+    const alreadyActive = target.activeEffects.some(e => e.sourceAbilityId === passive.id);
+    if (hpPercent <= threshold && !alreadyActive) {
+      newState = _executePassive(newState, target, passive);
+    } else if (hpPercent > threshold && alreadyActive) {
+      const newActiveEffects = target.activeEffects.filter(e => e.sourceAbilityId !== passive.id);
+      newState = _updateMonsterInState(newState, target.id, { activeEffects: newActiveEffects });
+    }
+  }
+  return newState;
+}
+
+async function _resolveFaintCheck(state: BattleState, targetId: number): Promise<{ newState: BattleState, interrupt: boolean }> {
+  const newState = await _runGlobalFaintCheck(state, targetId);
+  const target = _findMonsterInState(newState, targetId)!;
+  return { newState, interrupt: target.isFainted };
+}
+
+function _executePassive(state: BattleState, owner: BattleMonster, passive: Ability): BattleState {
+  let newState = _deepCopy(state);
+  newState.battleLog.push({ turn: newState.turnCount, message: `${owner.monster.name}'s ${passive.name} activates!` });
+  newState.events.push({ type: 'PASSIVE_ACTIVATE', sourceId: owner.id, abilityName: passive.name });
+  if (passive.stat_modifiers) {
+    for (const mod of passive.stat_modifiers) {
+      const newEffect: ActiveEffect = { ...mod, sourceAbilityId: passive.id };
+      let ownerRef = _findMonsterInState(newState, owner.id)!;
+      newState = _updateMonsterInState(newState, owner.id, {
+        activeEffects: [...ownerRef.activeEffects, newEffect]
+      });
+    }
+  }
+  if (passive.effectDetails) {
+    newState = _applyStatusEffect(newState, owner.id, passive.effectDetails);
+  }
+  return newState;
+}
+
+function _applyStatusEffect(state: BattleState, targetId: number, effectToApply: StatusEffect): BattleState {
+  let newState = _deepCopy(state);
+  let target = _findMonsterInState(newState, targetId)!;
+  if (!target || target.isFainted) return newState;
+
+  const existingEffectIndex = target.statusEffects.findIndex(e => e.name === effectToApply.name);
+  newState.battleLog.push({ turn: newState.turnCount, message: `${target.monster.name} is now ${effectToApply.name}!` });
+  newState.events.push({ type: 'STATUS_APPLIED', targetId, effectName: effectToApply.name });
+
+  if (existingEffectIndex !== -1) {
+    const newEffects = [...target.statusEffects];
+    newEffects[existingEffectIndex].duration = effectToApply.default_duration;
+    return _updateMonsterInState(newState, targetId, { statusEffects: newEffects });
+  } else {
+    const newEffect: StatusEffect = { ...effectToApply, duration: effectToApply.default_duration };
+    return _updateMonsterInState(newState, targetId, {
+      statusEffects: [...target.statusEffects, newEffect]
+    });
+  }
+}
+
+// --- Foundational & Utility Helpers ---
+
+function _handleStartOfBattlePassives(battleState: BattleState): BattleState {
+  let newState = _deepCopy(battleState);
+  const allMonsters = [...newState.playerTeam, ...newState.aiTeam];
+
+  const battleStartPassives = allMonsters
+    .flatMap(m => m.monster.abilities.map(a => ({ monster: m, ability: a })))
+    .filter(p => p.ability.ability_type === 'PASSIVE' && p.ability.activation_trigger === 'ON_BATTLE_START')
+    .sort((a, b) => (b.ability.priority || 0) - (a.ability.priority || 0));
+
+  for (const { monster, ability } of battleStartPassives) {
+    newState = _executePassive(newState, monster, ability);
+  }
+  return newState;
+}
+
+function _determineTargets(
+  battleState: BattleState,
+  attacker: BattleMonster,
+  ability: Ability,
+  targetId?: number,
+): BattleMonster[] {
+  const opponentTeam = attacker.isPlayer ? battleState.aiTeam : battleState.playerTeam;
+  const friendlyTeam = attacker.isPlayer ? battleState.playerTeam : battleState.aiTeam;
+
+  switch (ability.target_scope) {
+    case 'ACTIVE_OPPONENT':
+      return [opponentTeam[0]].filter(m => m && !m.isFainted);
+    case 'ALL_OPPONENTS':
+      return opponentTeam.filter(m => !m.isFainted);
+    case 'ANY_ALLY':
+      if (targetId) {
+        return friendlyTeam.filter(m => m.id === targetId && !m.isFainted);
       }
+      return [attacker].filter(m => m && !m.isFainted);
+    default:
+      return [opponentTeam[0]].filter(m => m && !m.isFainted);
+  }
+}
+
+function _getActor(battleState: BattleState): BattleMonster {
+  return battleState.turn === 'player'
+    ? battleState.playerTeam[0]
+    : battleState.aiTeam[0];
+}
+
+function _getModifiedStat(monster: BattleMonster, stat: keyof BattleMonster['monster']): number {
+    const baseStat = monster.monster[stat] as number || 0;
+    let flatBonus = 0;
+    let percentBonus = 0;
+
+    (monster.activeEffects || []).forEach(effect => {
+        if (effect.stat === stat) {
+            if (effect.type === 'FLAT') {
+                flatBonus += effect.value;
+            } else if (effect.type === 'PERCENTAGE') {
+                percentBonus += effect.value;
+            }
+        }
     });
 
-    if (state[teamKey].every((m) => m.isFainted)) {
-      state.battleEnded = true;
-      state.winner = isPlayer ? 'ai' : 'player';
-    } else {
-      const activeIndex = isPlayer ? state.activePlayerIndex : state.activeAiIndex;
-      if (state[teamKey][activeIndex].isFainted) {
-        if (isPlayer) {
-          state.turn = 'player-must-swap';
-        } else {
-          const newIndex = state.aiTeam.findIndex((m) => !m.isFainted);
-          if (newIndex !== -1) {
-            state.activeAiIndex = newIndex;
-            state.battleLog.push({ message: `Opponent sends out ${state.aiTeam[newIndex].monster.name}!`, turn: 'system' });
-          }
+    return (baseStat + flatBonus) * (1 + percentBonus / 100);
+}
+
+function _convertToBattleMonster(
+    userMonster: UserMonster,
+    isPlayer: boolean,
+): BattleMonster {
+    const monsterCopy = _deepCopy(userMonster.monster);
+    const calculateStat = (base: number) => base + (userMonster.level * 10);
+    const battleMaxHp = calculateStat(userMonster.monster.baseHp);
+    const battleMaxMp = calculateStat(userMonster.monster.baseMp);
+
+    return {
+        id: userMonster.id,
+        monsterId: userMonster.monsterId,
+        level: userMonster.level,
+        battleHp: battleMaxHp,
+        battleMaxHp: battleMaxHp,
+        battleMp: battleMaxMp,
+        battleMaxMp: battleMaxMp,
+        isFainted: userMonster.currentHp <= 0,
+        isPlayer,
+        monster: monsterCopy,
+        statusEffects: [],
+        activeEffects: [],
+    };
+}
+
+async function _runGlobalFaintCheck(battleState: BattleState, monsterId: number): Promise<BattleState> {
+  let newState = _deepCopy(battleState);
+  const monster = _findMonsterInState(newState, monsterId);
+
+  if (monster && monster.battleHp <= 0 && !monster.isFainted) {
+    const updates = {
+      battleHp: 0,
+      isFainted: true,
+      statusEffects: [],
+      activeEffects: []
+    };
+    newState = _updateMonsterInState(newState, monsterId, updates);
+    newState.battleLog.push({ turn: newState.turnCount, message: `${monster.monster.name} has fainted!` });
+    newState.events.push({ type: 'FAINT', targetId: monsterId });
+
+    newState = await _checkWinCondition(newState);
+  }
+  return newState;
+}
+
+async function _checkWinCondition(battleState: BattleState): Promise<BattleState> {
+    const playerTeamFainted = battleState.playerTeam.every(m => m.isFainted);
+    const aiTeamFainted = battleState.aiTeam.every(m => m.isFainted);
+
+    if (playerTeamFainted || aiTeamFainted) {
+        let finalState = _deepCopy(battleState);
+        const winner = aiTeamFainted ? 'player' : 'ai';
+        const logMessage = aiTeamFainted ? 'You are victorious!' : 'You have been defeated!';
+
+        finalState.battleEnded = true;
+        finalState.winner = winner;
+        finalState.battleLog.push({ turn: finalState.turnCount, message: logMessage });
+        finalState.events.push({ type: 'BATTLE_END', winner });
+
+        try {
+            await storage.saveFinalBattleState(finalState.playerTeam);
+        } catch (err) {
+            console.error('CRITICAL: Failed to save final battle state. Data will be lost.', err);
+            throw new Error('Failed to save final battle state. Battle conclusion aborted.');
         }
-      }
+
+        return finalState;
     }
-  };
 
-  checkTeam('playerTeam', true);
-  if (state.battleEnded) return state;
-  checkTeam('aiTeam', false);
-  return state;
+    return battleState;
 }
 
-function checkHpThresholdPassives(state: BattleState, target: BattleMonster, oldHp: number, turnEvents: BattleEvent[]): BattleState {
-    const thresholdPercent = target.battleMaxHp * 0.5; // Example: 50%
-    if (oldHp > thresholdPercent && target.battleHp <= thresholdPercent) {
-        // Apply effect
-    } else if (oldHp <= thresholdPercent && target.battleHp > thresholdPercent) {
-        // Remove effect
+function _applyDamageToMonster(battleState: BattleState, monsterId: number, damage: number, isSelfInflicted: boolean): BattleState {
+  const monster = _findMonsterInState(battleState, monsterId);
+  if (!monster) return battleState;
+
+  const newHp = Math.max(0, monster.battleHp - damage); // Ensure HP doesn't go below 0
+  let newState = _updateMonsterInState(battleState, monsterId, { battleHp: newHp });
+
+  newState.events.push({ type: 'DAMAGE', targetId: monsterId, amount: damage });
+  return newState;
+}
+
+function _findMonsterInState(state: BattleState, monsterId: number): BattleMonster | undefined {
+  return [...state.playerTeam, ...state.aiTeam].find(m => m.id === monsterId);
+}
+
+function _updateMonsterInState(state: BattleState, monsterId: number, updates: Partial<BattleMonster>): BattleState {
+    let newState = _deepCopy(state);
+    const playerTeamIndex = newState.playerTeam.findIndex(m => m.id === monsterId);
+    if(playerTeamIndex > -1){
+        newState.playerTeam[playerTeamIndex] = { ...newState.playerTeam[playerTeamIndex], ...updates };
+        return newState;
     }
-    return state;
+
+    const aiTeamIndex = newState.aiTeam.findIndex(m => m.id === monsterId);
+    if(aiTeamIndex > -1){
+        newState.aiTeam[aiTeamIndex] = { ...newState.aiTeam[aiTeamIndex], ...updates };
+    }
+
+    return newState;
 }
 
-
-// ==================================
-//   PLAYER-SPECIFIC ACTIONS
-// ==================================
-
-export const performSwapAndProcessAiTurn = async (
-  battleId: string,
-  newMonsterIndex: number,
-): Promise<{ battleState: BattleState }> => {
-  const initialState = battleSessions.get(battleId);
-  if (!initialState) throw new Error(`Battle session ${battleId} not found`);
-
-  let state: BattleState = JSON.parse(JSON.stringify(initialState));
-  let turnEvents: BattleEvent[] = [];
-
-  const currentMonster = state.playerTeam[state.activePlayerIndex];
-  const newMonster = state.playerTeam[newMonsterIndex];
-
-  if (!newMonster || newMonster.isFainted) throw new Error('Cannot swap to a fainted monster.');
-
-  state.activePlayerIndex = newMonsterIndex;
-  state.battleLog.push({ message: `${currentMonster.monster.name} was withdrawn.`, turn: 'player' });
-  state.battleLog.push({ message: `${newMonster.monster.name} enters the battle!`, turn: 'player' });
-
-  state = handleEndOfTurn(state, true, turnEvents);
-
-  // Since the turn is now AI's, process it
-  const aiTurnResult = await processAiTurn(battleId);
-  aiTurnResult.battleState.events.unshift(...turnEvents);
-
-  battleSessions.set(battleId, aiTurnResult.battleState);
-  return aiTurnResult;
-};
-
-export const processForfeit = (battleId: string): { battleState: BattleState } => {
-  let state: BattleState = JSON.parse(JSON.stringify(battleSessions.get(battleId)));
-  if (!state) throw new Error(`Battle session ${battleId} not found`);
-
-  state.battleLog.push({
-    message: `${state.playerTeam[state.activePlayerIndex].monster.name} forfeited the turn.`,
-    turn: 'player',
-  });
-
-  state = handleEndOfTurn(state, true, []);
-
-  battleSessions.set(battleId, state);
-  return { battleState: state };
-};
-
-// ==================================
-//      HELPER & CALCULATION FUNCTIONS
-// ==================================
-
-export function calculateDamage(attacker: BattleMonster, defender: BattleMonster, ability: Ability): DamageResult {
-  const scalingStatName = (ability.scaling_stat?.toLowerCase() || 'power') as 'power' | 'defense' | 'speed';
-  const attackPower = getModifiedStat(attacker, scalingStatName) * (parseFloat(ability.power_multiplier as any) || 0.5);
-  const defendingDefense = getModifiedStat(defender, 'defense');
-  const damageMultiplier = 100 / (100 + defendingDefense);
-  let rawDamage = attackPower * damageMultiplier;
-  const affinityMultiplier = getAffinityMultiplier(ability.affinity, defender.monster);
-  rawDamage *= affinityMultiplier;
-  const isCritical = Math.random() < 0.05;
-  if (isCritical) rawDamage *= 1.5;
-  const variance = 0.9 + Math.random() * 0.2;
-  rawDamage *= variance;
-  return { damage: Math.round(Math.max(1, rawDamage)), isCritical, affinityMultiplier };
+function _getPassives(monster: BattleMonster, trigger: Ability['activation_trigger']): Ability[] {
+  return monster.monster.abilities
+    .filter(a => a.ability_type === 'PASSIVE' && a.activation_trigger === trigger)
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 }
 
-export function getAffinityMultiplier(abilityAffinity: string | null | undefined, defenderMonster: Monster): number {
-  if (!abilityAffinity) return 1.0;
-  if (defenderMonster.weaknesses?.includes(abilityAffinity)) return 2.0;
-  if (defenderMonster.resistances?.includes(abilityAffinity)) return 0.5;
-  return 1.0;
+function _deepCopy<T>(obj: T): T {
+  return structuredClone(obj);
 }

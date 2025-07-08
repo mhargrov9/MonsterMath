@@ -4,15 +4,14 @@ import { CombatView } from './CombatView';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   UserMonster,
-  Monster,
   Ability,
   FloatingText,
-  Turn,
-  BattleLog as BattleLogType,
-  BattleState, // <-- UPDATED: Use the full state type
+  BattleState,
+  BattleEvent,
 } from '@shared/types';
 import { Button } from '@/components/ui/button';
 import MonsterCard from './MonsterCard';
+import { apiRequest } from '@/lib/queryClient';
 
 interface BattleArenaProps {
   onRetreat: () => void;
@@ -21,17 +20,11 @@ interface BattleArenaProps {
 export default function BattleArena({ onRetreat }: BattleArenaProps) {
   const queryClient = useQueryClient();
 
-  const [battleMode, setBattleMode] = useState<
-    'team-select' | 'lead-select' | 'combat'
-  >('team-select');
+  const [battleMode, setBattleMode] = useState<'team-select' | 'lead-select' | 'combat'>('team-select');
   const [isLoading, setIsLoading] = useState(false);
   const [battleState, setBattleState] = useState<BattleState | null>(null);
   const [floatingTexts, setFloatingTexts] = useState<FloatingText[]>([]);
-  const [battleId, setBattleId] = useState<string | null>(null);
-  const [targetingState, setTargetingState] = useState<{
-    isTargeting: boolean;
-    ability: Ability | null;
-  }>({
+  const [targetingState, setTargetingState] = useState<{ isTargeting: boolean; ability: Ability | null }>({
     isTargeting: false,
     ability: null,
   });
@@ -46,11 +39,11 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
 
   // Main game loop trigger for AI turns
   useEffect(() => {
-    if (battleState?.turn === 'ai' && !battleState?.battleEnded && battleId) {
+    if (battleState?.turn === 'ai' && !battleState?.battleEnded && battleState.battleId) {
       const timer = setTimeout(() => handleAiTurn(), 1500); // Simple delay for UX
       return () => clearTimeout(timer);
     }
-  }, [battleState?.turn, battleState?.battleEnded, battleId]);
+  }, [battleState?.turn, battleState?.battleEnded, battleState?.battleId]);
 
   // Invalidate user monster cache when a battle ends to get fresh HP/MP
   useEffect(() => {
@@ -59,49 +52,61 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     }
   }, [battleState?.battleEnded, queryClient]);
 
-  // UPDATED: Process server events to create floating text
+  // Process server events to create floating text
   useEffect(() => {
-    if (battleState?.events && battleState.events.length > 0) {
-      battleState.events.forEach((event, index) => {
-        setTimeout(() => {
-          const newText: FloatingText = {
-            id: Date.now() + Math.random(),
-            text: event.text || event.amount?.toString() || '',
-            type: event.type,
-            targetId: event.targetId,
-            isPlayerTarget: event.isPlayerTarget,
-          };
-          setFloatingTexts((prev) => [...prev, newText]);
-          setTimeout(() => {
-            setFloatingTexts((prev) => prev.filter((t) => t.id !== newText.id));
-          }, 1500);
-        }, index * 150); // Stagger events slightly
-      });
+    if (!battleState?.events || battleState.events.length === 0) return;
+
+    const getFloatingTextContent = (event: BattleEvent): string => {
+        switch (event.type) {
+            case 'DAMAGE': return event.amount?.toString() || '0';
+            case 'HEAL': return `+${event.amount?.toString() || '0'}`;
+            case 'EVADE': return 'Evade!';
+            case 'STATUS_APPLIED': return event.effectName || 'Status!';
+            case 'PASSIVE_ACTIVATE': return event.abilityName || 'Passive!';
+            case 'FAINT': return 'Fainted!';
+            default: return '';
+        }
     }
-  }, [battleState?.battleLog]); // Trigger when new logs arrive, indicating a new state
+
+    battleState.events.forEach((event, index) => {
+      setTimeout(() => {
+        const textContent = getFloatingTextContent(event);
+        if(!textContent) return;
+
+        const newText: FloatingText = {
+          id: Date.now() + Math.random(),
+          text: textContent,
+          type: event.type,
+          targetId: event.targetId,
+        };
+        setFloatingTexts((prev) => [...prev, newText]);
+        setTimeout(() => {
+          setFloatingTexts((prev) => prev.filter((t) => t.id !== newText.id));
+        }, 1500);
+      }, index * 200); // Stagger events slightly
+    });
+  }, [battleState?.events]); 
 
   const updateStateFromServer = (newState: BattleState) => {
     setBattleState(newState);
   };
 
-  const handleBattleStart = async (
-    selectedTeam: UserMonster[],
-    generatedOpponent: any,
-  ) => {
+  const handleBattleStart = async (selectedTeam: UserMonster[], generatedOpponent: any) => {
     // This function now just sets up the client for lead selection
     setBattleState({
       playerTeam: selectedTeam,
       aiTeam: generatedOpponent.scaledMonsters,
-      activePlayerIndex: 0,
-      activeAiIndex: 0,
-      turn: 'pre-battle',
+      // The rest of the state will be populated by the server
+      battleId: '',
+      turn: 'player',
+      turnCount: 1,
+      cycleComplete: false,
       battleEnded: false,
       winner: null,
       battleLog: [],
       events: [],
     });
     setFloatingTexts([]);
-    setBattleId(null);
     setBattleMode('lead-select');
   };
 
@@ -109,15 +114,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     if (!battleState) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/battle/create', {
+      const response = await apiRequest('/api/battle/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+        data: {
           playerTeam: battleState.playerTeam,
           opponentTeam: battleState.aiTeam,
           playerLeadMonsterIndex: index,
-        }),
+        },
       });
 
       if (!response.ok) {
@@ -125,51 +128,32 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
       }
 
       const { battleId, battleState: newBattleState } = await response.json();
-      setBattleId(battleId);
       updateStateFromServer(newBattleState);
       setBattleMode('combat');
     } catch (error) {
       console.error('Error creating battle:', error);
-      // Handle error state appropriately
     } finally {
       setIsLoading(false);
     }
   };
 
   const handlePlayerAbility = async (ability: Ability, targetId?: number) => {
-    if (battleState?.turn !== 'player' || battleState?.battleEnded || !battleId)
-      return;
+    if (battleState?.turn !== 'player' || battleState?.battleEnded || !battleState.battleId) return;
 
-    // Handle targeting for ANY_ALLY scope
     if (ability.target_scope === 'ANY_ALLY' && !targetId) {
       setTargetingState({ isTargeting: true, ability: ability });
-      setBattleState((prev) =>
-        prev
-          ? {
-              ...prev,
-              battleLog: [
-                ...prev.battleLog,
-                {
-                  message: `Select a target for ${ability.name}...`,
-                  turn: 'system',
-                },
-              ],
-            }
-          : null,
-      );
+      // Future: could add a log message here
       return;
     }
 
     try {
-      const response = await fetch('/api/battle/perform-action', {
+      const response = await apiRequest('/api/battle/perform-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          battleId,
+        data: {
+          battleId: battleState.battleId,
           abilityId: ability.id,
           targetId: targetId,
-        }),
+        },
       });
 
       if (!response.ok) throw new Error('Failed to perform battle action');
@@ -184,82 +168,47 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
   };
 
   const handleAiTurn = async () => {
-    if (!battleId) return;
+    if (!battleState?.battleId) return;
     try {
-      const response = await fetch('/api/battle/ai-turn', {
+        // The AI turn is just a special case of performAction where the server decides the ability
+      const response = await apiRequest('/api/battle/perform-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ battleId }),
+        data: {
+          battleId: battleState.battleId,
+          abilityId: -1, // Special ID to signify an AI-chosen action
+        },
       });
       if (!response.ok) throw new Error('Failed to process AI turn');
       const { battleState: newState } = await response.json();
       updateStateFromServer(newState);
     } catch (error) {
       console.error('Error on AI turn:', error);
-      setBattleState((prev) =>
-        prev
-          ? {
-              ...prev,
-              turn: 'player',
-              battleLog: [
-                ...prev.battleLog,
-                { message: 'Error during AI turn!', turn: 'system' },
-              ],
-            }
-          : null,
-      );
     }
   };
 
   const handleSwapMonster = async (monsterId: number) => {
-    if (
-      (battleState?.turn !== 'player' &&
-        battleState?.turn !== 'player-must-swap') ||
-      battleState?.battleEnded ||
-      !battleId
-    )
-      return;
-
-    const newMonsterIndex = battleState.playerTeam.findIndex(
-      (p) => p.id === monsterId,
-    );
-    if (newMonsterIndex === -1) return;
+    if (battleState?.turn !== 'player' || battleState?.battleEnded || !battleState.battleId) return;
 
     try {
-      const response = await fetch('/api/battle/swap', {
+        // Swapping is now just a special action
+      const response = await apiRequest('/api/battle/perform-action', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ battleId, newMonsterIndex }),
+        data: {
+          battleId: battleState.battleId,
+          abilityId: -2, // Special ID for a swap action
+          targetId: monsterId, // The monster to swap in
+        },
       });
 
       if (!response.ok) throw new Error('Failed to perform monster swap');
-      const battleState = await response.json();
-      updateStateFromServer(battleState);
-    } catch (error) {
+      const { battleState: newState } = await response.json();
+      updateStateFromServer(newState);
+    } catch (error)
+    {
       console.error('Error swapping monster:', error);
     }
   };
 
-  const handleForfeitTurn = async () => {
-    if (battleState?.turn !== 'player' || battleState?.battleEnded || !battleId)
-      return;
-    try {
-      const response = await fetch('/api/battle/forfeit-turn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ battleId }),
-      });
-
-      if (!response.ok) throw new Error('Failed to forfeit turn');
-      const battleState = await response.json();
-      updateStateFromServer(battleState);
-    } catch (error) {
-      console.error('Error forfeiting turn:', error);
-    }
-  };
 
   if (battleMode === 'team-select') {
     return <BattleTeamSelector onBattleStart={handleBattleStart} />;
@@ -285,11 +234,7 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
                 className="w-full mt-4 bg-green-600 hover:bg-green-700"
                 disabled={userMonster.hp <= 0 || isLoading}
               >
-                {isLoading
-                  ? 'Starting...'
-                  : userMonster.hp <= 0
-                    ? 'Fainted'
-                    : 'Choose as Lead'}
+                {isLoading ? 'Starting...' : userMonster.hp <= 0 ? 'Fainted' : 'Choose as Lead'}
               </Button>
             </div>
           ))}
@@ -298,10 +243,13 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
     );
   }
 
-  if (battleMode === 'combat' && battleState) {
+  if (battleMode === 'combat' && battleState && battleState.playerTeam.length > 0 && battleState.aiTeam.length > 0) {
+    const playerMonster = battleState.playerTeam.find(m => !m.isFainted) || battleState.playerTeam[0];
+    const opponentMonster = battleState.aiTeam.find(m => !m.isFainted) || battleState.aiTeam[0];
+
     return (
       <>
-        {battleState.turn === 'player-must-swap' && (
+        {battleState.playerTeam[0].isFainted && !battleState.battleEnded && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-red-600 text-white px-6 py-3 rounded-lg shadow-lg border-2 border-red-400 animate-pulse">
             <h3 className="text-lg font-bold text-center">
               Your monster fainted! Choose another to continue.
@@ -309,26 +257,18 @@ export default function BattleArena({ onRetreat }: BattleArenaProps) {
           </div>
         )}
         <CombatView
-          playerMonster={battleState.playerTeam[battleState.activePlayerIndex]}
-          opponentMonster={battleState.aiTeam[battleState.activeAiIndex]}
-          playerBench={battleState.playerTeam.filter(
-            (_, i) => i !== battleState.activePlayerIndex,
-          )}
-          opponentBench={battleState.aiTeam.filter(
-            (_, i) => i !== battleState.activeAiIndex,
-          )}
+          playerMonster={playerMonster}
+          opponentMonster={opponentMonster}
+          playerBench={battleState.playerTeam.filter((p) => p.id !== playerMonster.id)}
+          opponentBench={battleState.aiTeam.filter((o) => o.id !== opponentMonster.id)}
           isPlayerTurn={battleState.turn === 'player' && !battleState.battleEnded}
-          canSwap={
-            battleState.turn === 'player' ||
-            battleState.turn === 'player-must-swap'
-          }
+          canSwap={battleState.turn === 'player' && !battleState.battleEnded}
           battleLog={battleState.battleLog}
           battleEnded={battleState.battleEnded}
           winner={battleState.winner}
           logRef={logRef}
           onAbilityClick={(ability) => handlePlayerAbility(ability)}
           onSwapMonster={handleSwapMonster}
-          onForfeitTurn={handleForfeitTurn}
           onRetreat={onRetreat}
           onPlayAgain={() => setBattleMode('team-select')}
           floatingTexts={floatingTexts}

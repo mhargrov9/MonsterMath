@@ -7,7 +7,7 @@ import InterestTest from './InterestTest';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Users, Zap } from 'lucide-react';
-import { UserMonster, Ability } from '@/shared/types';
+import { UserMonster } from '@shared/types';
 
 interface BattleTeamSelectorProps {
   onBattleStart: (selectedMonsters: UserMonster[], aiOpponent: any) => void;
@@ -15,66 +15,58 @@ interface BattleTeamSelectorProps {
 
 export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   const [selectedMonsters, setSelectedMonsters] = useState<UserMonster[]>([]);
-  const [monstersWithAbilities, setMonstersWithAbilities] = useState<
-    UserMonster[]
-  >([]);
+  const [monstersWithAbilities, setMonstersWithAbilities] = useState<UserMonster[]>([]);
   const [isStartingBattle, setIsStartingBattle] = useState(false);
   const [showSubscriptionGate, setShowSubscriptionGate] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userMonsters, isLoading: loadingMonsters } = useQuery<
-    UserMonster[]
-  >({
+  const { data: userMonsters, isLoading: loadingMonsters } = useQuery<UserMonster[]>({
     queryKey: ['/api/user/monsters'],
   });
 
+  // UPDATED: Efficiently fetch all abilities in a single batch request
   useEffect(() => {
-    if (!userMonsters) return;
+    if (!userMonsters || userMonsters.length === 0) return;
 
     let isMounted = true;
-    const fetchAbilitiesForAll = async () => {
-      const abilitiesMap: Record<number, Ability[]> = {};
-      await Promise.all(
-        userMonsters.map(async (um) => {
-          try {
-            const res = await fetch(`/api/monster-abilities/${um.monster.id}`);
-            if (res.ok) {
-              abilitiesMap[um.monster.id] = await res.json();
-            }
-          } catch (e) {
-            console.error(
-              `Failed to fetch abilities for monster ${um.monster.id}`,
-              e,
-            );
-          }
-        }),
-      );
+    const fetchAbilitiesInBatch = async () => {
+      try {
+        const response = await apiRequest('/api/monsters/with-abilities', {
+          method: 'POST',
+          data: { monsters: userMonsters },
+        });
 
-      if (isMounted) {
-        const populatedMonsters = userMonsters.map((um) => ({
-          ...um,
-          monster: {
-            ...um.monster,
-            abilities: abilitiesMap[um.monster.id] || [],
-          },
-        }));
-        setMonstersWithAbilities(populatedMonsters);
+        if (!response.ok) {
+          throw new Error('Failed to fetch monster abilities');
+        }
+
+        const populatedMonsters = await response.json();
+        if (isMounted) {
+          setMonstersWithAbilities(populatedMonsters);
+        }
+      } catch (e) {
+        console.error('Failed to batch fetch abilities:', e);
+        toast({
+          title: 'Error Loading Data',
+          description: 'Could not load monster abilities. Please try again.',
+          variant: 'destructive',
+        });
       }
     };
 
-    fetchAbilitiesForAll();
+    fetchAbilitiesInBatch();
 
     return () => {
       isMounted = false;
     };
-  }, [userMonsters]);
+  }, [userMonsters, toast]);
 
   const { data: battleSlotsData } = useQuery<{ battleSlots: number }>({
     queryKey: ['/api/user/battle-slots'],
   });
 
-  const battleSlots = battleSlotsData?.battleSlots || 7; // Temporarily increased for testing
+  const battleSlots = battleSlotsData?.battleSlots || 3;
   const availableMonsters = monstersWithAbilities.filter((m) => m.hp > 0);
   const currentTPL = selectedMonsters.reduce((total, m) => total + m.level, 0);
 
@@ -148,13 +140,13 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
   if (loadingMonsters)
     return <div className="text-center p-8">Loading your monsters...</div>;
 
-  if (!loadingMonsters && availableMonsters.length === 0) {
+  if (!loadingMonsters && (!userMonsters || userMonsters.length === 0)) {
     return (
       <Card className="w-full max-w-4xl mx-auto">
         <CardContent className="p-6 text-center">
-          <h3 className="text-xl font-bold mb-4">No Available Monsters</h3>
+          <h3 className="text-xl font-bold mb-4">No Monsters in Collection</h3>
           <p className="text-muted-foreground">
-            You need healthy monsters to enter battle.
+            You need to acquire monsters before you can battle.
           </p>
         </CardContent>
       </Card>
@@ -172,7 +164,7 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
               </h2>
               <p className="text-muted-foreground">
                 Select up to {battleSlots} monsters. Your Team Power Level (TPL)
-                determines your opponent.
+                determines your opponent's strength.
               </p>
             </div>
             <div className="flex flex-col gap-2 min-w-[200px] text-right">
@@ -218,8 +210,8 @@ export function BattleTeamSelector({ onBattleStart }: BattleTeamSelectorProps) {
                     monster={userMonster.monster}
                     userMonster={userMonster}
                     size="small"
-                    onCardClick={() => handleMonsterSelect(userMonster)} // <-- PASSING THE HANDLER DIRECTLY
-                    isToggleable={false} // Prevent card from toggling itself
+                    onCardClick={() => handleMonsterSelect(userMonster)}
+                    isToggleable={false}
                   />
                 </div>
               );
