@@ -12,6 +12,11 @@ import type {
 export const battleSessions = new Map<string, BattleState>();
 const activeLocks = new Set<string>();
 
+// --- Action Type Constants ---
+const AI_ACTION_ID = -1;
+const SWAP_ACTION_ID = -2;
+
+
 // --- Public API ---
 
 export async function createBattleSession(
@@ -21,17 +26,19 @@ export async function createBattleSession(
 ): Promise<{ battleId: string; battleState: BattleState }> {
   const battleId = crypto.randomUUID();
   const playerBattleTeam = playerTeam.map((m) => _convertToBattleMonster(m, true));
-  const aiBattleTeam = aiTeam.map((m) => _convertToBattleMonster(m, false));
-  const playerLead = playerBattleTeam[playerLeadMonsterIndex];
+  const aiTeamBattleMonsters = aiTeam.map((m) => _convertToBattleMonster(m, false));
+
+  // Ensure the lead monster is at the front of the array
+  const leadMonster = playerBattleTeam[playerLeadMonsterIndex];
   const reorderedPlayerTeam = [
-    playerLead,
-    ...playerBattleTeam.filter(m => m.id !== playerLead.id)
+      leadMonster,
+      ...playerBattleTeam.filter((m) => m.id !== leadMonster.id),
   ];
 
   let initialState: BattleState = {
     battleId,
     playerTeam: reorderedPlayerTeam,
-    aiTeam: aiBattleTeam,
+    aiTeam: aiTeamBattleMonsters,
     turn: 'player',
     turnCount: 1,
     cycleComplete: false,
@@ -43,27 +50,24 @@ export async function createBattleSession(
 
   initialState = _handleStartOfBattlePassives(initialState);
 
-  // FIX: Add guard clauses to prevent crashing on empty teams.
   const playerActive = reorderedPlayerTeam[0];
-  const aiActive = aiBattleTeam[0];
+  const aiActive = aiTeamBattleMonsters[0];
 
   if (playerActive && aiActive) {
       const playerSpeed = _getModifiedStat(playerActive, 'speed');
       const aiSpeed = _getModifiedStat(aiActive, 'speed');
       initialState.turn = playerSpeed >= aiSpeed ? 'player' : 'ai';
   } else {
-      // Default to player turn if one team is empty
       initialState.turn = 'player';
   }
 
-  initialState.battleLog.push({
-    turn: 1,
-    message: `${
-      initialState.turn === 'player'
-        ? playerActive?.monster.name
-        : aiActive?.monster.name
-    } will act first!`,
-  });
+  const firstActorName = initialState.turn === 'player' ? playerActive?.monster.name : aiActive?.monster.name;
+  if(firstActorName) {
+    initialState.battleLog.push({
+      turn: 1,
+      message: `${firstActorName} will act first!`,
+    });
+  }
 
   battleSessions.set(battleId, initialState);
   return { battleId, battleState: initialState };
@@ -98,36 +102,36 @@ export async function performAction(
 
     const actor = _getActor(newState);
     if (!actor) {
-        // This can happen if the active monster faints from DoT and there's no one to swap in.
-        // End the turn gracefully.
-        const previousTurn = newState.turn;
-        newState.turn = newState.turn === 'player' ? 'ai' : 'player';
-        newState.cycleComplete = previousTurn === 'ai' && newState.turn === 'player';
-        if (newState.cycleComplete) {
-            newState.turnCount++;
-            newState.battleLog.push({ turn: newState.turnCount, message: `--- Turn ${newState.turnCount} ---` });
-        }
         battleSessions.set(battleId, newState);
         return { battleState: newState };
     }
 
     if (actor.isFainted) {
-      throw new Error('Cannot perform action with a fainted monster.');
+      // This case is for when a fainted monster is forced to act.
+      // We will add specific logic for forced swaps later.
+      // For now, we throw to satisfy tests [IV.9]
+      if (abilityId !== SWAP_ACTION_ID) {
+           throw new Error('Cannot perform action with a fainted monster.');
+      }
     }
 
     if (turnWasSkipped) {
       newState.battleLog.push({ turn: newState.turnCount, message: `${actor.monster.name}'s turn was skipped!` });
-    } else if (abilityId < 0) { // Handle special, non-ability actions like swaps or AI turns
-        // This logic can be expanded later
+    } else if (abilityId === AI_ACTION_ID) {
+        // AI logic will go here
+    } else if (abilityId === SWAP_ACTION_ID) {
+        newState = _handleSwapPhase(newState, actor, targetId);
     }
     else {
       const ability = actor.monster.abilities.find((a) => a.id === abilityId);
       if (!ability) throw new Error(`Ability ${abilityId} not found for ${actor.monster.name}.`);
       newState = await _handleActionPhase(newState, actor, ability, targetId);
-      if (newState.battleEnded) {
-        battleSessions.set(battleId, newState);
-        return { battleState: newState };
-      }
+    }
+
+    // --- End of Turn ---
+    if (newState.battleEnded) {
+      battleSessions.set(battleId, newState);
+      return { battleState: newState };
     }
 
     const actorToEnd = _getActor(newState);
@@ -157,6 +161,52 @@ export async function performAction(
 }
 
 // --- Phase Handlers ---
+
+function _handleSwapPhase(
+    battleState: BattleState,
+    actor: BattleMonster,
+    targetId?: number
+): BattleState {
+    let newState = _deepCopy(battleState);
+    const team = actor.isPlayer ? newState.playerTeam : newState.aiTeam;
+
+    const targetMonster = team.find(m => m.id === targetId);
+
+    // [IV.6] Reject if target monster does not exist
+    if (!targetMonster) {
+        throw new Error(`Swap failed: Monster with ID ${targetId} not found on the team.`);
+    }
+
+    // [IV.7] Reject if target monster is already active
+    if (targetMonster.id === actor.id) {
+        throw new Error('Swap failed: Cannot swap with the already active monster.');
+    }
+
+    // [IV.8] Reject if target monster is fainted
+    if (targetMonster.isFainted) {
+        throw new Error('Swap failed: Cannot swap to a fainted monster.');
+    }
+
+    // Perform the swap
+    const actorIndex = team.findIndex(m => m.id === actor.id);
+    const targetIndex = team.findIndex(m => m.id === targetId);
+
+    // Simple swap: move target to the front, actor to the target's original position
+    const newTeam = [...team];
+    const activeMonster = newTeam.splice(actorIndex, 1)[0];
+    const benchedMonster = newTeam.splice(targetIndex - (actorIndex < targetIndex ? 1 : 0), 1)[0];
+    newTeam.unshift(benchedMonster);
+    newTeam.push(activeMonster);
+
+    if (actor.isPlayer) {
+        newState.playerTeam = newTeam;
+    } else {
+        newState.aiTeam = newTeam;
+    }
+
+    newState.battleLog.push({ turn: newState.turnCount, message: `${actor.monster.name} retreats! Go, ${benchedMonster.monster.name}!` });
+    return newState;
+}
 
 async function _handleStartOfTurn(battleState: BattleState): Promise<{ newState: BattleState, turnWasSkipped: boolean }> {
   let newState = _deepCopy(battleState);
