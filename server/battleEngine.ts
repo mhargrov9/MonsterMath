@@ -451,20 +451,27 @@ function _convertToBattleMonster(
     userMonster: UserMonster,
     isPlayer: boolean,
 ): BattleMonster {
+    // This function now respects the "Single Source of Truth."
+    // It uses the stats from the UserMonster object, which are the
+    // authority, rather than recalculating them with its own formula.
     const monsterCopy = _deepCopy(userMonster.monster);
-    const calculateStat = (base: number) => base + (userMonster.level * 10);
-    const battleMaxHp = calculateStat(userMonster.monster.baseHp);
-    const battleMaxMp = calculateStat(userMonster.monster.baseMp);
+
+    // FIX: Use the authoritative stats from the userMonster object.
+    const battleMaxHp = userMonster.maxHp!;
+    const battleHp = userMonster.hp!;
+    const battleMaxMp = userMonster.maxMp!;
+    const battleMp = userMonster.mp!;
 
     return {
         id: userMonster.id,
         monsterId: userMonster.monsterId,
         level: userMonster.level,
-        battleHp: battleMaxHp,
+        battleHp: battleHp,
         battleMaxHp: battleMaxHp,
-        battleMp: battleMaxMp,
+        battleMp: battleMp,
         battleMaxMp: battleMaxMp,
-        isFainted: userMonster.currentHp <= 0,
+        // FIX: Check against .hp, not a non-existent property.
+        isFainted: userMonster.hp <= 0,
         isPlayer,
         monster: monsterCopy,
         statusEffects: [],
