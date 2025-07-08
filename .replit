@@ -4,6 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
+packages = ["nss", "nspr", "dbus", "atk", "at-spi2-atk", "at-spi2-core", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "mesa", "xorg.libxcb", "libxkbcommon", "alsa-lib", "cups", "cairo", "pango", "freetype", "fontconfig", "glib", "gdk-pixbuf", "gtk3"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -11,8 +12,20 @@ build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
 [[ports]]
+localPort = 3000
+externalPort = 3002
+
+[[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 6006
+externalPort = 3000
+
+[[ports]]
+localPort = 6007
+externalPort = 3001
 
 [workflows]
 runButton = "Project"

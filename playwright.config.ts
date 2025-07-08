@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:5000', // <-- UPDATED
     trace: 'on-first-retry',
   },
 
@@ -20,7 +20,7 @@ export default defineConfig({
   // Start the web server before running tests
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:5000', // <-- UPDATED
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',
     stderr: 'pipe',
