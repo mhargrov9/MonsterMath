@@ -28,7 +28,7 @@ import {
 } from '@shared/schema';
 
 import { db } from './db';
-import { eq, and, ne, sql, desc, asc, lte, gt } from 'drizzle-orm';
+import { eq, and, ne, sql, desc, asc, lte, gt, inArray } from 'drizzle-orm';
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -74,6 +74,8 @@ export interface IStorage {
   ): Promise<UserMonster>;
   shatterMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   repairMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
+  populateMonstersWithAbilities(monsters: (UserMonster & { monster: Monster })[]): Promise<any[]>;
+
 
   // Question operations
   getRandomQuestion(
@@ -892,7 +894,9 @@ export class DatabaseStorage implements IStorage {
   async getAbilitiesForMonsters(
     monsterIds: number[],
   ): Promise<Record<number, any[]>> {
-    // Perform a single efficient database query joining monsterAbilities, abilities, and status_effects tables
+    if (monsterIds.length === 0) {
+        return {};
+    }
     const results = await db
       .select({
         monsterId: monsterAbilities.monster_id,
@@ -939,15 +943,8 @@ export class DatabaseStorage implements IStorage {
       .from(monsterAbilities)
       .innerJoin(abilities, eq(monsterAbilities.ability_id, abilities.id))
       .leftJoin(statusEffects, eq(abilities.status_effect_id, statusEffects.id))
-      .where(
-        sql`${monsterAbilities.monster_id} IN (${sql.join(
-          monsterIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})`,
-      )
-      .orderBy(asc(monsterAbilities.monster_id), asc(abilities.name));
+      .where(inArray(monsterAbilities.monster_id, monsterIds));
 
-    // Process results into a map where each key is monster_id and value is array of abilities
     const abilitiesMap: Record<number, any[]> = {};
 
     for (const result of results) {
@@ -955,7 +952,6 @@ export class DatabaseStorage implements IStorage {
         abilitiesMap[result.monsterId] = [];
       }
 
-      // Create effectDetails object if status effect exists
       const effectDetails = result.effectId
         ? {
             id: result.effectId,
@@ -977,7 +973,6 @@ export class DatabaseStorage implements IStorage {
         description: result.description,
         ability_type: result.abilityType,
         mp_cost: result.mpCost,
-        // Prioritize the override_affinity from the monster_abilities join table
         affinity: result.overrideAffinity || result.affinity,
         power_multiplier: result.powerMultiplier,
         scaling_stat: result.scalingStat,
@@ -1007,10 +1002,22 @@ export class DatabaseStorage implements IStorage {
     return abilitiesMap;
   }
 
-  async saveFinalBattleState(playerTeam: UserMonster[]): Promise<void> {
-    if (playerTeam.length === 0) return;
+  async populateMonstersWithAbilities(monsters: (UserMonster & { monster: Monster })[]) {
+      const monsterIds = monsters.map(m => m.monsterId);
+      const abilitiesMap = await this.getAbilitiesForMonsters(monsterIds);
 
-    // Execute all monster updates within a single database transaction
+      const populated = monsters.map(m => ({
+          ...m,
+          monster: {
+              ...m.monster,
+              abilities: abilitiesMap[m.monsterId] || []
+          }
+      }));
+      return populated;
+  }
+
+  async saveFinalBattleState(playerTeam: any[]): Promise<void> {
+    if (playerTeam.length === 0) return;
     await db.transaction(async (tx) => {
       await Promise.all(
         playerTeam.map((monster) =>
