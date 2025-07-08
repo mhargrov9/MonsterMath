@@ -1,54 +1,44 @@
-# Top-level configurations
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
-onBoot = "nix-env -iA nixpkgs.curl"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
+# .replit
+entrypoint = "server/index.ts"
+modules = ["nodejs-20:v1-20230825-f033103"]
+hidden = [".config", "package-lock.json"]
 
-# Nix configuration table
 [nix]
-channel = "stable-24_05"
-packages = ["zip"]
+channel = "stable-23.11"
+deps = [
+  "pkgs.nss",
+  "pkgs.nspr",
+  "pkgs.alsa-lib",
+  "pkgs.libxss",
+  "pkgs.libxkbcommon",
+  "pkgs.xorg.libxcomposite",
+  "pkgs.xorg.libxfixes",
+  "pkgs.xorg.libxrandr",
+  "pkgs.xorg.libxdamage",
+  "pkgs.xorg.libxext",
+  "pkgs.xorg.libxshmfence",
+  "pkgs.at-spi2-core",
+  "pkgs.at-spi2-atk",
+  "pkgs.atk",
+  "pkgs.cairo",
+  "pkgs.cups",
+  "pkgs.dbus",
+  "pkgs.expat",
+  "pkgs.fontconfig",
+  "pkgs.freetype",
+  "pkgs.gdk-pixbuf",
+  "pkgs.glib",
+  "pkgs.harfbuzz",
+  "pkgs.pango",
+  "pkgs.udev",
+  "pkgs.gtk3",
+  "pkgs.xorg.libX11",
+]
 
-# Deployment configuration table
 [deployment]
-deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
+deploymentTarget = "cloudrun"
 
-[[ports]]
-localPort = 3000
-externalPort = 3002
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 6006
-externalPort = 3000
-
-[[ports]]
-localPort = 6007
-externalPort = 3001
-
-# Workflows configuration
-[workflows]
-runButton = "Project"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+[server]
+command = ["npm", "run", "dev"]
