@@ -561,6 +561,16 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - npm run build-storybook creates production-ready static files in storybook-static directory
   - Existing MonsterCard.stories.tsx working with comprehensive story variants
   - Complete Storybook development environment ready for visual component testing
+- July 8, 2025: OpenID Client v6+ Authentication Fix
+  - Fixed critical server startup crash caused by openid-client library ES Module compatibility issues
+  - Resolved "TypeError: Issuer is not a constructor" error in server/replitAuth.ts
+  - Migrated from deprecated openid-client v5 API to modern v6+ API structure
+  - Replaced Issuer constructor with discovery() function for authentication configuration
+  - Created custom ReplitOAuthStrategy class compatible with new openid-client v6+ API
+  - Updated all authentication endpoints to use new function-based API (authorizationCodeGrant, buildAuthorizationUrl, etc.)
+  - Fixed refresh token and logout functionality for openid-client v6+ compatibility
+  - Server now starts successfully without authentication-related crashes
+  - Maintains full dual authentication support (Replit OAuth + local username/password)
 - July 7, 2025: Integration Test Data Structure Fix - abilities_map Array Consistency
   - Fixed critical "targetAbilities is not iterable" error preventing integration tests from running
   - Ensured all abilities_map entries are arrays instead of mixed single objects and arrays

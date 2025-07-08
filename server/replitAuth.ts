@@ -1,28 +1,36 @@
-import * as client from 'openid-client';
-import { Strategy, type VerifyFunction } from 'openid-client/passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import bcrypt from 'bcrypt';
-
 import passport from 'passport';
 import session from 'express-session';
 import type { Express, RequestHandler } from 'express';
-import memoize from 'memoizee';
 import connectPg from 'connect-pg-simple';
 import { storage } from './storage';
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error('Environment variable REPLIT_DOMAINS not provided');
+// Global variables to hold the openid-client components
+let authorizationCodeGrant: any;
+let buildAuthorizationUrl: any;
+let buildEndSessionUrl: any;
+let refreshTokenGrant: any;
+let fetchUserInfo: any;
+let issuerConfig: any;
+
+// Initialize openid-client components
+async function initializeOpenIdClient() {
+  const openidClient = await import('openid-client');
+  
+  // In openid-client v6+, use these functions directly
+  authorizationCodeGrant = openidClient.authorizationCodeGrant;
+  buildAuthorizationUrl = openidClient.buildAuthorizationUrl;
+  buildEndSessionUrl = openidClient.buildEndSessionUrl;
+  refreshTokenGrant = openidClient.refreshTokenGrant;
+  fetchUserInfo = openidClient.fetchUserInfo;
+  
+  // Use discovery to get the issuer configuration
+  issuerConfig = await openidClient.discovery(new URL('https://replit.com/oidc'), process.env.REPL_ID!, {
+    algorithm: 'none',
+  });
 }
 
-const getOidcConfig = memoize(
-  async () => {
-    return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? 'https://replit.com/oidc'),
-      process.env.REPL_ID!,
-    );
-  },
-  { maxAge: 3600 * 1000 },
-);
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
@@ -48,53 +56,61 @@ export function getSession() {
 
 function updateUserSession(
   user: any,
-  tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
+  tokens: TokenSet,
 ) {
   user.claims = tokens.claims();
   user.access_token = tokens.access_token;
   user.refresh_token = tokens.refresh_token;
-  user.expires_at = user.claims?.exp;
+  user.expires_at = tokens.expires_at;
 }
 
-async function upsertUser(claims: any) {
+async function upsertUser(claims: UserinfoResponse) {
   await storage.upsertUser({
-    id: claims['sub'],
-    email: claims['email'],
-    firstName: claims['first_name'],
-    lastName: claims['last_name'],
-    profileImageUrl: claims['profile_image_url'],
+    id: claims.sub,
+    email: claims.email,
+    firstName: claims.name,
+    profileImageUrl: claims.picture,
   });
 }
 
 export async function setupAuth(app: Express) {
+  // Initialize openid-client components first
+  await initializeOpenIdClient();
+  
   app.set('trust proxy', 1);
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
-
-  // Local Strategy for username/password
+  // Local Strategy for username/password with debugging
   passport.use(
     new LocalStrategy(
       { usernameField: 'username', passwordField: 'password' },
-      async (username: string, password: string, done) => {
+      async (username, password, done) => {
         try {
+          console.log(`[AUTH DEBUG] Attempting to authenticate user: ${username}`);
           const user = await storage.getUserByUsername(username);
+
           if (!user || !user.passwordHash) {
+            console.log(`[AUTH DEBUG] User not found or no password hash for: ${username}`);
             return done(null, false, {
               message: 'Invalid username or password',
             });
           }
 
+          console.log(`[AUTH DEBUG] User found: ${user.id}. Comparing password...`);
           const isValid = await bcrypt.compare(password, user.passwordHash);
+          console.log(`[AUTH DEBUG] Password validation result for ${username}: ${isValid}`);
+
           if (!isValid) {
+            console.log(`[AUTH DEBUG] Password incorrect for ${username}.`);
             return done(null, false, {
               message: 'Invalid username or password',
             });
           }
 
-          // Create session user object for local accounts
+          console.log(`[AUTH DEBUG] Authentication successful for ${username}.`);
+
           const sessionUser = {
             claims: {
               sub: user.id,
@@ -108,33 +124,70 @@ export async function setupAuth(app: Express) {
 
           return done(null, sessionUser);
         } catch (error) {
+          console.error('[AUTH DEBUG] Error in LocalStrategy:', error);
           return done(error);
         }
       },
     ),
   );
 
-  // Replit OAuth Strategy
-  const verify: VerifyFunction = async (
-    tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
-    verified: passport.AuthenticateCallback,
-  ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
-  };
+  // Custom Replit OAuth Strategy for openid-client v6+
+  class ReplitOAuthStrategy extends passport.Strategy {
+    constructor(public domain: string) {
+      super();
+      this.name = `replitauth:${domain}`;
+    }
 
-  for (const domain of process.env.REPLIT_DOMAINS!.split(',')) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: 'openid email profile offline_access',
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
+    authenticate(req: any, options: any) {
+      if (req.query.code) {
+        // Handle callback
+        this.handleCallback(req, options);
+      } else {
+        // Redirect to authorization
+        this.redirectToAuth(req, options);
+      }
+    }
+
+    async redirectToAuth(req: any, options: any) {
+      try {
+        const authUrl = buildAuthorizationUrl(issuerConfig, process.env.REPL_ID!, {
+          redirect_uri: `https://${this.domain}/api/callback`,
+          scope: 'openid email profile offline_access',
+          state: 'random-state',
+        });
+        
+        this.redirect(authUrl.href);
+      } catch (err) {
+        this.error(err);
+      }
+    }
+
+    async handleCallback(req: any, options: any) {
+      try {
+        const tokenResponse = await authorizationCodeGrant(
+          issuerConfig,
+          process.env.REPL_ID!,
+          req.query.code,
+          `https://${this.domain}/api/callback`,
+          'none'
+        );
+
+        const userInfo = await fetchUserInfo(issuerConfig, tokenResponse.access_token);
+        
+        const user: any = { ...userInfo };
+        updateUserSession(user, tokenResponse);
+        await upsertUser(userInfo);
+        
+        this.success(user);
+      } catch (err) {
+        this.error(err);
+      }
+    }
+  }
+
+  for (const domain of (process.env.REPLIT_DOMAINS ?? '').split(',')) {
+    if (!domain) continue;
+    const strategy = new ReplitOAuthStrategy(domain);
     passport.use(strategy);
   }
 
@@ -167,7 +220,7 @@ export async function setupAuth(app: Express) {
   app.get('/api/logout', (req, res) => {
     req.logout(() => {
       res.redirect(
-        client.buildEndSessionUrl(config, {
+        buildEndSessionUrl(issuerConfig, {
           client_id: process.env.REPL_ID!,
           post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
         }).href,
@@ -183,12 +236,10 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // For local accounts, skip token expiration checks
   if (user.authProvider === 'local') {
     return next();
   }
 
-  // For OAuth accounts, check token expiration
   if (!user.expires_at) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -205,8 +256,7 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   }
 
   try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+    const tokenResponse = await refreshTokenGrant(issuerConfig, process.env.REPL_ID!, refreshToken);
     updateUserSession(user, tokenResponse);
     return next();
   } catch (error) {

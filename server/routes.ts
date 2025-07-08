@@ -3,7 +3,6 @@ import express from 'express';
 import { createServer, type Server } from 'http';
 import { storage } from './storage';
 import { setupAuth, isAuthenticated } from './replitAuth';
-import { veoClient } from './veoApi';
 import {
   createBattleSession,
   performAction,
@@ -34,14 +33,6 @@ const validateMonsterId = (id: any): number => {
   return parsed;
 };
 
-const validateLevel = (level: any): number => {
-  const parsed = parseInt(level);
-  if (isNaN(parsed) || parsed < 1 || parsed > 10) {
-    throw new Error('Invalid level (must be 1-10)');
-  }
-  return parsed;
-};
-
 const validateTPL = (tpl: any): number => {
   const parsed = parseInt(tpl);
   if (isNaN(parsed) || parsed < 1) {
@@ -51,6 +42,10 @@ const validateTPL = (tpl: any): number => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Add middleware to parse JSON and URL-encoded bodies.
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
   // Serve uploaded monster assets
   app.use('/assets', (req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -133,7 +128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Efficiently get monsters with their abilities populated
   app.post('/api/monsters/with-abilities', isAuthenticated, async (req: any, res) => {
       try {
         const userMonsters = req.body.monsters;
@@ -196,13 +190,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const { battleId, abilityId, targetId } = req.body;
 
-        if (!battleId || !abilityId) {
+        if (!battleId || abilityId === undefined) {
           return res.status(400).json({
             message: 'Missing required battle data (battleId, abilityId)',
           });
         }
 
-        // Correctly call the single action handler from the engine
         const actionResult = await performAction(battleId, abilityId, targetId);
         res.json(actionResult);
       } catch (error) {
