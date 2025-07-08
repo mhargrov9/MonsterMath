@@ -33,6 +33,15 @@ const config: StorybookConfig = {
         alias: {
           '@': path.resolve(__dirname, '../client/src'),
           '@shared': path.resolve(__dirname, '../shared'),
+          '@assets': path.resolve(__dirname, '../attached_assets'),
+        },
+      },
+      css: {
+        postcss: {
+          plugins: [
+            require('tailwindcss'),
+            require('autoprefixer'),
+          ],
         },
       },
     });
