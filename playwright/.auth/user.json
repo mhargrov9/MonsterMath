@@ -1,4 +1,25 @@
 {
-  "cookies": [],
+  "cookies": [
+    {
+      "name": "__cf_bm",
+      "value": "sNPrxJAdyS2uArNQCQao8gJYh_8SoxROFUWXnIRaZhs-1752023341-1.0.1.1-LQ_bjdYWen1lNgfaBrqsHI3Lb9tF4C6T556BxxvkZtRYnIR5rw4Fps7YlpKEIiTbsln0VSttJNbKFnzNHwiUFZ1Nv0citbmwY0XQKNDnjfE",
+      "domain": ".replit.com",
+      "path": "/",
+      "expires": 1752025141.593629,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "None"
+    },
+    {
+      "name": "connect.sid",
+      "value": "s%3AHovNSmdK3CyowRB9LGLkWe5vjgjr3BtO.Pyr2oBAE3Mhqa5M99kuFRCQqvR2hvDx3uYdv1ddPDaY",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1752628143.915023,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
   "origins": []
 }

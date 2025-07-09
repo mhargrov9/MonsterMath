@@ -33,13 +33,14 @@ export default defineConfig({
         storageState: STORAGE_STATE,
       },
       dependencies: ['setup'],
+      testIgnore: /auth\.setup\.ts/,
     },
   ],
 
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     stdout: 'ignore',
     stderr: 'pipe',
   },
