@@ -571,6 +571,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed refresh token and logout functionality for openid-client v6+ compatibility
   - Server now starts successfully without authentication-related crashes
   - Maintains full dual authentication support (Replit OAuth + local username/password)
+- July 9, 2025: E2E Test Authentication Fix
+  - Fixed critical PostgreSQL constraint violation in resetTestUser function
+  - Added unique ID generation logic copied from createLocalUser function
+  - Updated resetTestUser to include userId generation using timestamp + random string pattern
+  - Fixed "null value in column 'id' violates not-null constraint" error preventing E2E test execution
+  - E2E test authentication setup now working correctly with successful user reset and login
+  - All E2E tests (smoke, healing, auth setup) now execute properly with authentic database operations
 - July 7, 2025: Integration Test Data Structure Fix - abilities_map Array Consistency
   - Fixed critical "targetAbilities is not iterable" error preventing integration tests from running
   - Ensured all abilities_map entries are arrays instead of mixed single objects and arrays

@@ -1074,13 +1074,17 @@ export class DatabaseStorage implements IStorage {
     // Delete the user if they exist
     await db.delete(users).where(eq(users.username, username));
 
-    // Re-create the user with a fresh password hash
+    // Re-create the user with a fresh password hash and unique ID
     const passwordHash = await bcrypt.hash(pass, 10);
+    const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const [newUser] = await db.insert(users).values({
+      id: userId,
       username,
       email,
       passwordHash,
-      authProvider: 'local'
+      authProvider: 'local',
+      gold: 500,
+      diamonds: 0,
     }).returning();
 
     return newUser;
