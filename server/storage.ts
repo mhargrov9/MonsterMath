@@ -29,6 +29,7 @@ import {
 import { type BattleMonster } from '@shared/types';
 import { db } from './db';
 import { eq, and, ne, sql, desc, asc, lte, gt, inArray } from 'drizzle-orm';
+import bcrypt from 'bcrypt';
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -75,7 +76,6 @@ export interface IStorage {
   shatterMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   repairMonster(userId: string, userMonsterId: number): Promise<UserMonster>;
   populateMonstersWithAbilities(monsters: (UserMonster & { monster: Monster })[]): Promise<any[]>;
-
 
   // Question operations
   getRandomQuestion(
@@ -155,6 +155,9 @@ export interface IStorage {
   // AI Trainer operations
   getAllAiTrainers(): Promise<AiTeam[]>;
   createAiTrainer(trainer: InsertAiTeam): Promise<AiTeam>;
+
+  // Test-only operations
+  resetTestUser(username: string, email: string, pass: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -255,6 +258,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(monsters, eq(userMonsters.monsterId, monsters.id))
       .where(eq(userMonsters.userId, userId))
       .orderBy(desc(userMonsters.acquiredAt));
+
     return results.map((r) => ({ ...r.user_monsters, monster: r.monsters }));
   }
 
@@ -266,11 +270,15 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(monsters)
       .where(eq(monsters.id, monsterId));
+
     if (!monster) throw new Error('Monster not found');
+
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new Error('User not found');
+
     if (user.gold < monster.goldCost || user.diamonds < monster.diamondCost)
       throw new Error('Insufficient currency');
+
     const [userMonster] = await db
       .insert(userMonsters)
       .values({
@@ -285,6 +293,7 @@ export class DatabaseStorage implements IStorage {
         maxMp: monster.baseMp,
       })
       .returning();
+
     await this.updateUserCurrency(
       userId,
       -monster.goldCost,
@@ -310,6 +319,7 @@ export class DatabaseStorage implements IStorage {
           eq(userMonsters.userId, userId),
         ),
       );
+
     if (!userMonster) throw new Error('Monster not found or not owned by user');
     if (userMonster.level >= MAX_LEVEL)
       throw new Error('Monster is already at maximum level');
@@ -337,6 +347,7 @@ export class DatabaseStorage implements IStorage {
     const newPower = Math.floor(userMonster.power * 1.1);
     const newSpeed = Math.floor(userMonster.speed * 1.1);
     const newDefense = Math.floor(userMonster.defense * 1.1);
+
     const newMaxHp =
       baseMonster.baseHp + baseMonster.hpPerLevel * (newLevel - 1);
     const newMaxMp =
@@ -381,14 +392,19 @@ export class DatabaseStorage implements IStorage {
           eq(userMonsters.userId, userId),
         ),
       );
+
     if (!userMonster) throw new Error('Monster not found');
+
     await this.updateUserCurrency(userId, -goldCost, -diamondCost);
+
     const currentChoices =
       (userMonster.upgradeChoices as Record<string, any>) || {};
     const newChoices = { ...currentChoices, [upgradeKey]: upgradeValue };
+
     const newPower = userMonster.power + (statBoosts.power || 0);
     const newSpeed = userMonster.speed + (statBoosts.speed || 0);
     const newDefense = userMonster.defense + (statBoosts.defense || 0);
+
     const [upgraded] = await db
       .update(userMonsters)
       .set({
@@ -400,6 +416,7 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(userMonsters.id, userMonsterId))
       .returning();
+
     return upgraded;
   }
 
@@ -455,11 +472,14 @@ export class DatabaseStorage implements IStorage {
           eq(userMonsters.userId, userId),
         ),
       );
+
     if (userMonstersWithBase.length === 0)
       throw new Error('Monster not found or not owned by user');
+
     const { user_monsters: userMonster, monsters: monster } =
       userMonstersWithBase[0];
     const maxHp = userMonster.maxHp || monster?.baseHp || 400;
+
     const [updated] = await db
       .update(userMonsters)
       .set({ hp: maxHp, isShattered: false })
@@ -484,12 +504,14 @@ export class DatabaseStorage implements IStorage {
           eq(abilities.id, monsterAbilities.ability_id),
         )
         .where(eq(monsterAbilities.monster_id, monsterId));
+
       const processedAbilities = result.map(
         ({ abilities, monster_abilities }) => ({
           ...abilities,
           affinity: monster_abilities.override_affinity || abilities.affinity,
         }),
       );
+
       return processedAbilities;
     } catch (error) {
       console.error('Database error in getMonsterAbilities:', error);
@@ -505,6 +527,7 @@ export class DatabaseStorage implements IStorage {
     const subjectFilter =
       subject === 'mixed' ? sql`true` : eq(questions.subject, subject);
     let excludeFilter = sql`true`;
+
     if (userId) {
       const user = await this.getUser(userId);
       if (user && user.answeredQuestionIds) {
@@ -517,6 +540,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
     }
+
     const [question] = await db
       .select()
       .from(questions)
@@ -534,8 +558,10 @@ export class DatabaseStorage implements IStorage {
   ): Promise<void> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) return;
+
     const currentAnswered =
       ((user as any).answeredQuestionIds as number[]) || [];
+
     if (!currentAnswered.includes(questionId)) {
       const updatedAnswered = [...currentAnswered, questionId];
       await db
@@ -611,10 +637,12 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getInventoryItem(userId, itemName);
     if (!existing) throw new Error('Item not found in inventory');
     const newQuantity = existing.quantity + quantityDelta;
+
     if (newQuantity <= 0) {
       await this.removeInventoryItem(userId, itemName);
       throw new Error('Item removed from inventory');
     }
+
     const [updated] = await db
       .update(inventory)
       .set({ quantity: newQuantity })
@@ -679,12 +707,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(monsters)
       .where(eq(monsters.starterSet, false));
+
     if (monsterPool.length === 0) {
       monsterPool = await db
         .select()
         .from(monsters)
         .where(eq(monsters.starterSet, true));
     }
+
     if (monsterPool.length === 0) {
       throw new Error(
         'There are no monsters in the database to generate a team.',
@@ -696,7 +726,6 @@ export class DatabaseStorage implements IStorage {
     while (selectedTeamIndexes.size < actualTeamSize) {
       selectedTeamIndexes.add(Math.floor(Math.random() * monsterPool.length));
     }
-
     const teamMonsters = Array.from(selectedTeamIndexes).map(
       (index) => monsterPool[index],
     );
@@ -708,7 +737,6 @@ export class DatabaseStorage implements IStorage {
         const level = Math.max(1, Math.round(tplPerMonster / 10));
         const hp = monster.baseHp + monster.hpPerLevel * (level - 1);
         const mp = monster.baseMp + monster.mpPerLevel * (level - 1);
-
         // Fetch abilities for the current monster
         const monsterAbilities = await this.getMonsterAbilities(monster.id);
 
@@ -755,9 +783,12 @@ export class DatabaseStorage implements IStorage {
   ): Promise<{ user: User; cost: number }> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new Error('User not found');
+
     const currentSlots = user.battleSlots || 3;
     const cost = 100 * Math.pow(2, currentSlots - 3);
+
     if (user.gold < cost) throw new Error('Insufficient gold');
+
     const [updated] = await db
       .update(users)
       .set({
@@ -798,8 +829,10 @@ export class DatabaseStorage implements IStorage {
     if (!user) throw new Error('User not found');
     const now = new Date();
     const lastRefresh = new Date(user.battleTokensLastRefresh);
+
     const hoursSinceRefresh =
       (now.getTime() - lastRefresh.getTime()) / (1000 * 60 * 60);
+
     if (hoursSinceRefresh >= 24) {
       const [updatedUser] = await db
         .update(users)
@@ -814,6 +847,7 @@ export class DatabaseStorage implements IStorage {
   async spendBattleToken(userId: string): Promise<User> {
     const user = await this.refreshBattleTokens(userId);
     if (user.battleTokens <= 0) throw new Error('NO_BATTLE_TOKENS');
+
     const [updatedUser] = await db
       .update(users)
       .set({ battleTokens: user.battleTokens - 1 })
@@ -855,7 +889,6 @@ export class DatabaseStorage implements IStorage {
   }> {
     const user = await this.getUser(userId);
     if (!user) throw new Error('User not found');
-
     const userXp = user.rank_xp;
 
     const [currentRank] = await db
@@ -895,7 +928,7 @@ export class DatabaseStorage implements IStorage {
     monsterIds: number[],
   ): Promise<Record<number, any[]>> {
     if (monsterIds.length === 0) {
-        return {};
+      return {};
     }
     const results = await db
       .select({
@@ -1003,20 +1036,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async populateMonstersWithAbilities(monsters: (UserMonster & { monster: Monster })[]) {
-      if (!monsters || monsters.length === 0) {
-          return [];
-      }
-      const monsterIds = monsters.map(m => m.monsterId);
-      const abilitiesMap = await this.getAbilitiesForMonsters(monsterIds);
+    if (!monsters || monsters.length === 0) {
+      return [];
+    }
+    const monsterIds = monsters.map(m => m.monsterId);
+    const abilitiesMap = await this.getAbilitiesForMonsters(monsterIds);
 
-      const populated = monsters.map(m => ({
-          ...m,
-          monster: {
-              ...m.monster,
-              abilities: abilitiesMap[m.monsterId] || []
-          }
-      }));
-      return populated;
+    const populated = monsters.map(m => ({
+      ...m,
+      monster: {
+        ...m.monster,
+        abilities: abilitiesMap[m.monsterId] || []
+      }
+    }));
+
+    return populated;
   }
 
   async saveFinalBattleState(playerTeam: BattleMonster[]): Promise<void> {
@@ -1034,6 +1068,22 @@ export class DatabaseStorage implements IStorage {
         ),
       );
     });
+  }
+
+  async resetTestUser(username: string, email: string, pass: string): Promise<User> {
+    // Delete the user if they exist
+    await db.delete(users).where(eq(users.username, username));
+
+    // Re-create the user with a fresh password hash
+    const passwordHash = await bcrypt.hash(pass, 10);
+    const [newUser] = await db.insert(users).values({
+      username,
+      email,
+      passwordHash,
+      authProvider: 'local'
+    }).returning();
+
+    return newUser;
   }
 }
 

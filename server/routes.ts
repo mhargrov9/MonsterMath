@@ -219,6 +219,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  // Add a new route specifically for test setup
+  app.post('/api/test/reset', async (req, res) => {
+    try {
+      const { username, email, password } = req.body;
+      await storage.resetTestUser(username, email, password);
+      res.status(200).json({ message: 'Test user reset successfully.' });
+    } catch (error) {
+      handleError(error, res, 'Failed to reset test user');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

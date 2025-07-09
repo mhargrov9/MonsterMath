@@ -4,19 +4,22 @@ import { STORAGE_STATE } from '../playwright.config';
 const authFile = STORAGE_STATE;
 const username = 'testuser';
 const password = 'password';
+const email = 'testuser@example.com';
 
-setup('authenticate via API', async ({ request }) => {
-  // Send a direct API request to the login endpoint as a JSON payload
+setup('create or reset and then authenticate test user', async ({ request }) => {
+  // Step 1: Hit our dedicated test endpoint to ensure the user exists with a clean slate.
+  await request.post('/api/test/reset', {
+    data: { username, email, password }
+  });
+
+  // Step 2: Now that the user is guaranteed to exist with the correct password, log in.
   const response = await request.post('/api/login/local', {
-    data: {
-      username: username,
-      password: password,
-    }
+    data: { username, password }
   });
 
   // Check that the login was successful.
-  expect(response.ok()).toBeTruthy();
+  expect(response.ok(), 'API login after reset should be successful').toBeTruthy();
 
-  // Save the returned authentication state (cookies) to the file.
+  // Save the successful authentication state.
   await request.storageState({ path: authFile });
 });
