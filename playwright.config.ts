@@ -10,8 +10,9 @@ export const STORAGE_STATE = path.join(__dirname, 'playwright/.auth/user.json');
 
 export default defineConfig({
   testDir: './e2e',
-  fullyParallel: true,
+  fullyParallel: false,
   reporter: 'html',
+  timeout: 30000,
   use: {
     baseURL: 'http://localhost:5000',
     trace: 'on-first-retry',

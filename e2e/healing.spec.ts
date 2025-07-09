@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test('can use a healing ability on an ally', async ({ page }) => {
-  // 1. Navigate directly to the Battle Arena as a logged-in user
-  await page.goto('/battle-arena');
+  // 1. Navigate to home page and click Battle Arena tab
+  await page.goto('/');
+  await page.getByRole('button', { name: 'BATTLE ARENA' }).click();
 
   // 2. Select a team with a healer (River-Spirit Axolotl)
   await expect(page.getByRole('heading', { name: 'Assemble Your Battle Team' })).toBeVisible();
