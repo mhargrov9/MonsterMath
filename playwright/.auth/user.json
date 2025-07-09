@@ -2,20 +2,20 @@
   "cookies": [
     {
       "name": "__cf_bm",
-      "value": "rCDYbgZwHipNiaOAOi9kxJAvyuDRMHMOpWMNoiRF6o4-1752025555-1.0.1.1-G.SgkQ8nmMr3_.gEcG6qeyVM_AE0PQjCJo5J2EuhL5wSligJAxg5BA5_EYErQym_FczFvg43OdIhqa_3EnVybLsN2JEWNpxKa_4wjHpT1WE",
+      "value": "EjKhv_75zLIzQjnuuh_EMzffgta5UZXPjZVa8DrD1Y8-1752075778-1.0.1.1-kDHBQwWaqa5BzxU.8XvlrI6qOpUIxnLCsr8XGQFFoJthKR4qEuaf_lXhctS8BElK9B6aLtSaG6lWzihuf8MULm01ngbvbPFiB4LiA5AjNYE",
       "domain": ".replit.com",
       "path": "/",
-      "expires": 1752027355.835645,
+      "expires": 1752077578.283867,
       "httpOnly": true,
       "secure": true,
       "sameSite": "None"
     },
     {
       "name": "connect.sid",
-      "value": "s%3ALg6Ce6vjE2FJdVUj_t8bNp40qQLg-VQX.jKe5IQOQkFxraylCDtsJOGxmq9aXz1WU%2FOPb5GwaImE",
+      "value": "s%3ATpnb7IUsMMNFk1aPiKGrSA-LiGXsbZfd.QFYSgGiOLFsS4pfmNQ2zSw9VhiW1WiCEiBMB%2Bgyyez4",
       "domain": "localhost",
       "path": "/",
-      "expires": 1752630357.181951,
+      "expires": 1752680579.751746,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
