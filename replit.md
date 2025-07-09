@@ -578,6 +578,13 @@ Primal Rift is a full-stack educational gaming platform that combines learning w
   - Fixed "null value in column 'id' violates not-null constraint" error preventing E2E test execution
   - E2E test authentication setup now working correctly with successful user reset and login
   - All E2E tests (smoke, healing, auth setup) now execute properly with authentic database operations
+- July 9, 2025: E2E Test JSON Request Format Fix
+  - Fixed Playwright test request format issue in auth.setup.ts causing "data and salt arguments required" bcrypt error
+  - Updated E2E test to send proper JSON requests with Content-Type headers instead of form data
+  - Changed from data: { username, email, password } to data: JSON.stringify({ username, email, password })
+  - Added proper Content-Type: application/json headers for both reset and login endpoints
+  - E2E authentication setup test now passes successfully with 740ms execution time
+  - Complete E2E testing infrastructure now fully operational with proper request/response handling
 - July 7, 2025: Integration Test Data Structure Fix - abilities_map Array Consistency
   - Fixed critical "targetAbilities is not iterable" error preventing integration tests from running
   - Ensured all abilities_map entries are arrays instead of mixed single objects and arrays
